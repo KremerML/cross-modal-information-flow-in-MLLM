@@ -1,0 +1,7 @@
+{
+  "python.analysis.extraPaths": [
+    "./LLaVA-NeXT"
+  ],
+  "python.analysis.indexing": true,
+  "python.analysis.autoImportCompletions": true
+}

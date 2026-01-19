@@ -74,6 +74,9 @@ For the images, please download from [here](https://downloads.cs.stanford.edu/nl
    
 4. Run `sbatch scripts/last_position_answer_prob.sh`
 
+# SAE-based attribute binding experiments
+See `README_SAE_EXPERIMENT.md` for the SAE pipeline, configs, and scripts.
+
 # Visulization
 if you want to merge several lines into one figure, you can run `python vil/merge_lineplot.py`.
 

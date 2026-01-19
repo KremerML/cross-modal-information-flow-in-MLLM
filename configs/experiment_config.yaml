@@ -1,0 +1,13 @@
+dataset:
+  task_types: ["ChooseAttr", "ChooseRel"]
+  split: "validation"
+  refined_dataset: "datasets/GQA_val_correct_question_with_choose_ChooseAttr.csv"
+  image_folder: "datasets/images"
+feature_identification:
+  discrimination_threshold: 2.0
+  min_activation: 0.1
+ablation:
+  n_random_features: 50
+  n_bootstrap: 1000
+evaluation:
+  significance_level: 0.05

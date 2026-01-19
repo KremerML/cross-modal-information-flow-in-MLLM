@@ -24,8 +24,8 @@ current_block_desc="Question->Last"
 #models
 #model_path="liuhaotian/llava-v1.6-vicuna-7b" convmode="vicuna_v1"
 #model_path="lmms-lab/llama3-llava-next-8b"  convmode="llava_llama_3"
-#model_path="liuhaotian/llava-v1.5-7b"   convmode="vicuna_v1"
-model_path="liuhaotian/llava-v1.5-13b"   convmode="vicuna_v1"
+model_path="liuhaotian/llava-v1.5-7b"   convmode="vicuna_v1"
+#model_path="liuhaotian/llava-v1.5-13b"   convmode="vicuna_v1"
 
 #dataset
 dataset=datasets/GQA_val_correct_question_with_choose_ChooseAttr.csv
@@ -35,7 +35,7 @@ dataset=datasets/GQA_val_correct_question_with_choose_ChooseAttr.csv
 #dataset=datasets/GQA_val_correct_question_with_relChooser_ChooseRel.csv
 #dataset=datasets/GQA_val_correct_question_with_categoryThatThisChoose_objThisChoose_ChooseCat.csv
 
-imagefolder=../datasets/gqa/images/
+imagefolder=datasets/images/
 
 
 
@@ -55,8 +55,7 @@ echo "Using model: $model_name"
 echo "Using dataset: $dataset_name"
 
 
-
-source activate llava
+source LLaVA-NeXT/.venv/bin/activate
 python InformationFlow.py \
         --model-path $model_path \
         --image-folder $imagefolder \
