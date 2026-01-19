@@ -2,10 +2,16 @@
 
 import argparse
 import os
+from pathlib import Path
+import sys
 
 import torch
 from llava.model.builder import load_pretrained_model
 from llava.mm_utils import get_model_name_from_path
+
+ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.append(str(ROOT))
 
 from sae_experiments.config.sae_config import load_config
 from sae_experiments.data.attribute_dataset import AttributeVQADataset
