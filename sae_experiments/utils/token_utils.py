@@ -61,16 +61,63 @@ ATTRIBUTE_VOCAB = {
     ],
 }
 
+MULTIWORD_ATTRIBUTES = {
+    "state": [
+        "short sleeved",
+        "long sleeved",
+    ],
+    "color": [
+        "dark brown",
+        "light brown",
+        "dark blue",
+        "light blue",
+        "dark green",
+        "light green",
+        "dark gray",
+        "light gray",
+        "dark grey",
+        "light grey",
+    ],
+}
+
 
 def extract_attribute_words(question: str) -> List[Tuple[str, str, int]]:
     """Return list of (word, category, index) for attribute words."""
     tokens = re.findall(r"[a-zA-Z']+", question.lower())
     found = []
-    for idx, word in enumerate(tokens):
+    i = 0
+    while i < len(tokens):
+        matched = False
+        for category, phrases in MULTIWORD_ATTRIBUTES.items():
+            for phrase in phrases:
+                phrase_tokens = phrase.split()
+                if tokens[i : i + len(phrase_tokens)] == phrase_tokens:
+                    found.append((phrase, category, i))
+                    i += len(phrase_tokens)
+                    matched = True
+                    break
+            if matched:
+                break
+        if matched:
+            continue
+        word = tokens[i]
         for category, vocab in ATTRIBUTE_VOCAB.items():
             if word in vocab:
-                found.append((word, category, idx))
+                found.append((word, category, i))
+                break
+        i += 1
     return found
+
+
+def categorize_attribute(word: str) -> str:
+    word = word.lower().strip()
+    for category, phrases in MULTIWORD_ATTRIBUTES.items():
+        if word in phrases:
+            return category
+    for category, vocab in ATTRIBUTE_VOCAB.items():
+        if word in vocab:
+            return category
+    return "unknown"
 
 
 def get_token_positions(text: str, target_words: Iterable[str], tokenizer) -> List[int]:

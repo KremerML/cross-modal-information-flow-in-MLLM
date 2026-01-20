@@ -14,9 +14,9 @@ training:
   seed: 42
   dtype: "float32"
 experiment:
-  output_dir: "output/sae_experiments/exp_default"
+  output_dir: "output/sae_experiments/exp_question_replace_gt"
   output_base: "output/sae_experiments"
-  name: "experiment"
+  name: "question_replace_gt"
   use_timestamp: false
 dataset:
   task_types: ["ChooseAttr"]
@@ -27,19 +27,15 @@ feature_identification:
   discrimination_threshold: 2.0
   min_activation: 0.1
   top_k: 50
-  min_diff: 0.0
-  position_type: "attribute"
-  correctness_metric: "option_logprob"
-  logprob_normalize: true
 ablation:
   n_random_features: 50
   n_bootstrap: 1000
-  position_type: "attribute"
-  mode: "residual"
+  position_type: "question"
+  mode: "replace"
   delta_scale: 1.0
 evaluation:
   significance_level: 0.05
-  primary_metric: "pred_token_prob"
+  primary_metric: "gt_token_prob"
 paths:
   output_dir: "output/sae_experiments"
   sae_checkpoint: "output/sae_experiments/sae_checkpoint.pt"

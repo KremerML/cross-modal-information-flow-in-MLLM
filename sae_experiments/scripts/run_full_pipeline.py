@@ -1,6 +1,7 @@
 """Run the full SAE experiment pipeline."""
 
 import argparse
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -18,6 +19,7 @@ def main() -> None:
     parser.add_argument("--results", type=str, default=None)
     parser.add_argument("--experiment_dir", type=str, default=None)
     parser.add_argument("--experiment_name", type=str, default=None)
+    parser.add_argument("--skip_train", action="store_true")
     args = parser.parse_args()
 
     python = sys.executable
@@ -31,9 +33,20 @@ def main() -> None:
     if args.experiment_name:
         common.extend(["--experiment_name", args.experiment_name])
 
-    subprocess.check_call([python, "sae_experiments/scripts/01_train_sae.py", "--config", args.config] + common)
+    if not args.skip_train:
+        subprocess.check_call(
+            [python, "sae_experiments/scripts/01_train_sae.py", "--config", args.config] + common
+        )
 
-    sae_checkpoint = args.sae_checkpoint or (f"{experiment_dir}/sae_checkpoint.pt" if experiment_dir else "output/sae_experiments/sae_checkpoint.pt")
+    sae_checkpoint = args.sae_checkpoint or (
+        f"{experiment_dir}/sae_checkpoint.pt"
+        if experiment_dir
+        else "output/sae_experiments/sae_checkpoint.pt"
+    )
+    if args.skip_train and not os.path.exists(sae_checkpoint):
+        raise FileNotFoundError(
+            f"SAE checkpoint not found at {sae_checkpoint}. Provide --sae_checkpoint or run training."
+        )
     subprocess.check_call(
         [python, "sae_experiments/scripts/02_identify_features.py", "--config", args.config, "--sae_checkpoint", sae_checkpoint] + common
     )

@@ -85,13 +85,17 @@ def main() -> None:
 
     identifier = FeatureIdentifier(sae, model, dataset, model_cfg.get("target_layer", 12))
     identifier.compute_feature_activations(
-        position_type="attribute",
+        position_type=feat_cfg.get("position_type", "attribute"),
         max_samples=args.max_samples,
         include_predictions=True,
+        correctness_metric=feat_cfg.get("correctness_metric", "string_match"),
+        logprob_normalize=feat_cfg.get("logprob_normalize", True),
     )
 
     features = identifier.find_discriminative_features(
-        threshold=feat_cfg.get("discrimination_threshold", 2.0)
+        threshold=feat_cfg.get("discrimination_threshold", 2.0),
+        min_activation=feat_cfg.get("min_activation", 0.0),
+        min_diff=feat_cfg.get("min_diff", 0.0),
     )
     top_features = features[: feat_cfg.get("top_k", 50)]
 

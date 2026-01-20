@@ -43,6 +43,10 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "discrimination_threshold": 2.0,
         "min_activation": 0.1,
         "top_k": 50,
+        "min_diff": 0.0,
+        "position_type": "attribute",
+        "correctness_metric": "option_logprob",
+        "logprob_normalize": True,
     },
     "ablation": {
         "n_random_features": 50,

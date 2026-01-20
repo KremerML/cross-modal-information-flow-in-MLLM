@@ -3,6 +3,7 @@
 from typing import Any, Dict, List, Optional
 
 import os
+import re
 import pandas as pd
 
 from InformationFlow import create_data_loader
@@ -57,12 +58,17 @@ class AttributeVQADataset:
             question = entry.get("question", "")
             attrs = token_utils.extract_attribute_words(question)
             attr_entries = []
+            seen = set()
             for word, category, _ in attrs:
+                if word in seen:
+                    continue
                 positions = token_utils.get_token_positions(
                     question,
                     [word],
                     self.tokenizer,
                 )
+                if not positions:
+                    continue
                 attr_entries.append(
                     {
                         "word": word,
@@ -70,6 +76,27 @@ class AttributeVQADataset:
                         "positions": positions,
                     }
                 )
+                seen.add(word)
+            extra_attrs = entry.get("central object question attribute", "")
+            for word in re.split(r"[,;|]", str(extra_attrs)):
+                word = word.strip().lower()
+                if not word or word in seen:
+                    continue
+                positions = token_utils.get_token_positions(
+                    question,
+                    [word],
+                    self.tokenizer,
+                )
+                if not positions:
+                    continue
+                attr_entries.append(
+                    {
+                        "word": word,
+                        "category": token_utils.categorize_attribute(word),
+                        "positions": positions,
+                    }
+                )
+                seen.add(word)
             entry["attribute_tokens"] = attr_entries
 
     def get_item_with_metadata(self, idx: int) -> Dict[str, Any]:

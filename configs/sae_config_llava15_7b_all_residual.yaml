@@ -14,9 +14,9 @@ training:
   seed: 42
   dtype: "float32"
 experiment:
-  output_dir: "output/sae_experiments/exp_default"
+  output_dir: "output/sae_experiments/exp_all_residual"
   output_base: "output/sae_experiments"
-  name: "experiment"
+  name: "all_residual"
   use_timestamp: false
 dataset:
   task_types: ["ChooseAttr"]
@@ -27,14 +27,10 @@ feature_identification:
   discrimination_threshold: 2.0
   min_activation: 0.1
   top_k: 50
-  min_diff: 0.0
-  position_type: "attribute"
-  correctness_metric: "option_logprob"
-  logprob_normalize: true
 ablation:
   n_random_features: 50
   n_bootstrap: 1000
-  position_type: "attribute"
+  position_type: "all"
   mode: "residual"
   delta_scale: 1.0
 evaluation:
