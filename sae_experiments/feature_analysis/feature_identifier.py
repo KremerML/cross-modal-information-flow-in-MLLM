@@ -37,8 +37,10 @@ class FeatureIdentifier:
         if activations.numel() == 0:
             return np.empty((0, self.sae.n_features)), []
 
-        device = next(self.sae.parameters()).device
-        activations = activations.to(device)
+        sae_param = next(self.sae.parameters())
+        device = sae_param.device
+        dtype = sae_param.dtype
+        activations = activations.to(device=device, dtype=dtype)
         with torch.no_grad():
             feats = self.sae.encode(activations).cpu().numpy()
 

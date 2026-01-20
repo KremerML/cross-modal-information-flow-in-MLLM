@@ -1,9 +1,15 @@
 """Feature ablation utilities."""
 
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import torch
 
+try:
+    from llava.constants import IMAGE_TOKEN_INDEX
+except ImportError:
+    IMAGE_TOKEN_INDEX = -200
+
+from sae_experiments.utils import token_utils
 from sae_experiments.utils.hook_utils import HookManager
 
 
@@ -16,18 +22,48 @@ class FeatureAblator:
         self.layer_idx = layer_idx
         self.hook_manager = HookManager(model)
 
-    def create_ablation_hook(self, feature_indices: List[int]):
+    def create_ablation_hook(
+        self,
+        feature_indices: List[int],
+        positions: Optional[List[int]] = None,
+        mode: str = "residual",
+    ):
         feature_indices = torch.tensor(feature_indices, dtype=torch.long)
 
         def hook(module, inputs, output):
-            acts = output
-            if isinstance(acts, (tuple, list)):
-                acts = acts[0]
-            feats = self.sae.encode(acts)
-            idx = feature_indices.to(feats.device)
-            feats[:, idx] = 0.0
-            recon = self.sae.decode(feats, target_shape=acts.shape)
-            return recon
+            acts = output[0] if isinstance(output, (tuple, list)) else output
+            sae_param = next(self.sae.parameters())
+            acts_dtype = acts.dtype
+            acts_device = acts.device
+            sae_device = sae_param.device
+            sae_dtype = sae_param.dtype
+            acts_for_sae = acts.to(device=sae_device, dtype=sae_dtype)
+            feats_full = self.sae.encode(acts_for_sae)
+            idx = feature_indices.to(feats_full.device)
+            feats_mod = feats_full.clone()
+            feats_mod[:, idx] = 0.0
+
+            if mode == "replace":
+                recon_mod = self.sae.decode(feats_mod, target_shape=acts.shape)
+                out = recon_mod.to(device=acts_device, dtype=acts_dtype)
+                out = self._apply_positions(acts, out, positions)
+            else:
+                recon_full = self.sae.decode(feats_full, target_shape=acts.shape)
+                recon_mod = self.sae.decode(feats_mod, target_shape=acts.shape)
+                delta = (recon_mod - recon_full).to(device=acts_device, dtype=acts_dtype)
+                if positions:
+                    mask = torch.zeros_like(acts, dtype=delta.dtype, device=acts_device)
+                    mask[:, positions, :] = 1.0
+                    delta = delta * mask
+                out = acts + delta
+
+            if isinstance(output, tuple):
+                return (out,) + output[1:]
+            if isinstance(output, list):
+                new_output = list(output)
+                new_output[0] = out
+                return new_output
+            return out
 
         return hook
 
@@ -65,7 +101,13 @@ class FeatureAblator:
         prediction = tokenizer.batch_decode(output["sequences"], skip_special_tokens=True)[0].strip().lower()
         return prediction, prob
 
-    def batch_ablation_experiment(self, dataset, feature_indices: List[int]) -> List[dict]:
+    def batch_ablation_experiment(
+        self,
+        dataset,
+        feature_indices: List[int],
+        position_type: str = "all",
+        mode: str = "residual",
+    ) -> List[dict]:
         results = []
         data_loader = dataset.create_dataloader()
         try:
@@ -97,12 +139,29 @@ class FeatureAblator:
             baseline_pred = dataset.tokenizer.batch_decode(
                 baseline["sequences"], skip_special_tokens=True
             )[0].strip().lower()
-            baseline_prob = torch.softmax(baseline["scores"][0], dim=-1)[0][
-                baseline["sequences"][:, 0]
-            ].item()
+            baseline_logits = baseline["scores"][0]
+            baseline_probs = torch.softmax(baseline_logits, dim=-1)
+            baseline_prob = baseline_probs[0][baseline["sequences"][:, 0]].item()
+            gt_token_id = self._get_answer_token_id(
+                dataset.dataset_dict[line["q_id"]].get("answer", ""),
+                dataset.tokenizer,
+            )
+            baseline_gt_prob = (
+                baseline_probs[0][gt_token_id].item() if gt_token_id is not None else None
+            )
 
+            positions = self._resolve_positions(
+                position_type,
+                input_ids,
+                image_tensor,
+                image_sizes,
+                dataset,
+                line,
+            )
             layer = self._get_layer_module(self.layer_idx)
-            hook = layer.register_forward_hook(self.create_ablation_hook(feature_indices))
+            hook = layer.register_forward_hook(
+                self.create_ablation_hook(feature_indices, positions=positions, mode=mode)
+            )
             with torch.inference_mode():
                 ablated = self.model.generate(**inps)
             hook.remove()
@@ -110,9 +169,12 @@ class FeatureAblator:
             ablated_pred = dataset.tokenizer.batch_decode(
                 ablated["sequences"], skip_special_tokens=True
             )[0].strip().lower()
-            ablated_prob = torch.softmax(ablated["scores"][0], dim=-1)[0][
-                ablated["sequences"][:, 0]
-            ].item()
+            ablated_logits = ablated["scores"][0]
+            ablated_probs = torch.softmax(ablated_logits, dim=-1)
+            ablated_prob = ablated_probs[0][ablated["sequences"][:, 0]].item()
+            ablated_gt_prob = (
+                ablated_probs[0][gt_token_id].item() if gt_token_id is not None else None
+            )
 
             answer = dataset.dataset_dict[line["q_id"]].get("answer", "").strip().lower()
             results.append(
@@ -123,6 +185,8 @@ class FeatureAblator:
                     "ablated_pred": ablated_pred,
                     "baseline_prob": baseline_prob,
                     "ablated_prob": ablated_prob,
+                    "baseline_gt_prob": baseline_gt_prob,
+                    "ablated_gt_prob": ablated_gt_prob,
                 }
             )
 
@@ -135,11 +199,22 @@ class FeatureAblator:
         ablated_acc = sum(ablated_correct) / max(1, len(ablated_correct))
 
         prob_drop = [r["baseline_prob"] - r["ablated_prob"] for r in results]
+        gt_pairs = [
+            (r["baseline_gt_prob"], r["ablated_gt_prob"])
+            for r in results
+            if r["baseline_gt_prob"] is not None and r["ablated_gt_prob"] is not None
+        ]
+        gt_baseline = [b for b, _ in gt_pairs]
+        gt_ablated = [a for _, a in gt_pairs]
+        gt_drop = [b - a for b, a in gt_pairs]
         return {
             "baseline_accuracy": baseline_acc,
             "ablated_accuracy": ablated_acc,
             "accuracy_drop": baseline_acc - ablated_acc,
             "mean_probability_drop": sum(prob_drop) / max(1, len(prob_drop)),
+            "baseline_gt_probability": sum(gt_baseline) / max(1, len(gt_baseline)) if gt_baseline else None,
+            "ablated_gt_probability": sum(gt_ablated) / max(1, len(gt_ablated)) if gt_ablated else None,
+            "mean_gt_probability_drop": sum(gt_drop) / max(1, len(gt_drop)) if gt_drop else None,
         }
 
     def _get_layer_module(self, layer_idx: int):
@@ -150,3 +225,82 @@ class FeatureAblator:
         if hasattr(self.model, "transformer") and hasattr(self.model.transformer, "h"):
             return self.model.transformer.h[layer_idx]
         raise ValueError("Unsupported model type for layer access")
+
+    def _estimate_image_token_count(self, input_ids, image_tensor, image_sizes) -> int:
+        if not hasattr(self.model, "prepare_inputs_labels_for_multimodal"):
+            return 0
+        try:
+            _, _, _, _, inputs_embeds, _ = self.model.prepare_inputs_labels_for_multimodal(
+                input_ids,
+                None,
+                None,
+                None,
+                None,
+                image_tensor,
+                ["image"],
+                image_sizes=image_sizes,
+            )
+            image_token_count = inputs_embeds.shape[1] - (input_ids.shape[-1] - 1)
+            return int(image_token_count)
+        except Exception:
+            return 0
+
+    def _resolve_positions(
+        self,
+        position_type: str,
+        input_ids,
+        image_tensor,
+        image_sizes,
+        dataset,
+        line,
+    ) -> Optional[List[int]]:
+        if position_type in (None, "all"):
+            return None
+
+        question_text = dataset.dataset_dict[line["q_id"]].get("question", "")
+        image_token_count = self._estimate_image_token_count(
+            input_ids, image_tensor, image_sizes
+        )
+        question_range = token_utils.get_question_token_range(
+            input_ids[0],
+            image_token_count,
+            question_text=question_text,
+            tokenizer=dataset.tokenizer,
+            image_token_index=IMAGE_TOKEN_INDEX,
+        )
+        if not question_range:
+            return []
+
+        if position_type == "question":
+            return question_range
+
+        if position_type == "attribute":
+            attr_positions = []
+            for attr in line.get("attribute_tokens", []):
+                attr_positions.extend(attr.get("positions", []))
+            if not attr_positions:
+                return question_range
+            start = question_range[0]
+            end = question_range[-1]
+            positions = [start + pos for pos in attr_positions]
+            positions = [pos for pos in positions if start <= pos <= end]
+            return sorted(set(positions))
+
+        return question_range
+
+    @staticmethod
+    def _apply_positions(original: torch.Tensor, replaced: torch.Tensor, positions: Optional[List[int]]):
+        if not positions:
+            return replaced
+        out = original.clone()
+        out[:, positions, :] = replaced[:, positions, :]
+        return out
+
+    @staticmethod
+    def _get_answer_token_id(answer: str, tokenizer) -> Optional[int]:
+        if not answer or tokenizer is None:
+            return None
+        token_ids = tokenizer.encode(answer, add_special_tokens=False)
+        if not token_ids:
+            return None
+        return token_ids[0]

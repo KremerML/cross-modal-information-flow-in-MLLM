@@ -25,6 +25,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "learning_rate": 1e-4,
         "epochs": 10,
         "seed": 42,
+        "dtype": "float32",
     },
     "dataset": {
         "task_types": ["ChooseAttr"],
@@ -40,6 +41,8 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "ablation": {
         "n_random_features": 50,
         "n_bootstrap": 1000,
+        "position_type": "attribute",
+        "mode": "residual",
     },
     "evaluation": {
         "significance_level": 0.05,

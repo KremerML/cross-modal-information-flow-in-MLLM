@@ -9,5 +9,7 @@ feature_identification:
 ablation:
   n_random_features: 50
   n_bootstrap: 1000
+  position_type: "attribute"
+  mode: "residual"
 evaluation:
   significance_level: 0.05

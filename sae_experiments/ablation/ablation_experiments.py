@@ -21,13 +21,20 @@ class AblationExperiment:
 
     def run_three_condition_test(self, dataset, binding_features: List[int]) -> Dict[str, dict]:
         ablator = FeatureAblator(self.model, self.sae, self.config.get("model", {}).get("target_layer", 0))
+        ablation_cfg = self.config.get("ablation", {})
+        position_type = ablation_cfg.get("position_type", "all")
+        mode = ablation_cfg.get("mode", "residual")
 
-        binding_results = ablator.batch_ablation_experiment(dataset, binding_features)
+        binding_results = ablator.batch_ablation_experiment(
+            dataset, binding_features, position_type=position_type, mode=mode
+        )
         binding_summary = ablator.compute_ablation_effect(binding_results)
 
         n_random = self.config.get("ablation", {}).get("n_random_features", len(binding_features))
         random_features = random.sample(range(self.sae.n_features), k=min(n_random, self.sae.n_features))
-        random_results = ablator.batch_ablation_experiment(dataset, random_features)
+        random_results = ablator.batch_ablation_experiment(
+            dataset, random_features, position_type=position_type, mode=mode
+        )
         random_summary = ablator.compute_ablation_effect(random_results)
 
         baseline_summary = {
@@ -40,6 +47,10 @@ class AblationExperiment:
             "random": random_summary,
             "binding_results": binding_results,
             "random_results": random_results,
+            "ablation_settings": {
+                "position_type": position_type,
+                "mode": mode,
+            },
         }
 
     def test_task_specificity(self, binding_features: List[int], choose_attr_data, choose_rel_data) -> Dict[str, dict]:

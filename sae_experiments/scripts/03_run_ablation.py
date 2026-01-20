@@ -21,6 +21,15 @@ from sae_experiments.feature_analysis.feature_catalog import FeatureCatalog
 from sae_experiments.models.sparse_autoencoder import SparseAutoencoder
 
 
+def _resolve_dtype(value: str) -> torch.dtype:
+    value = str(value).lower()
+    if value in ("float16", "fp16", "half"):
+        return torch.float16
+    if value in ("bfloat16", "bf16"):
+        return torch.bfloat16
+    return torch.float32
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, required=True)
@@ -63,6 +72,8 @@ def main() -> None:
     )
     ckpt = torch.load(args.sae_checkpoint, map_location="cpu")
     sae.load_state_dict(ckpt.get("state", {}).get("sae_state", ckpt))
+    train_cfg = config.get("training", {})
+    sae.to(device=next(model.parameters()).device, dtype=_resolve_dtype(train_cfg.get("dtype", "float32")))
     sae.eval()
 
     catalog = FeatureCatalog()
@@ -71,8 +82,14 @@ def main() -> None:
 
     experiment = AblationExperiment(model, sae, config)
     results = experiment.run_three_condition_test(dataset, binding_features)
-    specificity = experiment.test_task_specificity(binding_features, dataset, control_dataset)
-    results["task_specificity"] = specificity
+    if control_dataset is None:
+        results["task_specificity"] = {
+            "skipped": True,
+            "reason": "Control dataset not found or missing required columns for ChooseRel.",
+        }
+    else:
+        specificity = experiment.test_task_specificity(binding_features, dataset, control_dataset)
+        results["task_specificity"] = specificity
 
     output_path = args.output or os.path.join(paths_cfg.get("results_dir", "output/sae_experiments/results"), "ablation_results.json")
     os.makedirs(os.path.dirname(output_path), exist_ok=True)

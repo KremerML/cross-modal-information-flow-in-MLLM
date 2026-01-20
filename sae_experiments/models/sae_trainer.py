@@ -53,13 +53,14 @@ class SAETrainer:
         device: Optional[str] = None,
     ) -> dict:
         train_cfg = self.config.get("training", {})
-        batch_size = batch_size or train_cfg.get("batch_size", 32)
-        learning_rate = learning_rate or train_cfg.get("learning_rate", 1e-4)
-        epochs = epochs or train_cfg.get("epochs", 10)
+        batch_size = self._coerce_int(batch_size or train_cfg.get("batch_size", 32))
+        learning_rate = self._coerce_float(learning_rate or train_cfg.get("learning_rate", 1e-4))
+        epochs = self._coerce_int(epochs or train_cfg.get("epochs", 10))
 
         device = device or ("cuda" if torch.cuda.is_available() else "cpu")
-        self.sae.to(device)
-        activations = activations.to(device)
+        dtype = self._resolve_dtype(train_cfg.get("dtype", "float32"))
+        self.sae.to(device=device, dtype=dtype)
+        activations = activations.to(device=device, dtype=dtype)
 
         dataset = TensorDataset(activations)
         loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
@@ -93,6 +94,31 @@ class SAETrainer:
 
         self.sae.eval()
         return history
+
+    @staticmethod
+    def _coerce_float(value) -> float:
+        if isinstance(value, str):
+            return float(value)
+        return float(value)
+
+    @staticmethod
+    def _coerce_int(value) -> int:
+        if isinstance(value, str):
+            return int(float(value))
+        return int(value)
+
+    @staticmethod
+    def _resolve_dtype(value) -> torch.dtype:
+        if isinstance(value, torch.dtype):
+            return value
+        if isinstance(value, str):
+            value = value.lower()
+            if value in ("float16", "fp16", "half"):
+                return torch.float16
+            if value in ("bfloat16", "bf16"):
+                return torch.bfloat16
+            return torch.float32
+        return torch.float32
 
     def save_checkpoint(self, path: str, metadata: Optional[dict] = None) -> None:
         os.makedirs(os.path.dirname(path), exist_ok=True)

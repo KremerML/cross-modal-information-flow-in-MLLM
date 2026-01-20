@@ -91,12 +91,34 @@ class AttributeVQADataset:
             return {}
         return self.get_item_with_metadata(idx)
 
-    def create_control_dataset(self, task_type: str = "ChooseRel") -> "AttributeVQADataset":
-        dataset_path = self.refined_dataset
-        if task_type and "ChooseAttr" in dataset_path:
-            candidate = dataset_path.replace("ChooseAttr", task_type)
-            if os.path.exists(candidate):
-                dataset_path = candidate
+    def create_control_dataset(
+        self,
+        task_type: str = "ChooseRel",
+        refined_dataset: Optional[str] = None,
+    ) -> Optional["AttributeVQADataset"]:
+        dataset_path = refined_dataset or self.refined_dataset
+        dataset_dir = os.path.dirname(self.refined_dataset)
+
+        if refined_dataset is None and task_type:
+            candidates = [
+                os.path.join(dataset_dir, fname)
+                for fname in sorted(os.listdir(dataset_dir))
+                if fname.endswith(f"_{task_type}.csv")
+            ]
+            if candidates:
+                dataset_path = candidates[0]
+            elif "ChooseAttr" in dataset_path:
+                candidate = dataset_path.replace("ChooseAttr", task_type)
+                if os.path.exists(candidate):
+                    dataset_path = candidate
+
+        if not os.path.exists(dataset_path):
+            return None
+
+        missing = self._find_missing_columns(dataset_path, task_type)
+        if missing:
+            return None
+
         return AttributeVQADataset(
             refined_dataset=dataset_path,
             image_folder=self.image_folder,
@@ -154,3 +176,29 @@ class AttributeVQADataset:
                 )
             ]
         return None
+
+    def _find_missing_columns(self, dataset_path: str, task_type: str) -> List[str]:
+        required = self._required_columns_for_task(task_type)
+        if not required:
+            return []
+        df_head = pd.read_csv(dataset_path, nrows=1)
+        columns = set(df_head.columns)
+        return [col for col in required if col not in columns]
+
+    @staticmethod
+    def _required_columns_for_task(task_type: str) -> List[str]:
+        if task_type in ("CompareAttr", "ChooseRel", "LogicalObj"):
+            return [
+                "object1 x",
+                "object1 y",
+                "object1 w",
+                "object1 h",
+            ]
+        if task_type in ("ChooseAttr", "ChooseCat", "QueryAttr"):
+            return [
+                "central object x",
+                "central object y",
+                "central object w",
+                "central object h",
+            ]
+        return []

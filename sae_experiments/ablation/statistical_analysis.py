@@ -82,10 +82,30 @@ def generate_statistical_report(results: Dict) -> Dict[str, float]:
     t_stat, p_val = paired_t_test(baseline_probs, ablated_probs)
     effect = effect_size_cohens_d(baseline_probs, ablated_probs)
     ci_low, ci_high = bootstrap_confidence_interval(baseline_probs)
-    return {
+    report = {
         "t_stat": t_stat,
         "p_value": p_val,
         "effect_size": effect,
         "baseline_ci_low": ci_low,
         "baseline_ci_high": ci_high,
     }
+
+    gt_pairs = [
+        (r.get("baseline_gt_prob"), r.get("ablated_gt_prob"))
+        for r in binding
+        if r.get("baseline_gt_prob") is not None and r.get("ablated_gt_prob") is not None
+    ]
+    if gt_pairs:
+        gt_baseline = [b for b, _ in gt_pairs]
+        gt_ablated = [a for _, a in gt_pairs]
+        gt_t, gt_p = paired_t_test(gt_baseline, gt_ablated)
+        gt_effect = effect_size_cohens_d(gt_baseline, gt_ablated)
+        report.update(
+            {
+                "gt_t_stat": gt_t,
+                "gt_p_value": gt_p,
+                "gt_effect_size": gt_effect,
+                "gt_mean_drop": compute_probability_drop(gt_baseline, gt_ablated),
+            }
+        )
+    return report
