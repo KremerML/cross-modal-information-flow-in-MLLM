@@ -24,16 +24,25 @@ class AblationExperiment:
         ablation_cfg = self.config.get("ablation", {})
         position_type = ablation_cfg.get("position_type", "all")
         mode = ablation_cfg.get("mode", "residual")
+        delta_scale = ablation_cfg.get("delta_scale", 1.0)
 
         binding_results = ablator.batch_ablation_experiment(
-            dataset, binding_features, position_type=position_type, mode=mode
+            dataset,
+            binding_features,
+            position_type=position_type,
+            mode=mode,
+            delta_scale=delta_scale,
         )
         binding_summary = ablator.compute_ablation_effect(binding_results)
 
         n_random = self.config.get("ablation", {}).get("n_random_features", len(binding_features))
         random_features = random.sample(range(self.sae.n_features), k=min(n_random, self.sae.n_features))
         random_results = ablator.batch_ablation_experiment(
-            dataset, random_features, position_type=position_type, mode=mode
+            dataset,
+            random_features,
+            position_type=position_type,
+            mode=mode,
+            delta_scale=delta_scale,
         )
         random_summary = ablator.compute_ablation_effect(random_results)
 
@@ -50,6 +59,10 @@ class AblationExperiment:
             "ablation_settings": {
                 "position_type": position_type,
                 "mode": mode,
+                "delta_scale": delta_scale,
+            },
+            "evaluation_settings": {
+                "primary_metric": self.config.get("evaluation", {}).get("primary_metric", "pred_token_prob"),
             },
         }
 

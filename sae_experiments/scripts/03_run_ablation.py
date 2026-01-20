@@ -19,6 +19,7 @@ from sae_experiments.config.sae_config import load_config
 from sae_experiments.data.attribute_dataset import AttributeVQADataset
 from sae_experiments.feature_analysis.feature_catalog import FeatureCatalog
 from sae_experiments.models.sparse_autoencoder import SparseAutoencoder
+from sae_experiments.utils.checkpoint_utils import resolve_experiment_dir
 
 
 def _resolve_dtype(value: str) -> torch.dtype:
@@ -33,15 +34,21 @@ def _resolve_dtype(value: str) -> torch.dtype:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, required=True)
-    parser.add_argument("--features", type=str, required=True)
-    parser.add_argument("--sae_checkpoint", type=str, required=True)
+    parser.add_argument("--features", type=str, default=None)
+    parser.add_argument("--sae_checkpoint", type=str, default=None)
     parser.add_argument("--output", type=str, default=None)
+    parser.add_argument("--experiment_dir", type=str, default=None)
+    parser.add_argument("--experiment_name", type=str, default=None)
     args = parser.parse_args()
 
     config = load_config(args.config)
     model_cfg = config.get("model", {})
     data_cfg = config.get("dataset", {})
-    paths_cfg = config.get("paths", {})
+    experiment_cfg = dict(config.get("experiment", {}))
+    if args.experiment_name:
+        experiment_cfg["name"] = args.experiment_name
+        experiment_cfg.pop("output_dir", None)
+    experiment_dir = resolve_experiment_dir(experiment_cfg, args.experiment_dir)
 
     model_path = os.path.expanduser(model_cfg.get("name", ""))
     model_name = get_model_name_from_path(model_path)
@@ -70,14 +77,16 @@ def main() -> None:
         n_features=config.get("sae", {}).get("n_features", 32768),
         l1_coeff=config.get("sae", {}).get("l1_coeff", 1e-3),
     )
-    ckpt = torch.load(args.sae_checkpoint, map_location="cpu")
+    checkpoint_path = args.sae_checkpoint or os.path.join(experiment_dir, "sae_checkpoint.pt")
+    ckpt = torch.load(checkpoint_path, map_location="cpu")
     sae.load_state_dict(ckpt.get("state", {}).get("sae_state", ckpt))
     train_cfg = config.get("training", {})
     sae.to(device=next(model.parameters()).device, dtype=_resolve_dtype(train_cfg.get("dtype", "float32")))
     sae.eval()
 
     catalog = FeatureCatalog()
-    catalog.load_from_json(args.features)
+    features_path = args.features or os.path.join(experiment_dir, "feature_catalog.json")
+    catalog.load_from_json(features_path)
     binding_features = list(catalog.features.keys())
 
     experiment = AblationExperiment(model, sae, config)
@@ -91,12 +100,13 @@ def main() -> None:
         specificity = experiment.test_task_specificity(binding_features, dataset, control_dataset)
         results["task_specificity"] = specificity
 
-    output_path = args.output or os.path.join(paths_cfg.get("results_dir", "output/sae_experiments/results"), "ablation_results.json")
+    output_path = args.output or os.path.join(experiment_dir, "results", "ablation_results.json")
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as handle:
         json.dump(results, handle, indent=2)
 
     print(f"Saved ablation results to {output_path}")
+    print(f"Experiment directory: {experiment_dir}")
 
 
 if __name__ == "__main__":

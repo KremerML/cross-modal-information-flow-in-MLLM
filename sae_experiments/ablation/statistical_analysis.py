@@ -75,37 +75,56 @@ def plot_ablation_comparison(results_dict: Dict[str, Dict], save_path: str) -> N
     plt.close()
 
 
-def generate_statistical_report(results: Dict) -> Dict[str, float]:
+def generate_statistical_report(results: Dict, metric: str = "pred_token_prob") -> Dict[str, float]:
     binding = results.get("binding_results", [])
-    baseline_probs = [r["baseline_prob"] for r in binding]
-    ablated_probs = [r["ablated_prob"] for r in binding]
+    baseline_probs, ablated_probs = _select_metric_arrays(binding, metric)
     t_stat, p_val = paired_t_test(baseline_probs, ablated_probs)
     effect = effect_size_cohens_d(baseline_probs, ablated_probs)
     ci_low, ci_high = bootstrap_confidence_interval(baseline_probs)
     report = {
+        "primary_metric": metric,
         "t_stat": t_stat,
         "p_value": p_val,
         "effect_size": effect,
         "baseline_ci_low": ci_low,
         "baseline_ci_high": ci_high,
+        "mean_drop": compute_probability_drop(baseline_probs, ablated_probs),
     }
 
-    gt_pairs = [
-        (r.get("baseline_gt_prob"), r.get("ablated_gt_prob"))
-        for r in binding
-        if r.get("baseline_gt_prob") is not None and r.get("ablated_gt_prob") is not None
-    ]
-    if gt_pairs:
-        gt_baseline = [b for b, _ in gt_pairs]
-        gt_ablated = [a for _, a in gt_pairs]
-        gt_t, gt_p = paired_t_test(gt_baseline, gt_ablated)
-        gt_effect = effect_size_cohens_d(gt_baseline, gt_ablated)
+    pred_baseline, pred_ablated = _select_metric_arrays(binding, "pred_token_prob")
+    report.update(
+        {
+            "pred_t_stat": paired_t_test(pred_baseline, pred_ablated)[0],
+            "pred_p_value": paired_t_test(pred_baseline, pred_ablated)[1],
+            "pred_effect_size": effect_size_cohens_d(pred_baseline, pred_ablated),
+            "pred_mean_drop": compute_probability_drop(pred_baseline, pred_ablated),
+        }
+    )
+
+    gt_baseline, gt_ablated = _select_metric_arrays(binding, "gt_token_prob")
+    if gt_baseline and gt_ablated:
         report.update(
             {
-                "gt_t_stat": gt_t,
-                "gt_p_value": gt_p,
-                "gt_effect_size": gt_effect,
+                "gt_t_stat": paired_t_test(gt_baseline, gt_ablated)[0],
+                "gt_p_value": paired_t_test(gt_baseline, gt_ablated)[1],
+                "gt_effect_size": effect_size_cohens_d(gt_baseline, gt_ablated),
                 "gt_mean_drop": compute_probability_drop(gt_baseline, gt_ablated),
             }
         )
     return report
+
+
+def _select_metric_arrays(binding_results: list, metric: str):
+    if metric == "gt_token_prob":
+        pairs = [
+            (r.get("baseline_gt_prob"), r.get("ablated_gt_prob"))
+            for r in binding_results
+            if r.get("baseline_gt_prob") is not None and r.get("ablated_gt_prob") is not None
+        ]
+        baseline = [b for b, _ in pairs]
+        ablated = [a for _, a in pairs]
+        return baseline, ablated
+
+    baseline = [r.get("baseline_prob", 0.0) for r in binding_results]
+    ablated = [r.get("ablated_prob", 0.0) for r in binding_results]
+    return baseline, ablated

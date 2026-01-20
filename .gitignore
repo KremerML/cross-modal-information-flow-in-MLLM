@@ -1,2 +1,3 @@
 datasets/
 LLaVA-NeXT/
+**/sae_checkpoint.pt

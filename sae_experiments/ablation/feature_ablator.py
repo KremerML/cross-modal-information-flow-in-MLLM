@@ -27,6 +27,7 @@ class FeatureAblator:
         feature_indices: List[int],
         positions: Optional[List[int]] = None,
         mode: str = "residual",
+        delta_scale: float = 1.0,
     ):
         feature_indices = torch.tensor(feature_indices, dtype=torch.long)
 
@@ -51,6 +52,8 @@ class FeatureAblator:
                 recon_full = self.sae.decode(feats_full, target_shape=acts.shape)
                 recon_mod = self.sae.decode(feats_mod, target_shape=acts.shape)
                 delta = (recon_mod - recon_full).to(device=acts_device, dtype=acts_dtype)
+                if delta_scale != 1.0:
+                    delta = delta * delta_scale
                 if positions:
                     mask = torch.zeros_like(acts, dtype=delta.dtype, device=acts_device)
                     mask[:, positions, :] = 1.0
@@ -107,6 +110,7 @@ class FeatureAblator:
         feature_indices: List[int],
         position_type: str = "all",
         mode: str = "residual",
+        delta_scale: float = 1.0,
     ) -> List[dict]:
         results = []
         data_loader = dataset.create_dataloader()
@@ -160,7 +164,12 @@ class FeatureAblator:
             )
             layer = self._get_layer_module(self.layer_idx)
             hook = layer.register_forward_hook(
-                self.create_ablation_hook(feature_indices, positions=positions, mode=mode)
+                self.create_ablation_hook(
+                    feature_indices,
+                    positions=positions,
+                    mode=mode,
+                    delta_scale=delta_scale,
+                )
             )
             with torch.inference_mode():
                 ablated = self.model.generate(**inps)

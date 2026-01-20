@@ -1,6 +1,6 @@
 """Checkpoint helpers for SAE experiments."""
 
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Optional, Tuple
 import json
 import os
 import time
@@ -33,5 +33,25 @@ def save_experiment_state(sae, feature_catalog, results: Dict[str, Any], path: s
 def create_experiment_directory(base_path: str, experiment_name: str) -> str:
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     path = os.path.join(base_path, f"{experiment_name}_{timestamp}")
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
+def resolve_experiment_dir(
+    experiment_cfg: Dict[str, Any],
+    explicit_dir: Optional[str] = None,
+) -> str:
+    if explicit_dir:
+        path = explicit_dir
+    else:
+        output_dir = experiment_cfg.get("output_dir")
+        if output_dir:
+            path = output_dir
+        else:
+            base = experiment_cfg.get("output_base", "output/sae_experiments")
+            name = experiment_cfg.get("name", "experiment")
+            if experiment_cfg.get("use_timestamp", False):
+                name = f"{name}_{time.strftime('%Y%m%d_%H%M%S')}"
+            path = os.path.join(base, name)
     os.makedirs(path, exist_ok=True)
     return path

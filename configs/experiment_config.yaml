@@ -11,5 +11,12 @@ ablation:
   n_bootstrap: 1000
   position_type: "attribute"
   mode: "residual"
+  delta_scale: 1.0
 evaluation:
   significance_level: 0.05
+  primary_metric: "pred_token_prob"
+experiment:
+  output_dir: "output/sae_experiments/exp_default"
+  output_base: "output/sae_experiments"
+  name: "experiment"
+  use_timestamp: false

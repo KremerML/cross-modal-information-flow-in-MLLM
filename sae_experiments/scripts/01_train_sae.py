@@ -13,22 +13,31 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))
 
-from sae_experiments.config.sae_config import load_config
+from sae_experiments.config.sae_config import load_config, save_config
 from sae_experiments.data.attribute_dataset import AttributeVQADataset
 from sae_experiments.models.sparse_autoencoder import SparseAutoencoder
 from sae_experiments.models.sae_trainer import SAETrainer
+from sae_experiments.utils.checkpoint_utils import resolve_experiment_dir
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, required=True)
     parser.add_argument("--max_samples", type=int, default=None)
+    parser.add_argument("--experiment_dir", type=str, default=None)
+    parser.add_argument("--experiment_name", type=str, default=None)
     args = parser.parse_args()
 
     config = load_config(args.config)
     model_cfg = config.get("model", {})
     data_cfg = config.get("dataset", {})
-    paths_cfg = config.get("paths", {})
+    experiment_cfg = dict(config.get("experiment", {}))
+    if args.experiment_name:
+        experiment_cfg["name"] = args.experiment_name
+        experiment_cfg.pop("output_dir", None)
+    experiment_dir = resolve_experiment_dir(experiment_cfg, args.experiment_dir)
+
+    checkpoint_path = os.path.join(experiment_dir, "sae_checkpoint.pt")
 
     model_path = os.path.expanduser(model_cfg.get("name", ""))
     model_name = get_model_name_from_path(model_path)
@@ -72,10 +81,11 @@ def main() -> None:
     )
 
     history = trainer.train(activations)
-    checkpoint_path = paths_cfg.get("sae_checkpoint")
     trainer.save_checkpoint(checkpoint_path, metadata={"history": history})
+    save_config(config, os.path.join(experiment_dir, "config.yaml"))
 
     print(f"Saved SAE checkpoint to {checkpoint_path}")
+    print(f"Experiment directory: {experiment_dir}")
 
 
 if __name__ == "__main__":

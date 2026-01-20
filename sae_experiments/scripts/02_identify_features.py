@@ -19,6 +19,7 @@ from sae_experiments.feature_analysis.feature_catalog import FeatureCatalog
 from sae_experiments.feature_analysis.feature_identifier import FeatureIdentifier
 from sae_experiments.feature_analysis.feature_visualizer import FeatureVisualizer
 from sae_experiments.models.sparse_autoencoder import SparseAutoencoder
+from sae_experiments.utils.checkpoint_utils import resolve_experiment_dir
 
 
 def _resolve_dtype(value: str) -> torch.dtype:
@@ -33,15 +34,21 @@ def _resolve_dtype(value: str) -> torch.dtype:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, required=True)
-    parser.add_argument("--sae_checkpoint", type=str, required=True)
+    parser.add_argument("--sae_checkpoint", type=str, default=None)
     parser.add_argument("--max_samples", type=int, default=None)
+    parser.add_argument("--experiment_dir", type=str, default=None)
+    parser.add_argument("--experiment_name", type=str, default=None)
     args = parser.parse_args()
 
     config = load_config(args.config)
     model_cfg = config.get("model", {})
     data_cfg = config.get("dataset", {})
     feat_cfg = config.get("feature_identification", {})
-    paths_cfg = config.get("paths", {})
+    experiment_cfg = dict(config.get("experiment", {}))
+    if args.experiment_name:
+        experiment_cfg["name"] = args.experiment_name
+        experiment_cfg.pop("output_dir", None)
+    experiment_dir = resolve_experiment_dir(experiment_cfg, args.experiment_dir)
 
     model_path = os.path.expanduser(model_cfg.get("name", ""))
     model_name = get_model_name_from_path(model_path)
@@ -69,7 +76,8 @@ def main() -> None:
         n_features=config.get("sae", {}).get("n_features", 32768),
         l1_coeff=config.get("sae", {}).get("l1_coeff", 1e-3),
     )
-    ckpt = torch.load(args.sae_checkpoint, map_location="cpu")
+    checkpoint_path = args.sae_checkpoint or os.path.join(experiment_dir, "sae_checkpoint.pt")
+    ckpt = torch.load(checkpoint_path, map_location="cpu")
     sae.load_state_dict(ckpt.get("state", {}).get("sae_state", ckpt))
     train_cfg = config.get("training", {})
     sae.to(device=next(model.parameters()).device, dtype=_resolve_dtype(train_cfg.get("dtype", "float32")))
@@ -99,10 +107,10 @@ def main() -> None:
             },
         )
 
-    catalog_path = paths_cfg.get("feature_catalog")
+    catalog_path = os.path.join(experiment_dir, "feature_catalog.json")
     os.makedirs(os.path.dirname(catalog_path), exist_ok=True)
     catalog.export_to_json(catalog_path)
-    identifier.save_feature_statistics(os.path.join(os.path.dirname(catalog_path), "feature_stats.json"))
+    identifier.save_feature_statistics(os.path.join(experiment_dir, "feature_stats.json"))
 
     visualizer = FeatureVisualizer(sae, model, dataset, identifier.feature_acts, identifier.metadata)
     for feature_idx in top_features[: min(10, len(top_features))]:
@@ -112,6 +120,7 @@ def main() -> None:
         )
 
     print(f"Saved feature catalog to {catalog_path}")
+    print(f"Experiment directory: {experiment_dir}")
 
 
 if __name__ == "__main__":

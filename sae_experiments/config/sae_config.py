@@ -27,6 +27,12 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "seed": 42,
         "dtype": "float32",
     },
+    "experiment": {
+        "output_dir": "output/sae_experiments/exp_default",
+        "output_base": "output/sae_experiments",
+        "name": "experiment",
+        "use_timestamp": False,
+    },
     "dataset": {
         "task_types": ["ChooseAttr"],
         "split": "validation",
@@ -43,9 +49,11 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "n_bootstrap": 1000,
         "position_type": "attribute",
         "mode": "residual",
+        "delta_scale": 1.0,
     },
     "evaluation": {
         "significance_level": 0.05,
+        "primary_metric": "pred_token_prob",
     },
     "paths": {
         "output_dir": "output/sae_experiments",

@@ -40,7 +40,14 @@ def create_activation_capture_hook(storage_dict: Dict, key: str):
     return hook
 
 
-def create_intervention_hook(sae, feature_indices, ablate: bool = True, positions=None, mode: str = "residual"):
+def create_intervention_hook(
+    sae,
+    feature_indices,
+    ablate: bool = True,
+    positions=None,
+    mode: str = "residual",
+    delta_scale: float = 1.0,
+):
     def hook(module, inputs, output):
         acts = output[0] if isinstance(output, (tuple, list)) else output
         sae_param = next(sae.parameters())
@@ -63,6 +70,8 @@ def create_intervention_hook(sae, feature_indices, ablate: bool = True, position
             recon_full = sae.decode(feats_full, target_shape=acts.shape)
             recon_mod = sae.decode(feats_mod, target_shape=acts.shape)
             delta = (recon_mod - recon_full).to(device=acts_device, dtype=acts_dtype)
+            if delta_scale != 1.0:
+                delta = delta * delta_scale
             if positions:
                 mask = torch.zeros_like(acts, dtype=delta.dtype, device=acts_device)
                 mask[:, positions, :] = 1.0
