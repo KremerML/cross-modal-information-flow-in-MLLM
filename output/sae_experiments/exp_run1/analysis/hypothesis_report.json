@@ -1,0 +1,18 @@
+{
+  "primary_metric": "pred_token_prob",
+  "t_stat": -1.3255896879219489,
+  "p_value": 0.9995961592240319,
+  "effect_size": 1.7105617486851652e-05,
+  "baseline_ci_low": 0.8568819966477299,
+  "baseline_ci_high": 0.8767849517096271,
+  "mean_drop": -1.7088760399899977e-05,
+  "pred_t_stat": -1.3255896879219489,
+  "pred_p_value": 0.18532122855637875,
+  "pred_effect_size": -0.0447863512326785,
+  "pred_mean_drop": -1.7088760399899977e-05,
+  "gt_t_stat": -0.9651538799971261,
+  "gt_p_value": 0.3347341061890676,
+  "gt_effect_size": -0.028799851917451203,
+  "gt_mean_drop": -2.465169314847794e-09,
+  "hypothesis_supported": false
+}

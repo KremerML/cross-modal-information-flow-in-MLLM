@@ -34,6 +34,11 @@ def paired_t_test(baseline_probs: Iterable[float], ablated_probs: Iterable[float
     abl = np.array(list(ablated_probs))
     if stats is None or base.size == 0:
         return 0.0, 1.0
+    diff = base - abl
+    if np.allclose(diff, 0.0):
+        return 0.0, 1.0
+    if np.std(diff) == 0.0:
+        return 0.0, 1.0
     t_stat, p_val = stats.ttest_rel(base, abl)
     return float(t_stat), float(p_val)
 

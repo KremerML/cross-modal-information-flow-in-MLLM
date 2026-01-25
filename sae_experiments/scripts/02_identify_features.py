@@ -97,7 +97,25 @@ def main() -> None:
         min_activation=feat_cfg.get("min_activation", 0.0),
         min_diff=feat_cfg.get("min_diff", 0.0),
     )
-    top_features = features[: feat_cfg.get("top_k", 50)]
+    if not features:
+        fallback = feat_cfg.get("fallback", {})
+        fallback_threshold = fallback.get("discrimination_threshold", 1.1)
+        fallback_min_activation = fallback.get("min_activation", 0.0)
+        fallback_min_diff = fallback.get("min_diff", 0.0)
+        features = identifier.find_discriminative_features(
+            threshold=fallback_threshold,
+            min_activation=fallback_min_activation,
+            min_diff=fallback_min_diff,
+        )
+        if features:
+            print(
+                "No features found with primary thresholds; using fallback thresholds:",
+                f"threshold={fallback_threshold}, min_activation={fallback_min_activation}, min_diff={fallback_min_diff}",
+            )
+    top_k = feat_cfg.get("top_k", 50)
+    top_features = identifier.get_top_k_features(top_k)
+    if not top_features:
+        top_features = features[:top_k]
 
     catalog = FeatureCatalog()
     for feature_idx in top_features:
