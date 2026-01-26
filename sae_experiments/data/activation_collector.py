@@ -168,6 +168,10 @@ class ActivationCollector:
             image_token_index=IMAGE_TOKEN_INDEX,
         )
 
+        if position_type == "last":
+            ntoks = input_ids.shape[-1] + image_token_count - 1
+            return [max(0, ntoks - 1)]
+
         if position_type == "question":
             return question_range
 

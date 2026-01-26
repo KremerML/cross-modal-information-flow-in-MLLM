@@ -120,6 +120,16 @@ def generate_statistical_report(results: Dict, metric: str = "pred_token_prob") 
 
 
 def _select_metric_arrays(binding_results: list, metric: str):
+    if metric == "forced_choice_margin":
+        pairs = [
+            (r.get("baseline_margin"), r.get("ablated_margin"))
+            for r in binding_results
+            if r.get("baseline_margin") is not None and r.get("ablated_margin") is not None
+        ]
+        baseline = [b for b, _ in pairs]
+        ablated = [a for _, a in pairs]
+        return baseline, ablated
+
     if metric == "gt_token_prob":
         pairs = [
             (r.get("baseline_gt_prob"), r.get("ablated_gt_prob"))

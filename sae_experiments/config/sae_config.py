@@ -47,6 +47,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "position_type": "attribute",
         "correctness_metric": "option_logprob",
         "logprob_normalize": True,
+        "batch_size": 256,
         "fallback": {
             "discrimination_threshold": 1.1,
             "min_activation": 0.0,
@@ -63,6 +64,25 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "evaluation": {
         "significance_level": 0.05,
         "primary_metric": "pred_token_prob",
+        "logprob_normalize": True,
+    },
+    "sae_reuse": {
+        "recon_threshold": 0.1,
+        "kl_threshold": 0.5,
+        "allow_missing_stats": True,
+        "sample_size": 256,
+        "search_paths": ["output/sae_experiments"],
+    },
+    "knockout": {
+        "flows": ["Image->Question", "Image->Last"],
+        "window": 1,
+        "filter_correct": True,
+        "normalize_logprob": True,
+        "max_samples": None,
+        "top_k_layers": 5,
+        "batch_size": 1,
+        "num_workers": 2,
+        "output_subdir": "knockout",
     },
     "paths": {
         "output_dir": "output/sae_experiments",

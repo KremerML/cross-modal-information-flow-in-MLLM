@@ -1,0 +1,38 @@
+{
+  "sae_only": {
+    "baseline_accuracy": 0.8,
+    "ablated_accuracy": 0.8,
+    "accuracy_drop": 0.0,
+    "mean_probability_drop": -0.0007191896438598633,
+    "baseline_gt_probability": 1.5268873448803787e-05,
+    "ablated_gt_probability": 1.529959345134557e-05,
+    "mean_gt_probability_drop": -3.07200025417842e-08,
+    "baseline_margin": 0.837890625,
+    "ablated_margin": 0.837890625,
+    "mean_margin_drop": 0.0
+  },
+  "ko_only": {
+    "baseline_accuracy": 0.8,
+    "ablated_accuracy": 0.8,
+    "accuracy_drop": 0.0,
+    "mean_probability_drop": 0.0013044357299804687,
+    "baseline_gt_probability": 1.5268873448803787e-05,
+    "ablated_gt_probability": 1.7306217250734336e-05,
+    "mean_gt_probability_drop": -2.037343801930547e-06,
+    "baseline_margin": 0.837890625,
+    "ablated_margin": 0.837890625,
+    "mean_margin_drop": 0.0
+  },
+  "combined": {
+    "baseline_accuracy": 0.8,
+    "ablated_accuracy": 0.8,
+    "accuracy_drop": 0.0,
+    "mean_probability_drop": 0.0020004749298095704,
+    "baseline_gt_probability": 1.5268873448803787e-05,
+    "ablated_gt_probability": 1.7401119748683413e-05,
+    "mean_gt_probability_drop": -2.1322462998796255e-06,
+    "baseline_margin": 0.837890625,
+    "ablated_margin": 0.837890625,
+    "mean_margin_drop": 0.0
+  }
+}

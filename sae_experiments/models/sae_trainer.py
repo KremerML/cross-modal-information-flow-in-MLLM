@@ -51,6 +51,8 @@ class SAETrainer:
         learning_rate: Optional[float] = None,
         epochs: Optional[int] = None,
         device: Optional[str] = None,
+        show_progress: bool = False,
+        progress_desc: str = "SAE training",
     ) -> dict:
         train_cfg = self.config.get("training", {})
         batch_size = self._coerce_int(batch_size or train_cfg.get("batch_size", 32))
@@ -73,7 +75,16 @@ class SAETrainer:
         }
 
         self.sae.train()
-        for _ in range(epochs):
+        epoch_iter = range(epochs)
+        if show_progress:
+            try:
+                from tqdm import tqdm
+
+                epoch_iter = tqdm(epoch_iter, desc=progress_desc)
+            except ImportError:
+                epoch_iter = range(epochs)
+
+        for _ in epoch_iter:
             epoch_loss = 0.0
             epoch_recon = 0.0
             epoch_l1 = 0.0

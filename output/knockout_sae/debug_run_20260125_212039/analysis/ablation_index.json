@@ -1,0 +1,14 @@
+{
+  "Image->Question/layer_0": {
+    "sae_only": "output/knockout_sae/debug_run_20260125_212039/ablation/Image_Question/layer_0/sae_only.json",
+    "ko_only": "output/knockout_sae/debug_run_20260125_212039/ablation/Image_Question/layer_0/ko_only.json",
+    "combined": "output/knockout_sae/debug_run_20260125_212039/ablation/Image_Question/layer_0/combined.json",
+    "summary": "output/knockout_sae/debug_run_20260125_212039/ablation/Image_Question/layer_0/summary.json"
+  },
+  "Image->Last/layer_0": {
+    "sae_only": "output/knockout_sae/debug_run_20260125_212039/ablation/Image_Last/layer_0/sae_only.json",
+    "ko_only": "output/knockout_sae/debug_run_20260125_212039/ablation/Image_Last/layer_0/ko_only.json",
+    "combined": "output/knockout_sae/debug_run_20260125_212039/ablation/Image_Last/layer_0/combined.json",
+    "summary": "output/knockout_sae/debug_run_20260125_212039/ablation/Image_Last/layer_0/summary.json"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "Image->Question/layer_0": {
+    "checkpoint": "output/knockout_sae/debug_run_20260125_212039/sae/Image_Question/layer_0/sae_checkpoint.pt",
+    "feature_catalog": "output/knockout_sae/debug_run_20260125_212039/sae/Image_Question/layer_0/feature_catalog.json",
+    "reuse_info": {
+      "reused": false,
+      "trained": true
+    },
+    "position_type": "question"
+  },
+  "Image->Last/layer_0": {
+    "checkpoint": "output/knockout_sae/debug_run_20260125_212039/sae/Image_Last/layer_0/sae_checkpoint.pt",
+    "feature_catalog": "output/knockout_sae/debug_run_20260125_212039/sae/Image_Last/layer_0/feature_catalog.json",
+    "reuse_info": {
+      "reused": false,
+      "trained": true
+    },
+    "position_type": "last"
+  }
+}

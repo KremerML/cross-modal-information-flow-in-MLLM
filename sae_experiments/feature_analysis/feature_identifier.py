@@ -25,6 +25,7 @@ class FeatureIdentifier:
         self,
         position_type: str = "attribute",
         max_samples: Optional[int] = None,
+        batch_size: Optional[int] = None,
         include_predictions: bool = False,
         correctness_metric: str = "string_match",
         logprob_normalize: bool = True,
@@ -43,8 +44,14 @@ class FeatureIdentifier:
         device = sae_param.device
         dtype = sae_param.dtype
         activations = activations.to(device=device, dtype=dtype)
+        if batch_size is None:
+            batch_size = activations.shape[0]
+        feats_list = []
         with torch.no_grad():
-            feats = self.sae.encode(activations).cpu().numpy()
+            for start in range(0, activations.shape[0], batch_size):
+                batch = activations[start : start + batch_size]
+                feats_list.append(self.sae.encode(batch).cpu())
+        feats = torch.cat(feats_list, dim=0).numpy()
 
         per_sample = []
         for meta in metadata:

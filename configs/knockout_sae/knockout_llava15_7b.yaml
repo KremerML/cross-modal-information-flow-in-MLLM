@@ -1,0 +1,28 @@
+model:
+  name: "liuhaotian/llava-v1.5-7b"
+  target_layer: 12
+  d_model: 4096
+  conv_mode: "vicuna_v1"
+  model_base: null
+
+dataset:
+  task_types: ["ChooseAttr"]
+  split: "validation"
+  refined_dataset: "datasets/GQA_val_correct_question_with_choose_ChooseAttr.csv"
+  image_folder: "datasets/images"
+
+experiment:
+  output_dir: null
+  output_base: "output/knockout_sae"
+  name: "knockout_run1"
+  use_timestamp: true
+
+knockout:
+  flows: ["Image->Question", "Image->Last"]
+  window: 1
+  filter_correct: true
+  normalize_logprob: true
+  max_samples: null
+  batch_size: 1
+  num_workers: 2
+  output_subdir: "knockout"

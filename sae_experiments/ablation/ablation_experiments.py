@@ -25,6 +25,7 @@ class AblationExperiment:
         position_type = ablation_cfg.get("position_type", "all")
         mode = ablation_cfg.get("mode", "residual")
         delta_scale = ablation_cfg.get("delta_scale", 1.0)
+        logprob_normalize = self.config.get("evaluation", {}).get("logprob_normalize", True)
 
         binding_results = ablator.batch_ablation_experiment(
             dataset,
@@ -32,6 +33,7 @@ class AblationExperiment:
             position_type=position_type,
             mode=mode,
             delta_scale=delta_scale,
+            logprob_normalize=logprob_normalize,
         )
         binding_summary = ablator.compute_ablation_effect(binding_results)
 
@@ -43,6 +45,7 @@ class AblationExperiment:
             position_type=position_type,
             mode=mode,
             delta_scale=delta_scale,
+            logprob_normalize=logprob_normalize,
         )
         random_summary = ablator.compute_ablation_effect(random_results)
 
@@ -63,6 +66,7 @@ class AblationExperiment:
             },
             "evaluation_settings": {
                 "primary_metric": self.config.get("evaluation", {}).get("primary_metric", "pred_token_prob"),
+                "logprob_normalize": logprob_normalize,
             },
         }
 

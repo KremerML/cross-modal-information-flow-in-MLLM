@@ -1,0 +1,63 @@
+model:
+  name: liuhaotian/llava-v1.5-7b
+  target_layer: 12
+  d_model: 4096
+  conv_mode: vicuna_v1
+  model_base: null
+sae:
+  n_features: 32768
+  l1_coeff: 0.001
+training:
+  batch_size: 32
+  learning_rate: 0.0001
+  epochs: 10
+  seed: 42
+  dtype: float32
+experiment:
+  output_dir: output/sae_experiments/exp_default
+  output_base: output/knockout_sae
+  name: knockout_run1
+  use_timestamp: true
+dataset:
+  task_types:
+  - ChooseAttr
+  split: validation
+  refined_dataset: datasets/GQA_val_correct_question_with_choose_ChooseAttr.csv
+  image_folder: datasets/images
+feature_identification:
+  discrimination_threshold: 2.0
+  min_activation: 0.1
+  top_k: 50
+  min_diff: 0.0
+  position_type: attribute
+  correctness_metric: option_logprob
+  logprob_normalize: true
+  fallback:
+    discrimination_threshold: 1.1
+    min_activation: 0.0
+    min_diff: 0.0
+ablation:
+  n_random_features: 50
+  n_bootstrap: 1000
+  position_type: attribute
+  mode: residual
+  delta_scale: 1.0
+evaluation:
+  significance_level: 0.05
+  primary_metric: pred_token_prob
+knockout:
+  flows:
+  - Image->Question
+  - Image->Last
+  window: 1
+  filter_correct: true
+  normalize_logprob: true
+  max_samples: null
+  batch_size: 1
+  num_workers: 2
+  output_subdir: knockout
+paths:
+  output_dir: output/sae_experiments
+  sae_checkpoint: output/sae_experiments/sae_checkpoint.pt
+  feature_catalog: output/sae_experiments/feature_catalog.json
+  results_dir: output/sae_experiments/results
