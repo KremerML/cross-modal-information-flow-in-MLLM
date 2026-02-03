@@ -265,7 +265,24 @@ class FeatureIdentifier:
             )
         logits = outputs.logits
         log_probs = torch.log_softmax(logits[0], dim=-1)
+        # Account for multimodal expansion (image tokens) when locating answer logits.
         start = input_ids.shape[1]
+        if hasattr(self.model, "prepare_inputs_labels_for_multimodal"):
+            try:
+                _, _, _, _, inputs_embeds, _ = self.model.prepare_inputs_labels_for_multimodal(
+                    input_ids,
+                    None,
+                    None,
+                    None,
+                    None,
+                    image_tensor,
+                    ["image"],
+                    image_sizes=image_sizes,
+                )
+                image_dim = inputs_embeds.shape[1] - (input_ids.shape[-1] - 1)
+                start = input_ids.shape[1] + image_dim - 1
+            except Exception:
+                pass
         token_logps = []
         for i, tok_id in enumerate(answer_ids):
             idx = start + i - 1

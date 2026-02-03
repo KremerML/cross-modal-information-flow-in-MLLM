@@ -1,6 +1,6 @@
 """Helpers for validating SAE reuse across activation distributions."""
 
-from typing import Dict, Tuple
+from typing import Dict, Optional, Tuple
 
 import numpy as np
 import torch
@@ -39,16 +39,32 @@ def compare_activation_stats(reference: Dict[str, object], current: Dict[str, ob
     return kl, mean_delta
 
 
-def reconstruction_loss(sae, activations: torch.Tensor) -> float:
+def reconstruction_loss(
+    sae,
+    activations: torch.Tensor,
+    batch_size: int = 2048,
+    max_samples: Optional[int] = None,
+) -> float:
     if activations.numel() == 0:
         return 0.0
-    sae_param = next(sae.parameters())
-    activations = activations.to(device=sae_param.device, dtype=sae_param.dtype)
     sae.eval()
+    sae_param = next(sae.parameters())
+    if max_samples is not None and activations.shape[0] > max_samples:
+        idx = torch.randperm(activations.shape[0], device=activations.device)[:max_samples]
+        activations = activations[idx]
     with torch.no_grad():
-        recon, _ = sae.forward(activations)
-        loss = torch.mean((recon - activations) ** 2)
-    return float(loss.item())
+        total_se = 0.0
+        total_count = 0
+        for start in range(0, activations.shape[0], batch_size):
+            batch = activations[start : start + batch_size]
+            if batch.device != sae_param.device or batch.dtype != sae_param.dtype:
+                batch = batch.to(device=sae_param.device, dtype=sae_param.dtype)
+            recon, _ = sae.forward(batch)
+            total_se += torch.sum((recon - batch) ** 2).item()
+            total_count += batch.numel()
+    if total_count == 0:
+        return 0.0
+    return float(total_se / total_count)
 
 
 def should_reuse_sae(

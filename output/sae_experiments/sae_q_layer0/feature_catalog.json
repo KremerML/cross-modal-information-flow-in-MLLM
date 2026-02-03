@@ -1,0 +1,252 @@
+{
+  "8018": {
+    "name": "feature_8018",
+    "type": "binding",
+    "discrimination_score": 13240.5087890625
+  },
+  "28939": {
+    "name": "feature_28939",
+    "type": "binding",
+    "discrimination_score": 10974.5302734375
+  },
+  "6020": {
+    "name": "feature_6020",
+    "type": "binding",
+    "discrimination_score": 6005.73046875
+  },
+  "18026": {
+    "name": "feature_18026",
+    "type": "binding",
+    "discrimination_score": 5504.1494140625
+  },
+  "7841": {
+    "name": "feature_7841",
+    "type": "binding",
+    "discrimination_score": 4365.33544921875
+  },
+  "3412": {
+    "name": "feature_3412",
+    "type": "binding",
+    "discrimination_score": 4137.59716796875
+  },
+  "28856": {
+    "name": "feature_28856",
+    "type": "binding",
+    "discrimination_score": 4078.405029296875
+  },
+  "14390": {
+    "name": "feature_14390",
+    "type": "binding",
+    "discrimination_score": 4068.6943359375
+  },
+  "30682": {
+    "name": "feature_30682",
+    "type": "binding",
+    "discrimination_score": 4047.2900390625
+  },
+  "23837": {
+    "name": "feature_23837",
+    "type": "binding",
+    "discrimination_score": 3933.683837890625
+  },
+  "32759": {
+    "name": "feature_32759",
+    "type": "binding",
+    "discrimination_score": 3469.5029296875
+  },
+  "9213": {
+    "name": "feature_9213",
+    "type": "binding",
+    "discrimination_score": 3408.9501953125
+  },
+  "22384": {
+    "name": "feature_22384",
+    "type": "binding",
+    "discrimination_score": 3384.86962890625
+  },
+  "12144": {
+    "name": "feature_12144",
+    "type": "binding",
+    "discrimination_score": 3332.4140625
+  },
+  "11506": {
+    "name": "feature_11506",
+    "type": "binding",
+    "discrimination_score": 3108.094482421875
+  },
+  "3638": {
+    "name": "feature_3638",
+    "type": "binding",
+    "discrimination_score": 2906.1220703125
+  },
+  "22285": {
+    "name": "feature_22285",
+    "type": "binding",
+    "discrimination_score": 2773.789794921875
+  },
+  "5082": {
+    "name": "feature_5082",
+    "type": "binding",
+    "discrimination_score": 2701.318359375
+  },
+  "16122": {
+    "name": "feature_16122",
+    "type": "binding",
+    "discrimination_score": 2582.067138671875
+  },
+  "29956": {
+    "name": "feature_29956",
+    "type": "binding",
+    "discrimination_score": 2406.054931640625
+  },
+  "9370": {
+    "name": "feature_9370",
+    "type": "binding",
+    "discrimination_score": 2255.659912109375
+  },
+  "6069": {
+    "name": "feature_6069",
+    "type": "binding",
+    "discrimination_score": 2228.946044921875
+  },
+  "17036": {
+    "name": "feature_17036",
+    "type": "binding",
+    "discrimination_score": 2147.864013671875
+  },
+  "7581": {
+    "name": "feature_7581",
+    "type": "binding",
+    "discrimination_score": 2077.921630859375
+  },
+  "11028": {
+    "name": "feature_11028",
+    "type": "binding",
+    "discrimination_score": 2040.196533203125
+  },
+  "10294": {
+    "name": "feature_10294",
+    "type": "binding",
+    "discrimination_score": 2012.8238525390625
+  },
+  "27772": {
+    "name": "feature_27772",
+    "type": "binding",
+    "discrimination_score": 1962.4791259765625
+  },
+  "30090": {
+    "name": "feature_30090",
+    "type": "binding",
+    "discrimination_score": 1936.1846923828125
+  },
+  "30304": {
+    "name": "feature_30304",
+    "type": "binding",
+    "discrimination_score": 1840.98095703125
+  },
+  "17348": {
+    "name": "feature_17348",
+    "type": "binding",
+    "discrimination_score": 1789.336669921875
+  },
+  "12656": {
+    "name": "feature_12656",
+    "type": "binding",
+    "discrimination_score": 1674.8668212890625
+  },
+  "9506": {
+    "name": "feature_9506",
+    "type": "binding",
+    "discrimination_score": 1605.297607421875
+  },
+  "3082": {
+    "name": "feature_3082",
+    "type": "binding",
+    "discrimination_score": 1581.2183837890625
+  },
+  "6967": {
+    "name": "feature_6967",
+    "type": "binding",
+    "discrimination_score": 1578.7978515625
+  },
+  "4537": {
+    "name": "feature_4537",
+    "type": "binding",
+    "discrimination_score": 1525.1627197265625
+  },
+  "26507": {
+    "name": "feature_26507",
+    "type": "binding",
+    "discrimination_score": 1510.6048583984375
+  },
+  "8816": {
+    "name": "feature_8816",
+    "type": "binding",
+    "discrimination_score": 1505.8304443359375
+  },
+  "18534": {
+    "name": "feature_18534",
+    "type": "binding",
+    "discrimination_score": 1456.04638671875
+  },
+  "30859": {
+    "name": "feature_30859",
+    "type": "binding",
+    "discrimination_score": 1379.1851806640625
+  },
+  "6592": {
+    "name": "feature_6592",
+    "type": "binding",
+    "discrimination_score": 1377.14892578125
+  },
+  "12390": {
+    "name": "feature_12390",
+    "type": "binding",
+    "discrimination_score": 1355.7398681640625
+  },
+  "9356": {
+    "name": "feature_9356",
+    "type": "binding",
+    "discrimination_score": 1329.106689453125
+  },
+  "19780": {
+    "name": "feature_19780",
+    "type": "binding",
+    "discrimination_score": 1287.23876953125
+  },
+  "6926": {
+    "name": "feature_6926",
+    "type": "binding",
+    "discrimination_score": 1259.485595703125
+  },
+  "10506": {
+    "name": "feature_10506",
+    "type": "binding",
+    "discrimination_score": 1256.576171875
+  },
+  "8061": {
+    "name": "feature_8061",
+    "type": "binding",
+    "discrimination_score": 1232.097900390625
+  },
+  "31490": {
+    "name": "feature_31490",
+    "type": "binding",
+    "discrimination_score": 1217.1124267578125
+  },
+  "15991": {
+    "name": "feature_15991",
+    "type": "binding",
+    "discrimination_score": 1202.0350341796875
+  },
+  "15807": {
+    "name": "feature_15807",
+    "type": "binding",
+    "discrimination_score": 1200.9637451171875
+  },
+  "31905": {
+    "name": "feature_31905",
+    "type": "binding",
+    "discrimination_score": 1128.31396484375
+  }
+}

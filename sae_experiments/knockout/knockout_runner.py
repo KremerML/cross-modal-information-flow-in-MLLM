@@ -50,7 +50,15 @@ def _sequence_logprob(
 
     logits = outputs.logits
     log_probs = torch.log_softmax(logits[0], dim=-1)
+    # Account for multimodal expansion: logits length is input_ids length + image token expansion - 1
+    # (matches InformationFlow blockdesc2range logic).
     start = input_ids.shape[1]
+    inputs_embeds_shape = knockout_utils.estimate_inputs_embeds_shape(
+        model, input_ids, image_tensor, image_sizes
+    )
+    if inputs_embeds_shape is not None:
+        image_dim = inputs_embeds_shape[1] - (input_ids.shape[-1] - 1)
+        start = input_ids.shape[1] + image_dim - 1
     token_logps = []
     for i, tok_id in enumerate(answer_ids):
         idx = start + i - 1
