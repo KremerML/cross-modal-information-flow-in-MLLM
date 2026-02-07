@@ -19,7 +19,12 @@ class AblationExperiment:
         self.sae = sae
         self.config = config
 
-    def run_three_condition_test(self, dataset, binding_features: List[int]) -> Dict[str, dict]:
+    def run_three_condition_test(
+        self,
+        dataset,
+        binding_features: List[int],
+        show_progress: bool = False,
+    ) -> Dict[str, dict]:
         ablator = FeatureAblator(self.model, self.sae, self.config.get("model", {}).get("target_layer", 0))
         ablation_cfg = self.config.get("ablation", {})
         position_type = ablation_cfg.get("position_type", "all")
@@ -34,6 +39,7 @@ class AblationExperiment:
             mode=mode,
             delta_scale=delta_scale,
             logprob_normalize=logprob_normalize,
+            show_progress=show_progress,
         )
         binding_summary = ablator.compute_ablation_effect(binding_results)
 
@@ -46,6 +52,7 @@ class AblationExperiment:
             mode=mode,
             delta_scale=delta_scale,
             logprob_normalize=logprob_normalize,
+            show_progress=show_progress,
         )
         random_summary = ablator.compute_ablation_effect(random_results)
 
@@ -70,9 +77,19 @@ class AblationExperiment:
             },
         }
 
-    def test_task_specificity(self, binding_features: List[int], choose_attr_data, choose_rel_data) -> Dict[str, dict]:
-        attr_results = self.run_three_condition_test(choose_attr_data, binding_features)
-        rel_results = self.run_three_condition_test(choose_rel_data, binding_features)
+    def test_task_specificity(
+        self,
+        binding_features: List[int],
+        choose_attr_data,
+        choose_rel_data,
+        show_progress: bool = False,
+    ) -> Dict[str, dict]:
+        attr_results = self.run_three_condition_test(
+            choose_attr_data, binding_features, show_progress=show_progress
+        )
+        rel_results = self.run_three_condition_test(
+            choose_rel_data, binding_features, show_progress=show_progress
+        )
         return {
             "choose_attr": attr_results,
             "choose_rel": rel_results,
