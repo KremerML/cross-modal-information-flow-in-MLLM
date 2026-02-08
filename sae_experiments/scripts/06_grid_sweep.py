@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 import argparse
+import gc
 import json
 import itertools
 import os
 from pathlib import Path
 import subprocess
 import sys
-from typing import Any, Dict, List
+import time
+from typing import Any, Dict, List, Optional
 
 import yaml
 
@@ -38,17 +40,53 @@ def _grid_product(grid: Dict[str, List[Any]]) -> List[Dict[str, Any]]:
     return combos
 
 
-def _run(cmd: List[str], dry_run: bool) -> None:
+def _run(cmd: List[str], dry_run: bool, log_path: Optional[str] = None) -> None:
     if dry_run:
         print("DRY RUN:", " ".join(cmd))
         return
+    if log_path:
+        with open(log_path, "a", encoding="utf-8") as handle:
+            handle.write(f"$ {' '.join(cmd)}\n")
+            handle.flush()
+            subprocess.run(cmd, check=True, stdout=handle, stderr=subprocess.STDOUT)
+        return
     subprocess.run(cmd, check=True)
+
+
+def _log_status(path: str, payload: Dict[str, Any]) -> None:
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    payload = dict(payload)
+    payload["timestamp"] = time.strftime("%Y-%m-%d %H:%M:%S")
+    with open(path, "a", encoding="utf-8") as handle:
+        handle.write(json.dumps(payload) + "\n")
+
+
+def _cleanup_cuda() -> None:
+    try:
+        import torch
+
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            torch.cuda.ipc_collect()
+    except Exception:
+        pass
+    gc.collect()
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, required=True, help="Sweep config YAML.")
     parser.add_argument("--dry_run", action="store_true", help="Print commands without running.")
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Skip runs that already have a results file.",
+    )
+    parser.add_argument(
+        "--stop_on_error",
+        action="store_true",
+        help="Stop the sweep immediately if a run fails.",
+    )
     args = parser.parse_args()
 
     sweep_cfg = _load_yaml(args.config).get("sweep", {})
@@ -124,60 +162,119 @@ def main() -> None:
         sae_checkpoint = os.path.join(experiment_dir, "sae_checkpoint.pt")
         feature_catalog = os.path.join(experiment_dir, "feature_catalog.json")
         ablation_output = os.path.join(experiment_dir, "results", "ablation_results.json")
+        run_log = os.path.join(experiment_dir, "run.log")
+        status_log = os.path.join(output_base, f"{sweep_name}_status.jsonl")
 
         print(f"[{idx}/{len(runs)}] {run_name}")
+        _log_status(
+            status_log,
+            {
+                "run_name": run_name,
+                "event": "start",
+                "index": idx,
+                "total": len(runs),
+                "experiment_dir": experiment_dir,
+            },
+        )
 
-        if steps.get("train", True):
-            if not reuse_checkpoints or not os.path.exists(sae_checkpoint):
+        if args.resume and os.path.exists(ablation_output):
+            print(f"Skipping run; results exist at {ablation_output}")
+            _log_status(
+                status_log,
+                {
+                    "run_name": run_name,
+                    "event": "skip_existing_results",
+                    "index": idx,
+                    "total": len(runs),
+                    "experiment_dir": experiment_dir,
+                },
+            )
+            continue
+
+        try:
+            if steps.get("train", True):
+                if not reuse_checkpoints or not os.path.exists(sae_checkpoint):
+                    cmd = [
+                        sys.executable,
+                        str(ROOT / "sae_experiments" / "scripts" / "01_train_sae.py"),
+                        "--config",
+                        run_config_path,
+                        "--target_layer",
+                        str(run["layer"]),
+                        "--position_type",
+                        run["train_position"],
+                        "--experiment_dir",
+                        experiment_dir,
+                    ]
+                    _run(cmd, dry_run, log_path=run_log)
+                else:
+                    print(f"Skipping training; checkpoint exists at {sae_checkpoint}")
+
+            _cleanup_cuda()
+
+            if steps.get("identify", True):
                 cmd = [
                     sys.executable,
-                    str(ROOT / "sae_experiments" / "scripts" / "01_train_sae.py"),
+                    str(ROOT / "sae_experiments" / "scripts" / "02_identify_features.py"),
                     "--config",
                     run_config_path,
-                    "--target_layer",
-                    str(run["layer"]),
-                    "--position_type",
-                    run["train_position"],
+                    "--sae_checkpoint",
+                    sae_checkpoint,
                     "--experiment_dir",
                     experiment_dir,
                 ]
-                _run(cmd, dry_run)
-            else:
-                print(f"Skipping training; checkpoint exists at {sae_checkpoint}")
+                if identify_max_samples is not None:
+                    cmd += ["--max_samples", str(identify_max_samples)]
+                _run(cmd, dry_run, log_path=run_log)
 
-        if steps.get("identify", True):
-            cmd = [
-                sys.executable,
-                str(ROOT / "sae_experiments" / "scripts" / "02_identify_features.py"),
-                "--config",
-                run_config_path,
-                "--sae_checkpoint",
-                sae_checkpoint,
-                "--experiment_dir",
-                experiment_dir,
-            ]
-            if identify_max_samples is not None:
-                cmd += ["--max_samples", str(identify_max_samples)]
-            _run(cmd, dry_run)
+            _cleanup_cuda()
 
-        if steps.get("ablate", True):
-            cmd = [
-                sys.executable,
-                str(ROOT / "sae_experiments" / "scripts" / "03_run_ablation.py"),
-                "--config",
-                run_config_path,
-                "--features",
-                feature_catalog,
-                "--sae_checkpoint",
-                sae_checkpoint,
-                "--output",
-                ablation_output,
-                "--experiment_dir",
-                experiment_dir,
-            ]
-            if ablation_max_samples is not None:
-                cmd += ["--max_samples", str(ablation_max_samples)]
-            _run(cmd, dry_run)
+            if steps.get("ablate", True):
+                cmd = [
+                    sys.executable,
+                    str(ROOT / "sae_experiments" / "scripts" / "03_run_ablation.py"),
+                    "--config",
+                    run_config_path,
+                    "--features",
+                    feature_catalog,
+                    "--sae_checkpoint",
+                    sae_checkpoint,
+                    "--output",
+                    ablation_output,
+                    "--experiment_dir",
+                    experiment_dir,
+                ]
+                if ablation_max_samples is not None:
+                    cmd += ["--max_samples", str(ablation_max_samples)]
+                _run(cmd, dry_run, log_path=run_log)
+
+            _log_status(
+                status_log,
+                {
+                    "run_name": run_name,
+                    "event": "completed",
+                    "index": idx,
+                    "total": len(runs),
+                    "experiment_dir": experiment_dir,
+                },
+            )
+        except subprocess.CalledProcessError as exc:
+            _log_status(
+                status_log,
+                {
+                    "run_name": run_name,
+                    "event": "failed",
+                    "index": idx,
+                    "total": len(runs),
+                    "experiment_dir": experiment_dir,
+                    "returncode": exc.returncode,
+                },
+            )
+            print(f"Run failed (return code {exc.returncode}). See {run_log} for details.")
+            if args.stop_on_error:
+                raise
+        finally:
+            _cleanup_cuda()
 
 
 if __name__ == "__main__":
