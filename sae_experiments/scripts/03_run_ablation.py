@@ -38,6 +38,7 @@ def main() -> None:
     parser.add_argument("--sae_checkpoint", type=str, default=None)
     parser.add_argument("--output", type=str, default=None)
     parser.add_argument("--no_progress", action="store_true", help="Disable progress bars.")
+    parser.add_argument("--max_samples", type=int, default=None)
     parser.add_argument("--experiment_dir", type=str, default=None)
     parser.add_argument("--experiment_name", type=str, default=None)
     args = parser.parse_args()
@@ -92,7 +93,12 @@ def main() -> None:
 
     experiment = AblationExperiment(model, sae, config)
     show_progress = not args.no_progress
-    results = experiment.run_three_condition_test(dataset, binding_features, show_progress=show_progress)
+    results = experiment.run_three_condition_test(
+        dataset,
+        binding_features,
+        show_progress=show_progress,
+        max_samples=args.max_samples,
+    )
     if control_dataset is None:
         results["task_specificity"] = {
             "skipped": True,
@@ -100,7 +106,11 @@ def main() -> None:
         }
     else:
         specificity = experiment.test_task_specificity(
-            binding_features, dataset, control_dataset, show_progress=show_progress
+            binding_features,
+            dataset,
+            control_dataset,
+            show_progress=show_progress,
+            max_samples=args.max_samples,
         )
         results["task_specificity"] = specificity
 

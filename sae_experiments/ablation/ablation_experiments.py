@@ -1,6 +1,6 @@
 """High-level ablation experiment runner."""
 
-from typing import Dict, List
+from typing import Dict, List, Optional
 import json
 import os
 import random
@@ -24,6 +24,7 @@ class AblationExperiment:
         dataset,
         binding_features: List[int],
         show_progress: bool = False,
+        max_samples: Optional[int] = None,
     ) -> Dict[str, dict]:
         ablator = FeatureAblator(self.model, self.sae, self.config.get("model", {}).get("target_layer", 0))
         ablation_cfg = self.config.get("ablation", {})
@@ -40,6 +41,7 @@ class AblationExperiment:
             delta_scale=delta_scale,
             logprob_normalize=logprob_normalize,
             show_progress=show_progress,
+            max_samples=max_samples,
         )
         binding_summary = ablator.compute_ablation_effect(binding_results)
 
@@ -53,6 +55,7 @@ class AblationExperiment:
             delta_scale=delta_scale,
             logprob_normalize=logprob_normalize,
             show_progress=show_progress,
+            max_samples=max_samples,
         )
         random_summary = ablator.compute_ablation_effect(random_results)
 
@@ -83,12 +86,19 @@ class AblationExperiment:
         choose_attr_data,
         choose_rel_data,
         show_progress: bool = False,
+        max_samples: Optional[int] = None,
     ) -> Dict[str, dict]:
         attr_results = self.run_three_condition_test(
-            choose_attr_data, binding_features, show_progress=show_progress
+            choose_attr_data,
+            binding_features,
+            show_progress=show_progress,
+            max_samples=max_samples,
         )
         rel_results = self.run_three_condition_test(
-            choose_rel_data, binding_features, show_progress=show_progress
+            choose_rel_data,
+            binding_features,
+            show_progress=show_progress,
+            max_samples=max_samples,
         )
         return {
             "choose_attr": attr_results,
