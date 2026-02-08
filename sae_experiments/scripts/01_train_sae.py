@@ -28,6 +28,7 @@ def main() -> None:
     parser.add_argument("--target_layer", type=int, default=None)
     parser.add_argument("--position_type", type=str, default=None)
     parser.add_argument("--checkpoint_path", type=str, default=None)
+    parser.add_argument("--show_progress", action="store_true", help="Show training progress bar.")
     parser.add_argument("--experiment_dir", type=str, default=None)
     parser.add_argument("--experiment_name", type=str, default=None)
     args = parser.parse_args()
@@ -85,7 +86,7 @@ def main() -> None:
         max_samples=args.max_samples,
     )
 
-    history = trainer.train(activations)
+    history = trainer.train(activations, show_progress=args.show_progress)
     activation_stats = compute_activation_stats(activations)
     recon_loss = reconstruction_loss(trainer.sae, activations)
     trainer.save_checkpoint(
