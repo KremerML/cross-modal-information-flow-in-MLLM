@@ -16,14 +16,15 @@ from sae_experiments.utils import token_utils
 class ActivationCollector:
     """Collects activations from a specific layer in a model."""
 
-    def __init__(self, model: torch.nn.Module, layer_idx: int):
+    def __init__(self, model: torch.nn.Module, layer_idx: int, activation_site: str = "residual"):
         self.model = model
         self.layer_idx = layer_idx
+        self.activation_site = activation_site
         self.hook_manager = HookManager(model)
         self.storage: Dict[str, torch.Tensor] = {}
 
     def register_hooks(self) -> None:
-        layer = self._get_layer_module(self.layer_idx)
+        layer = self._get_target_module(self.layer_idx)
         self.hook_manager.register_forward_hook(
             layer, create_activation_capture_hook(self.storage, "acts")
         )
@@ -92,10 +93,9 @@ class ActivationCollector:
             acts = self.storage.get("acts")
             if acts is None:
                 continue
-            if isinstance(acts, (tuple, list)):
-                acts = acts[0]
-
-            acts = acts[0]
+            acts = self._normalize_activation_tensor(acts)
+            if acts is None:
+                continue
 
             question_text = dataset_dict[line["q_id"]]["question"]
             positions = self._select_positions(
@@ -138,6 +138,30 @@ class ActivationCollector:
         if hasattr(self.model, "transformer") and hasattr(self.model.transformer, "h"):
             return self.model.transformer.h[layer_idx]
         raise ValueError("Unsupported model type for layer access")
+
+    def _get_target_module(self, layer_idx: int) -> torch.nn.Module:
+        layer = self._get_layer_module(layer_idx)
+        site = str(self.activation_site).lower()
+        if site == "attn_out" and hasattr(layer, "self_attn"):
+            return layer.self_attn
+        if site == "mlp_out" and hasattr(layer, "mlp"):
+            return layer.mlp
+        return layer
+
+    @staticmethod
+    def _normalize_activation_tensor(acts):
+        if acts is None:
+            return None
+        if isinstance(acts, (tuple, list)):
+            acts = acts[0]
+        if acts is None:
+            return None
+        # Most model hooks return [batch, seq, hidden]. Some wrappers can add batch dims.
+        while acts.ndim > 3 and acts.shape[0] == 1:
+            acts = acts[0]
+        if acts.ndim != 3:
+            return None
+        return acts[0]
 
     def _estimate_image_token_count(self, input_ids, image_tensor, image_sizes) -> int:
         if not hasattr(self.model, "prepare_inputs_labels_for_multimodal"):
@@ -189,6 +213,12 @@ class ActivationCollector:
             attr_positions = []
             for attr in line.get("attribute_tokens", []):
                 attr_positions.extend(attr.get("positions", []))
-            return [question_range[0] + pos for pos in attr_positions if question_range]
+            if not question_range:
+                return []
+            start = question_range[0]
+            end = question_range[-1]
+            positions = [start + pos for pos in attr_positions]
+            positions = [pos for pos in positions if start <= pos <= end]
+            return sorted(set(positions))
 
         return question_range

@@ -8,6 +8,7 @@ import json
 import itertools
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import time
@@ -79,6 +80,31 @@ def _cleanup_cuda() -> None:
     gc.collect()
 
 
+def _training_cache_key(run: Dict[str, Any], run_config: Dict[str, Any], train_position: str) -> str:
+    model_cfg = run_config.get("model", {})
+    dataset_cfg = run_config.get("dataset", {})
+    payload = {
+        "layer": int(run["layer"]),
+        "train_position": str(train_position),
+        "model": {
+            "name": model_cfg.get("name"),
+            "model_base": model_cfg.get("model_base"),
+            "target_layer": model_cfg.get("target_layer"),
+            "activation_site": model_cfg.get("activation_site", "residual"),
+            "d_model": model_cfg.get("d_model"),
+        },
+        "sae": run_config.get("sae", {}),
+        "training": run_config.get("training", {}),
+        "dataset": {
+            "refined_dataset": dataset_cfg.get("refined_dataset"),
+            "image_folder": dataset_cfg.get("image_folder"),
+            "task_types": dataset_cfg.get("task_types"),
+            "split": dataset_cfg.get("split"),
+        },
+    }
+    return json.dumps(payload, sort_keys=True)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, required=True, help="Sweep config YAML.")
@@ -130,6 +156,8 @@ def main() -> None:
                     }
                     runs.append(run)
 
+    trained_checkpoint_cache: Dict[str, str] = {}
+
     for idx, run in enumerate(runs, start=1):
         run_name = (
             f"{sweep_name}_layer{run['layer']}"
@@ -164,6 +192,7 @@ def main() -> None:
 
         run_config_path = os.path.join(experiment_dir, "config.yaml")
         _write_yaml(run_config, run_config_path)
+        train_key = _training_cache_key(run, run_config, run["train_position"])
 
         sae_checkpoint = os.path.join(experiment_dir, "sae_checkpoint.pt")
         feature_catalog = os.path.join(experiment_dir, "feature_catalog.json")
@@ -189,6 +218,8 @@ def main() -> None:
 
         if args.resume and os.path.exists(ablation_output):
             print(f"Skipping run; results exist at {ablation_output}")
+            if reuse_checkpoints and os.path.exists(sae_checkpoint):
+                trained_checkpoint_cache[train_key] = sae_checkpoint
             _log_status(
                 status_log,
                 {
@@ -204,21 +235,31 @@ def main() -> None:
         try:
             if steps.get("train", True):
                 if not reuse_checkpoints or not os.path.exists(sae_checkpoint):
-                    cmd = [
-                        sys.executable,
-                        str(ROOT / "sae_experiments" / "scripts" / "01_train_sae.py"),
-                        "--config",
-                        run_config_path,
-                        "--target_layer",
-                        str(run["layer"]),
-                        "--position_type",
-                        run["train_position"],
-                        "--experiment_dir",
-                        experiment_dir,
-                    ]
-                    _run(cmd, dry_run, log_path=run_log)
+                    cached_ckpt = trained_checkpoint_cache.get(train_key) if reuse_checkpoints else None
+                    if cached_ckpt and os.path.exists(cached_ckpt):
+                        if dry_run:
+                            print(f"DRY RUN: reuse checkpoint {cached_ckpt} -> {sae_checkpoint}")
+                        else:
+                            shutil.copy2(cached_ckpt, sae_checkpoint)
+                            print(f"Reused checkpoint from {cached_ckpt}")
+                    else:
+                        cmd = [
+                            sys.executable,
+                            str(ROOT / "sae_experiments" / "scripts" / "01_train_sae.py"),
+                            "--config",
+                            run_config_path,
+                            "--target_layer",
+                            str(run["layer"]),
+                            "--position_type",
+                            run["train_position"],
+                            "--experiment_dir",
+                            experiment_dir,
+                        ]
+                        _run(cmd, dry_run, log_path=run_log)
                 else:
                     print(f"Skipping training; checkpoint exists at {sae_checkpoint}")
+                if reuse_checkpoints and os.path.exists(sae_checkpoint):
+                    trained_checkpoint_cache[train_key] = sae_checkpoint
 
             _cleanup_cuda()
 

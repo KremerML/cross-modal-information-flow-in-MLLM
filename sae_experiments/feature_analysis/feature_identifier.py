@@ -13,11 +13,12 @@ from sae_experiments.data.activation_collector import ActivationCollector
 class FeatureIdentifier:
     """Compute feature statistics and select discriminative features."""
 
-    def __init__(self, sae, model, dataset, layer_idx: int):
+    def __init__(self, sae, model, dataset, layer_idx: int, activation_site: str = "residual"):
         self.sae = sae
         self.model = model
         self.dataset = dataset
         self.layer_idx = layer_idx
+        self.activation_site = activation_site
         self.feature_stats: Dict[int, Dict[str, float]] = {}
         self.feature_acts: Optional[np.ndarray] = None
         self.metadata: Optional[List[dict]] = None
@@ -30,9 +31,14 @@ class FeatureIdentifier:
         include_predictions: bool = False,
         correctness_metric: str = "string_match",
         logprob_normalize: bool = True,
+        aggregation: str = "mean",
         show_progress: bool = False,
     ) -> Tuple[np.ndarray, List[dict]]:
-        collector = ActivationCollector(self.model, self.layer_idx)
+        collector = ActivationCollector(
+            self.model,
+            self.layer_idx,
+            activation_site=self.activation_site,
+        )
         activations, metadata = collector.collect_from_dataset(
             self.dataset,
             position_type=position_type,
@@ -62,15 +68,31 @@ class FeatureIdentifier:
                 feats_list.append(self.sae.encode(batch).cpu())
         feats = torch.cat(feats_list, dim=0).numpy()
 
+        aggregation = str(aggregation).lower()
         per_sample = []
+        per_sample_metadata = []
         for meta in metadata:
             start = meta["start_idx"]
             count = meta["count"]
             if count == 0:
-                per_sample.append(np.zeros((self.sae.n_features,)))
                 continue
-            per_sample.append(feats[start : start + count].mean(axis=0))
+            token_slice = feats[start : start + count]
+            if aggregation == "none":
+                for token_idx in range(token_slice.shape[0]):
+                    per_sample.append(token_slice[token_idx])
+                    token_meta = dict(meta)
+                    token_meta["token_position_index"] = token_idx
+                    per_sample_metadata.append(token_meta)
+            elif aggregation == "max":
+                per_sample.append(token_slice.max(axis=0))
+                per_sample_metadata.append(meta)
+            else:
+                per_sample.append(token_slice.mean(axis=0))
+                per_sample_metadata.append(meta)
+        if not per_sample:
+            return np.empty((0, self.sae.n_features)), []
         per_sample = np.stack(per_sample, axis=0)
+        metadata = per_sample_metadata
 
         predictions = None
         if include_predictions or correctness_metric == "string_match":
@@ -158,10 +180,14 @@ class FeatureIdentifier:
             }
         return features
 
-    def get_top_k_features(self, k: int = 50) -> List[int]:
+    def get_top_k_features(self, k: int = 50, score_key: str = "ratio") -> List[int]:
         if not self.feature_stats:
             return []
-        ranked = sorted(self.feature_stats.items(), key=lambda x: x[1].get("ratio", 0), reverse=True)
+        ranked = sorted(
+            self.feature_stats.items(),
+            key=lambda x: x[1].get(score_key, x[1].get("ratio", 0)),
+            reverse=True,
+        )
         return [idx for idx, _ in ranked[:k]]
 
     def save_feature_statistics(self, path: str) -> None:
@@ -173,6 +199,17 @@ class FeatureIdentifier:
         max_samples: Optional[int] = None,
         show_progress: bool = False,
     ) -> Dict[str, str]:
+        tokenizer = getattr(self.dataset, "tokenizer", None)
+        if tokenizer is None or not hasattr(tokenizer, "eos_token_id"):
+            predictions: Dict[str, str] = {}
+            total = len(self.dataset.questions)
+            if max_samples is not None:
+                total = min(total, max_samples)
+            for idx in range(total):
+                qid = self.dataset.questions[idx]["q_id"]
+                predictions[qid] = ""
+            return predictions
+
         data_loader = self.dataset.create_dataloader()
         predictions: Dict[str, str] = {}
         try:
@@ -203,11 +240,11 @@ class FeatureIdentifier:
                 "use_cache": True,
                 "return_dict_in_generate": True,
                 "output_scores": False,
-                "pad_token_id": self.dataset.tokenizer.eos_token_id,
+                "pad_token_id": tokenizer.eos_token_id,
             }
             with torch.inference_mode():
                 output = self.model.generate(**inps)
-            answer = self.dataset.tokenizer.batch_decode(
+            answer = tokenizer.batch_decode(
                 output["sequences"], skip_special_tokens=True
             )[0].strip().lower()
             predictions[line["q_id"]] = answer
@@ -219,6 +256,8 @@ class FeatureIdentifier:
         normalize: bool = True,
         show_progress: bool = False,
     ) -> Dict[str, Dict[str, float]]:
+        if getattr(self.dataset, "tokenizer", None) is None:
+            return {}
         data_loader = self.dataset.create_dataloader()
         results: Dict[str, Dict[str, float]] = {}
         try:

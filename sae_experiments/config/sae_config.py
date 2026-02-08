@@ -15,6 +15,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "d_model": 4096,
         "conv_mode": "vicuna_v1",
         "model_base": None,
+        "activation_site": "residual",
     },
     "sae": {
         "n_features": 32768,
@@ -26,6 +27,11 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "epochs": 10,
         "seed": 42,
         "dtype": "float32",
+    },
+    "reproducibility": {
+        "seed": 42,
+        "deterministic": True,
+        "benchmark": False,
     },
     "experiment": {
         "output_dir": "output/sae_experiments/exp_default",
@@ -44,6 +50,10 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "min_activation": 0.1,
         "top_k": 50,
         "min_diff": 0.0,
+        "aggregation": "mean",
+        "selection_method": "ratio",
+        "candidate_pool_k": 200,
+        "causal_scores_path": None,
         "position_type": "attribute",
         "correctness_metric": "option_logprob",
         "logprob_normalize": True,
@@ -57,9 +67,19 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "ablation": {
         "n_random_features": 50,
         "n_bootstrap": 1000,
+        "n_random_sets": 1,
+        "random_sampling": "uniform",
         "position_type": "attribute",
         "mode": "residual",
         "delta_scale": 1.0,
+        "operation": "zero",
+        "operation_scale": 1.0,
+    },
+    "random_control": {
+        "n_random_sets": 1,
+        "sampling": "uniform",
+        "seed": 42,
+        "matched_metric": "correct_mean",
     },
     "evaluation": {
         "significance_level": 0.05,

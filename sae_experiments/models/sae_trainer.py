@@ -19,11 +19,13 @@ class SAETrainer:
         sae: nn.Module,
         config,
         target_layer: int,
+        activation_site: str = "residual",
         llava_model: Optional[nn.Module] = None,
     ):
         self.sae = sae
         self.config = config
         self.target_layer = target_layer
+        self.activation_site = activation_site
         self.llava_model = llava_model
 
     def collect_activations(
@@ -35,7 +37,11 @@ class SAETrainer:
     ) -> Tuple[torch.Tensor, list]:
         if self.llava_model is None:
             raise ValueError("llava_model is required for activation collection")
-        collector = ActivationCollector(self.llava_model, self.target_layer)
+        collector = ActivationCollector(
+            self.llava_model,
+            self.target_layer,
+            activation_site=self.activation_site,
+        )
         activations, metadata = collector.collect_from_dataset(
             dataset,
             position_type=position_type,
@@ -61,17 +67,26 @@ class SAETrainer:
 
         device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         dtype = self._resolve_dtype(train_cfg.get("dtype", "float32"))
+        seed = self._coerce_int(train_cfg.get("seed", 42))
         self.sae.to(device=device, dtype=dtype)
         activations = activations.to(device=device, dtype=dtype)
 
         dataset = TensorDataset(activations)
-        loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+        generator = torch.Generator(device="cpu")
+        generator.manual_seed(seed)
+        loader = DataLoader(
+            dataset,
+            batch_size=batch_size,
+            shuffle=True,
+            generator=generator,
+        )
         optimizer = torch.optim.Adam(self.sae.parameters(), lr=learning_rate)
 
         history = {
             "loss": [],
             "recon_loss": [],
             "l1_loss": [],
+            "seed": seed,
         }
 
         self.sae.train()
@@ -137,6 +152,7 @@ class SAETrainer:
             "sae_state": self.sae.state_dict(),
             "config": self.config.to_dict() if hasattr(self.config, "to_dict") else self.config,
             "target_layer": self.target_layer,
+            "activation_site": self.activation_site,
         }
         save_checkpoint(state, path, metadata)
 

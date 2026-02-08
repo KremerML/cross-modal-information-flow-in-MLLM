@@ -1,6 +1,7 @@
 """Run ablation experiments for SAE features."""
 
 import argparse
+import copy
 import json
 import os
 from pathlib import Path
@@ -19,7 +20,9 @@ from sae_experiments.config.sae_config import load_config
 from sae_experiments.data.attribute_dataset import AttributeVQADataset
 from sae_experiments.feature_analysis.feature_catalog import FeatureCatalog
 from sae_experiments.models.sparse_autoencoder import SparseAutoencoder
+from sae_experiments.analysis.result_schema import validate_ablation_results
 from sae_experiments.utils.checkpoint_utils import resolve_experiment_dir
+from sae_experiments.utils.random_utils import resolve_seed, set_global_seed
 
 
 def _resolve_dtype(value: str) -> torch.dtype:
@@ -46,6 +49,17 @@ def main() -> None:
     config = load_config(args.config)
     model_cfg = config.get("model", {})
     data_cfg = config.get("dataset", {})
+    reproducibility_cfg = config.get("reproducibility", {})
+    training_cfg = config.get("training", {})
+    seed = resolve_seed(
+        reproducibility_cfg.get("seed", training_cfg.get("seed")),
+        fallback_seed=42,
+    )
+    set_global_seed(
+        seed,
+        deterministic=bool(reproducibility_cfg.get("deterministic", True)),
+        benchmark=bool(reproducibility_cfg.get("benchmark", False)),
+    )
     experiment_cfg = dict(config.get("experiment", {}))
     if args.experiment_name:
         experiment_cfg["name"] = args.experiment_name
@@ -90,32 +104,60 @@ def main() -> None:
     features_path = args.features or os.path.join(experiment_dir, "feature_catalog.json")
     catalog.load_from_json(features_path)
     binding_features = list(catalog.features.keys())
+    feature_stats_path = os.path.join(experiment_dir, "feature_stats.json")
+    feature_stats = None
+    if os.path.exists(feature_stats_path):
+        with open(feature_stats_path, "r", encoding="utf-8") as handle:
+            feature_stats = {int(k): v for k, v in json.load(handle).items()}
 
     experiment = AblationExperiment(model, sae, config)
     show_progress = not args.no_progress
     results = experiment.run_three_condition_test(
         dataset,
         binding_features,
+        feature_stats=feature_stats,
         show_progress=show_progress,
         max_samples=args.max_samples,
     )
+    results["meta"] = {
+        "seed": seed,
+        "deterministic": bool(reproducibility_cfg.get("deterministic", True)),
+        "activation_site": model_cfg.get("activation_site", "residual"),
+    }
     if control_dataset is None:
         results["task_specificity"] = {
             "skipped": True,
             "reason": "Control dataset not found or missing required columns for ChooseRel.",
         }
     else:
-        specificity = experiment.test_task_specificity(
-            binding_features,
-            dataset,
+        rel_results = experiment.run_three_condition_test(
             control_dataset,
+            binding_features,
+            feature_stats=feature_stats,
+            random_seed_offset=10_000,
             show_progress=show_progress,
             max_samples=args.max_samples,
         )
+        choose_attr_view = copy.deepcopy(
+            {
+                "baseline": results.get("baseline"),
+                "binding": results.get("binding"),
+                "random": results.get("random"),
+                "significance": results.get("significance"),
+                "ablation_settings": results.get("ablation_settings"),
+                "evaluation_settings": results.get("evaluation_settings"),
+                "random_control_settings": results.get("random_control_settings"),
+            }
+        )
+        specificity = {
+            "choose_attr": choose_attr_view,
+            "choose_rel": rel_results,
+        }
         results["task_specificity"] = specificity
 
     output_path = args.output or os.path.join(experiment_dir, "results", "ablation_results.json")
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    validate_ablation_results(results)
     with open(output_path, "w", encoding="utf-8") as handle:
         json.dump(results, handle, indent=2)
 

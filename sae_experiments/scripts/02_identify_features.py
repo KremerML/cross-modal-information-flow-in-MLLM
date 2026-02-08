@@ -1,6 +1,7 @@
 """Identify discriminative SAE features."""
 
 import argparse
+import json
 import os
 from pathlib import Path
 import sys
@@ -20,6 +21,7 @@ from sae_experiments.feature_analysis.feature_identifier import FeatureIdentifie
 from sae_experiments.feature_analysis.feature_visualizer import FeatureVisualizer
 from sae_experiments.models.sparse_autoencoder import SparseAutoencoder
 from sae_experiments.utils.checkpoint_utils import resolve_experiment_dir
+from sae_experiments.utils.random_utils import resolve_seed, set_global_seed
 
 
 def _resolve_dtype(value: str) -> torch.dtype:
@@ -45,6 +47,17 @@ def main() -> None:
     model_cfg = config.get("model", {})
     data_cfg = config.get("dataset", {})
     feat_cfg = config.get("feature_identification", {})
+    reproducibility_cfg = config.get("reproducibility", {})
+    training_cfg = config.get("training", {})
+    seed = resolve_seed(
+        reproducibility_cfg.get("seed", training_cfg.get("seed")),
+        fallback_seed=42,
+    )
+    set_global_seed(
+        seed,
+        deterministic=bool(reproducibility_cfg.get("deterministic", True)),
+        benchmark=bool(reproducibility_cfg.get("benchmark", False)),
+    )
     experiment_cfg = dict(config.get("experiment", {}))
     if args.experiment_name:
         experiment_cfg["name"] = args.experiment_name
@@ -84,7 +97,13 @@ def main() -> None:
     sae.to(device=next(model.parameters()).device, dtype=_resolve_dtype(train_cfg.get("dtype", "float32")))
     sae.eval()
 
-    identifier = FeatureIdentifier(sae, model, dataset, model_cfg.get("target_layer", 12))
+    identifier = FeatureIdentifier(
+        sae,
+        model,
+        dataset,
+        model_cfg.get("target_layer", 12),
+        activation_site=model_cfg.get("activation_site", "residual"),
+    )
     show_progress = not args.no_progress
     identifier.compute_feature_activations(
         position_type=feat_cfg.get("position_type", "attribute"),
@@ -92,6 +111,7 @@ def main() -> None:
         include_predictions=True,
         correctness_metric=feat_cfg.get("correctness_metric", "string_match"),
         logprob_normalize=feat_cfg.get("logprob_normalize", True),
+        aggregation=feat_cfg.get("aggregation", "mean"),
         show_progress=show_progress,
     )
 
@@ -116,7 +136,27 @@ def main() -> None:
                 f"threshold={fallback_threshold}, min_activation={fallback_min_activation}, min_diff={fallback_min_diff}",
             )
     top_k = feat_cfg.get("top_k", 50)
-    top_features = identifier.get_top_k_features(top_k)
+    selection_method = str(feat_cfg.get("selection_method", "ratio")).lower()
+    top_features = []
+    if selection_method == "causal_hybrid":
+        causal_scores_path = feat_cfg.get("causal_scores_path")
+        if causal_scores_path and os.path.exists(causal_scores_path):
+            with open(causal_scores_path, "r", encoding="utf-8") as handle:
+                score_blob = json.load(handle)
+            scores = score_blob.get("scores", score_blob)
+            ranked = sorted(
+                ((int(k), float(v)) for k, v in scores.items()),
+                key=lambda x: x[1],
+                reverse=True,
+            )
+            top_features = [idx for idx, _ in ranked[:top_k]]
+        elif causal_scores_path:
+            print(f"[warning] causal_scores_path not found: {causal_scores_path}. Falling back to activation ranking.")
+    if not top_features:
+        top_features = identifier.get_top_k_features(
+            top_k,
+            score_key=feat_cfg.get("score_key", "ratio"),
+        )
     if not top_features:
         top_features = features[:top_k]
 
@@ -129,6 +169,10 @@ def main() -> None:
                 "name": f"feature_{feature_idx}",
                 "type": "binding",
                 "discrimination_score": stats.get("ratio", 0.0),
+                "ratio": stats.get("ratio"),
+                "diff": stats.get("diff"),
+                "correct_mean": stats.get("correct_mean"),
+                "incorrect_mean": stats.get("incorrect_mean"),
             },
         )
 

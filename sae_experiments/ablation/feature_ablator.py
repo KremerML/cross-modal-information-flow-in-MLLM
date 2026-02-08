@@ -1,6 +1,6 @@
 """Feature ablation utilities."""
 
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import torch
 
@@ -13,16 +13,27 @@ except ImportError:
 
 from sae_experiments.utils import token_utils
 from sae_experiments.utils.hook_utils import HookManager
-from methods import remove_wrapper_llava, set_block_attn_hooks_llava
+
+try:
+    from methods import remove_wrapper_llava, set_block_attn_hooks_llava
+except Exception:  # pragma: no cover - fallback for lightweight test environments
+    def set_block_attn_hooks_llava(model, block_config):
+        raise RuntimeError(
+            "Attention blocking hooks are unavailable because methods.py dependencies failed to import."
+        )
+
+    def remove_wrapper_llava(model, hooks):
+        return None
 
 
 class FeatureAblator:
     """Ablates SAE features by zeroing them in the hidden state."""
 
-    def __init__(self, model, sae, layer_idx: int):
+    def __init__(self, model, sae, layer_idx: int, activation_site: str = "residual"):
         self.model = model
         self.sae = sae
         self.layer_idx = layer_idx
+        self.activation_site = activation_site
         self.hook_manager = HookManager(model)
 
     def create_ablation_hook(
@@ -31,6 +42,9 @@ class FeatureAblator:
         positions: Optional[List[int]] = None,
         mode: str = "residual",
         delta_scale: float = 1.0,
+        operation: str = "zero",
+        operation_scale: float = 1.0,
+        diagnostics_buffer: Optional[List[Dict[str, float]]] = None,
     ):
         feature_indices = torch.tensor(feature_indices, dtype=torch.long)
 
@@ -45,7 +59,13 @@ class FeatureAblator:
             feats_full = self.sae.encode(acts_for_sae)
             idx = feature_indices.to(feats_full.device)
             feats_mod = feats_full.clone()
-            feats_mod[:, idx] = 0.0
+            op = str(operation).lower()
+            if op == "scaled_zero":
+                feats_mod[:, idx] = feats_mod[:, idx] * (1.0 - float(operation_scale))
+            elif op == "signed_scale":
+                feats_mod[:, idx] = feats_mod[:, idx] * float(-abs(operation_scale))
+            else:
+                feats_mod[:, idx] = 0.0
 
             if mode == "replace":
                 recon_mod = self.sae.decode(feats_mod, target_shape=acts.shape)
@@ -62,6 +82,20 @@ class FeatureAblator:
                     mask[:, positions, :] = 1.0
                     delta = delta * mask
                 out = acts + delta
+
+            if diagnostics_buffer is not None:
+                delta_tensor = (out - acts).detach().float()
+                acts_tensor = acts.detach().float()
+                delta_norm = torch.linalg.norm(delta_tensor, dim=-1).mean().item()
+                acts_norm = torch.linalg.norm(acts_tensor, dim=-1).mean().item()
+                diagnostics_buffer.append(
+                    {
+                        "delta_norm": float(delta_norm),
+                        "acts_norm": float(acts_norm),
+                        "relative_norm": float(delta_norm / (acts_norm + 1e-8)),
+                        "affected_tokens": float(len(positions) if positions else acts.shape[1]),
+                    }
+                )
 
             if isinstance(output, tuple):
                 return (out,) + output[1:]
@@ -114,6 +148,8 @@ class FeatureAblator:
         position_type: str = "all",
         mode: str = "residual",
         delta_scale: float = 1.0,
+        operation: str = "zero",
+        operation_scale: float = 1.0,
         logprob_normalize: bool = True,
         attn_block_config: Optional[dict] = None,
         apply_sae: bool = True,
@@ -204,6 +240,7 @@ class FeatureAblator:
             )
             layer = self._get_layer_module(self.layer_idx)
             hook = None
+            sample_diagnostics: List[Dict[str, float]] = []
             if apply_sae:
                 hook = layer.register_forward_hook(
                     self.create_ablation_hook(
@@ -211,6 +248,9 @@ class FeatureAblator:
                         positions=positions,
                         mode=mode,
                         delta_scale=delta_scale,
+                        operation=operation,
+                        operation_scale=operation_scale,
+                        diagnostics_buffer=sample_diagnostics,
                     )
                 )
             attn_hooks = None
@@ -280,6 +320,25 @@ class FeatureAblator:
                     "ablated_true_logprob": ablated_true_lp,
                     "ablated_false_logprob": ablated_false_lp,
                     "ablated_margin": ablated_margin,
+                    "perturb_mean_delta_norm": (
+                        sum(d["delta_norm"] for d in sample_diagnostics) / len(sample_diagnostics)
+                        if sample_diagnostics
+                        else None
+                    ),
+                    "perturb_mean_acts_norm": (
+                        sum(d["acts_norm"] for d in sample_diagnostics) / len(sample_diagnostics)
+                        if sample_diagnostics
+                        else None
+                    ),
+                    "perturb_relative_norm": (
+                        sum(d["relative_norm"] for d in sample_diagnostics) / len(sample_diagnostics)
+                        if sample_diagnostics
+                        else None
+                    ),
+                    "perturb_calls": len(sample_diagnostics),
+                    "perturb_mode": mode,
+                    "perturb_operation": operation,
+                    "perturb_position_count": len(positions) if positions else None,
                 }
             )
 
@@ -308,6 +367,11 @@ class FeatureAblator:
         margin_base = [b for b, _ in margin_pairs]
         margin_abl = [a for _, a in margin_pairs]
         margin_drop = [b - a for b, a in margin_pairs]
+        rel_perturb = [
+            r.get("perturb_relative_norm")
+            for r in results
+            if r.get("perturb_relative_norm") is not None
+        ]
         return {
             "baseline_accuracy": baseline_acc,
             "ablated_accuracy": ablated_acc,
@@ -319,9 +383,14 @@ class FeatureAblator:
             "baseline_margin": sum(margin_base) / max(1, len(margin_base)) if margin_base else None,
             "ablated_margin": sum(margin_abl) / max(1, len(margin_abl)) if margin_abl else None,
             "mean_margin_drop": sum(margin_drop) / max(1, len(margin_drop)) if margin_drop else None,
+            "mean_relative_perturbation": sum(rel_perturb) / len(rel_perturb) if rel_perturb else None,
         }
 
     def _get_layer_module(self, layer_idx: int):
+        target_module = self._get_target_module(layer_idx)
+        return target_module
+
+    def _get_decoder_layer(self, layer_idx: int):
         if hasattr(self.model, "model") and hasattr(self.model.model, "layers"):
             return self.model.model.layers[layer_idx]
         if hasattr(self.model, "layers"):
@@ -329,6 +398,15 @@ class FeatureAblator:
         if hasattr(self.model, "transformer") and hasattr(self.model.transformer, "h"):
             return self.model.transformer.h[layer_idx]
         raise ValueError("Unsupported model type for layer access")
+
+    def _get_target_module(self, layer_idx: int):
+        layer = self._get_decoder_layer(layer_idx)
+        site = str(self.activation_site).lower()
+        if site == "attn_out" and hasattr(layer, "self_attn"):
+            return layer.self_attn
+        if site == "mlp_out" and hasattr(layer, "mlp"):
+            return layer.mlp
+        return layer
 
     def _estimate_image_token_count(self, input_ids, image_tensor, image_sizes) -> int:
         if not hasattr(self.model, "prepare_inputs_labels_for_multimodal"):

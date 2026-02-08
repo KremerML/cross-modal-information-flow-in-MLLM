@@ -1,14 +1,25 @@
 """High-level ablation experiment runner."""
 
+from __future__ import annotations
+
 from typing import Dict, List, Optional
 import json
 import os
 import random
+import statistics
 
+import numpy as np
 import torch
 
 from sae_experiments.ablation.feature_ablator import FeatureAblator
-from methods import trace_with_attn_block_llava
+
+try:
+    from methods import trace_with_attn_block_llava
+except Exception:  # pragma: no cover - optional dependency for knockout baseline only
+    def trace_with_attn_block_llava(*args, **kwargs):
+        raise RuntimeError(
+            "Attention knockout baseline is unavailable because methods.py dependencies failed to import."
+        )
 
 
 class AblationExperiment:
@@ -23,15 +34,32 @@ class AblationExperiment:
         self,
         dataset,
         binding_features: List[int],
+        feature_stats: Optional[Dict[int, dict]] = None,
+        random_seed_offset: int = 0,
         show_progress: bool = False,
         max_samples: Optional[int] = None,
     ) -> Dict[str, dict]:
-        ablator = FeatureAblator(self.model, self.sae, self.config.get("model", {}).get("target_layer", 0))
+        model_cfg = self.config.get("model", {})
         ablation_cfg = self.config.get("ablation", {})
+        eval_cfg = self.config.get("evaluation", {})
+        random_cfg = self.config.get("random_control", {})
+
+        ablator = FeatureAblator(
+            self.model,
+            self.sae,
+            model_cfg.get("target_layer", 0),
+            activation_site=model_cfg.get("activation_site", "residual"),
+        )
         position_type = ablation_cfg.get("position_type", "all")
         mode = ablation_cfg.get("mode", "residual")
-        delta_scale = ablation_cfg.get("delta_scale", 1.0)
-        logprob_normalize = self.config.get("evaluation", {}).get("logprob_normalize", True)
+        delta_scale = float(ablation_cfg.get("delta_scale", 1.0))
+        operation = str(ablation_cfg.get("operation", "zero")).lower()
+        operation_scale = float(ablation_cfg.get("operation_scale", 1.0))
+        logprob_normalize = bool(eval_cfg.get("logprob_normalize", True))
+
+        binding_features = [int(x) for x in binding_features]
+        if not binding_features:
+            raise ValueError("binding_features is empty; run feature identification first.")
 
         binding_results = ablator.batch_ablation_experiment(
             dataset,
@@ -39,26 +67,66 @@ class AblationExperiment:
             position_type=position_type,
             mode=mode,
             delta_scale=delta_scale,
+            operation=operation,
+            operation_scale=operation_scale,
             logprob_normalize=logprob_normalize,
             show_progress=show_progress,
             max_samples=max_samples,
         )
         binding_summary = ablator.compute_ablation_effect(binding_results)
 
-        n_random = self.config.get("ablation", {}).get("n_random_features", len(binding_features))
-        random_features = random.sample(range(self.sae.n_features), k=min(n_random, self.sae.n_features))
-        random_results = ablator.batch_ablation_experiment(
-            dataset,
-            random_features,
-            position_type=position_type,
-            mode=mode,
-            delta_scale=delta_scale,
-            logprob_normalize=logprob_normalize,
-            show_progress=show_progress,
-            max_samples=max_samples,
+        n_random = int(ablation_cfg.get("n_random_features", len(binding_features)))
+        n_random_sets = int(ablation_cfg.get("n_random_sets", random_cfg.get("n_random_sets", 1)))
+        n_random_sets = max(1, n_random_sets)
+        random_sampling = str(ablation_cfg.get("random_sampling", random_cfg.get("sampling", "uniform"))).lower()
+        matched_metric = str(random_cfg.get("matched_metric", "correct_mean"))
+        seed = int(
+            random_cfg.get(
+                "seed",
+                self.config.get("reproducibility", {}).get(
+                    "seed",
+                    self.config.get("training", {}).get("seed", 42),
+                ),
+            )
         )
-        random_summary = ablator.compute_ablation_effect(random_results)
+        rng = random.Random(seed + int(random_seed_offset))
+        normalized_stats = self._normalize_feature_stats(feature_stats)
 
+        random_results_first = []
+        random_feature_sets: List[List[int]] = []
+        random_set_summaries: List[dict] = []
+        for set_idx in range(n_random_sets):
+            random_features = self._sample_random_features(
+                binding_features=binding_features,
+                n_random_features=n_random,
+                sampling=random_sampling,
+                feature_stats=normalized_stats,
+                matched_metric=matched_metric,
+                rng=rng,
+            )
+            random_feature_sets.append(random_features)
+
+            set_results = ablator.batch_ablation_experiment(
+                dataset,
+                random_features,
+                position_type=position_type,
+                mode=mode,
+                delta_scale=delta_scale,
+                operation=operation,
+                operation_scale=operation_scale,
+                logprob_normalize=logprob_normalize,
+                show_progress=show_progress and set_idx == 0,
+                max_samples=max_samples,
+            )
+            set_summary = ablator.compute_ablation_effect(set_results)
+            set_summary["set_index"] = set_idx
+            set_summary["feature_count"] = len(random_features)
+            random_set_summaries.append(set_summary)
+            if set_idx == 0:
+                random_results_first = set_results
+
+        random_summary = self._aggregate_random_summaries(random_set_summaries)
+        significance = self._compare_binding_vs_random(binding_summary, random_set_summaries)
         baseline_summary = {
             "baseline_accuracy": binding_summary["baseline_accuracy"],
         }
@@ -68,14 +136,26 @@ class AblationExperiment:
             "binding": binding_summary,
             "random": random_summary,
             "binding_results": binding_results,
-            "random_results": random_results,
+            "random_results": random_results_first,
+            "random_set_summaries": random_set_summaries,
+            "random_feature_sets": random_feature_sets,
+            "significance": significance,
             "ablation_settings": {
                 "position_type": position_type,
                 "mode": mode,
                 "delta_scale": delta_scale,
+                "operation": operation,
+                "operation_scale": operation_scale,
+            },
+            "random_control_settings": {
+                "n_random_features": n_random,
+                "n_random_sets": n_random_sets,
+                "sampling": random_sampling,
+                "matched_metric": matched_metric,
+                "seed": seed + int(random_seed_offset),
             },
             "evaluation_settings": {
-                "primary_metric": self.config.get("evaluation", {}).get("primary_metric", "pred_token_prob"),
+                "primary_metric": eval_cfg.get("primary_metric", "pred_token_prob"),
                 "logprob_normalize": logprob_normalize,
             },
         }
@@ -85,18 +165,22 @@ class AblationExperiment:
         binding_features: List[int],
         choose_attr_data,
         choose_rel_data,
+        feature_stats: Optional[Dict[int, dict]] = None,
         show_progress: bool = False,
         max_samples: Optional[int] = None,
     ) -> Dict[str, dict]:
         attr_results = self.run_three_condition_test(
             choose_attr_data,
             binding_features,
+            feature_stats=feature_stats,
             show_progress=show_progress,
             max_samples=max_samples,
         )
         rel_results = self.run_three_condition_test(
             choose_rel_data,
             binding_features,
+            feature_stats=feature_stats,
+            random_seed_offset=10_000,
             show_progress=show_progress,
             max_samples=max_samples,
         )
@@ -106,10 +190,26 @@ class AblationExperiment:
         }
 
     def feature_importance_ranking(self, feature_list: List[int], dataset) -> Dict[int, float]:
-        ablator = FeatureAblator(self.model, self.sae, self.config.get("model", {}).get("target_layer", 0))
+        model_cfg = self.config.get("model", {})
+        ablation_cfg = self.config.get("ablation", {})
+        ablator = FeatureAblator(
+            self.model,
+            self.sae,
+            model_cfg.get("target_layer", 0),
+            activation_site=model_cfg.get("activation_site", "residual"),
+        )
         ranking = {}
         for feature_idx in feature_list:
-            results = ablator.batch_ablation_experiment(dataset, [feature_idx])
+            results = ablator.batch_ablation_experiment(
+                dataset,
+                [feature_idx],
+                position_type=ablation_cfg.get("position_type", "all"),
+                mode=ablation_cfg.get("mode", "residual"),
+                delta_scale=float(ablation_cfg.get("delta_scale", 1.0)),
+                operation=str(ablation_cfg.get("operation", "zero")).lower(),
+                operation_scale=float(ablation_cfg.get("operation_scale", 1.0)),
+                logprob_normalize=bool(self.config.get("evaluation", {}).get("logprob_normalize", True)),
+            )
             summary = ablator.compute_ablation_effect(results)
             ranking[feature_idx] = summary.get("accuracy_drop", 0.0)
         return ranking
@@ -155,3 +255,205 @@ class AblationExperiment:
             )
             scores.append(base_score.item() if hasattr(base_score, "item") else float(base_score))
         return {"mean_score": sum(scores) / max(1, len(scores))}
+
+    def _sample_random_features(
+        self,
+        binding_features: List[int],
+        n_random_features: int,
+        sampling: str,
+        feature_stats: Dict[int, dict],
+        matched_metric: str,
+        rng: random.Random,
+    ) -> List[int]:
+        n_total = int(self.sae.n_features)
+        target_count = int(n_random_features) if int(n_random_features) > 0 else len(binding_features)
+        target_count = max(1, min(target_count, n_total))
+        binding_set = {idx for idx in binding_features if 0 <= idx < n_total}
+
+        pool = [idx for idx in range(n_total) if idx not in binding_set]
+        if not pool:
+            pool = list(range(n_total))
+        target_count = min(target_count, len(pool))
+        if target_count == 0:
+            return []
+
+        if sampling in ("matched", "matched_activation", "matched_metric") and feature_stats:
+            return self._sample_matched_random_features(
+                binding_features=binding_features,
+                pool=pool,
+                target_count=target_count,
+                feature_stats=feature_stats,
+                matched_metric=matched_metric,
+                rng=rng,
+            )
+        return rng.sample(pool, k=target_count)
+
+    def _sample_matched_random_features(
+        self,
+        binding_features: List[int],
+        pool: List[int],
+        target_count: int,
+        feature_stats: Dict[int, dict],
+        matched_metric: str,
+        rng: random.Random,
+    ) -> List[int]:
+        selected: List[int] = []
+        available = set(pool)
+        candidate_stats = {
+            idx: self._extract_metric_value(feature_stats.get(idx, {}), matched_metric)
+            for idx in available
+        }
+        valid_metric_pool = {idx for idx in available if candidate_stats.get(idx) is not None}
+
+        for feature_idx in binding_features[:target_count]:
+            target_value = self._extract_metric_value(feature_stats.get(feature_idx, {}), matched_metric)
+            if target_value is None or not valid_metric_pool:
+                if not available:
+                    break
+                choice = rng.choice(sorted(available))
+            else:
+                choice = min(
+                    sorted(valid_metric_pool),
+                    key=lambda idx: abs(candidate_stats[idx] - target_value),
+                )
+                valid_metric_pool.discard(choice)
+            if choice in available:
+                available.remove(choice)
+                selected.append(choice)
+
+        if len(selected) < target_count and available:
+            remainder = rng.sample(list(available), k=min(target_count - len(selected), len(available)))
+            selected.extend(remainder)
+
+        if len(selected) < target_count:
+            # Should rarely happen; fallback to pure uniform sampling from entire non-binding pool.
+            fallback_pool = list(pool)
+            extra = [idx for idx in fallback_pool if idx not in selected]
+            if extra:
+                selected.extend(rng.sample(extra, k=min(target_count - len(selected), len(extra))))
+        return selected[:target_count]
+
+    @staticmethod
+    def _normalize_feature_stats(feature_stats: Optional[Dict[int, dict]]) -> Dict[int, dict]:
+        if not feature_stats:
+            return {}
+        normalized = {}
+        for key, value in feature_stats.items():
+            try:
+                feature_idx = int(key)
+            except (TypeError, ValueError):
+                continue
+            if isinstance(value, dict):
+                normalized[feature_idx] = value
+        return normalized
+
+    @staticmethod
+    def _extract_metric_value(stats: Dict, metric: str) -> Optional[float]:
+        if not isinstance(stats, dict):
+            return None
+        if metric in stats and stats[metric] is not None:
+            try:
+                return float(stats[metric])
+            except (TypeError, ValueError):
+                return None
+        for fallback in ("correct_mean", "ratio", "diff", "incorrect_mean"):
+            if fallback in stats and stats[fallback] is not None:
+                try:
+                    return float(stats[fallback])
+                except (TypeError, ValueError):
+                    continue
+        return None
+
+    @staticmethod
+    def _aggregate_random_summaries(set_summaries: List[dict]) -> Dict[str, Optional[float]]:
+        if not set_summaries:
+            return {}
+        if len(set_summaries) == 1:
+            summary = dict(set_summaries[0])
+            summary["n_sets"] = 1
+            return summary
+
+        aggregate = dict(set_summaries[0])
+        aggregate["n_sets"] = len(set_summaries)
+        metric_keys = [
+            "baseline_accuracy",
+            "ablated_accuracy",
+            "accuracy_drop",
+            "mean_probability_drop",
+            "baseline_gt_probability",
+            "ablated_gt_probability",
+            "mean_gt_probability_drop",
+            "baseline_margin",
+            "ablated_margin",
+            "mean_margin_drop",
+            "mean_relative_perturbation",
+        ]
+        for metric in metric_keys:
+            values = [float(item[metric]) for item in set_summaries if item.get(metric) is not None]
+            if not values:
+                aggregate[metric] = None
+                aggregate[f"{metric}_std"] = None
+                aggregate[f"{metric}_ci95_low"] = None
+                aggregate[f"{metric}_ci95_high"] = None
+                continue
+            aggregate[metric] = float(statistics.fmean(values))
+            aggregate[f"{metric}_std"] = float(statistics.pstdev(values)) if len(values) > 1 else 0.0
+            if len(values) > 1:
+                ci_low, ci_high = np.percentile(values, [2.5, 97.5])
+                aggregate[f"{metric}_ci95_low"] = float(ci_low)
+                aggregate[f"{metric}_ci95_high"] = float(ci_high)
+            else:
+                aggregate[f"{metric}_ci95_low"] = float(values[0])
+                aggregate[f"{metric}_ci95_high"] = float(values[0])
+        return aggregate
+
+    @staticmethod
+    def _compare_binding_vs_random(binding_summary: dict, random_set_summaries: List[dict]) -> Dict[str, dict]:
+        if not random_set_summaries:
+            return {}
+        metrics = [
+            "accuracy_drop",
+            "mean_probability_drop",
+            "mean_gt_probability_drop",
+            "mean_margin_drop",
+        ]
+        out: Dict[str, dict] = {}
+        for metric in metrics:
+            binding_value = binding_summary.get(metric)
+            random_values = [item.get(metric) for item in random_set_summaries if item.get(metric) is not None]
+            if binding_value is None or not random_values:
+                continue
+            random_values = [float(v) for v in random_values]
+            rand_mean = float(statistics.fmean(random_values))
+            rand_std = float(statistics.pstdev(random_values)) if len(random_values) > 1 else 0.0
+            p_empirical = AblationExperiment._empirical_p_value(
+                observed=float(binding_value),
+                distribution=random_values,
+                greater_is_more_extreme=True,
+            )
+            z_score = None
+            if rand_std > 0.0:
+                z_score = float((float(binding_value) - rand_mean) / rand_std)
+            out[metric] = {
+                "binding": float(binding_value),
+                "random_mean": rand_mean,
+                "random_std": rand_std,
+                "empirical_p_value": p_empirical,
+                "z_score": z_score,
+            }
+        return out
+
+    @staticmethod
+    def _empirical_p_value(
+        observed: float,
+        distribution: List[float],
+        greater_is_more_extreme: bool = True,
+    ) -> float:
+        if not distribution:
+            return 1.0
+        if greater_is_more_extreme:
+            extreme = sum(1 for x in distribution if x >= observed)
+        else:
+            extreme = sum(1 for x in distribution if x <= observed)
+        # +1 smoothing avoids zero p-values for small random-set counts.
+        return float((extreme + 1) / (len(distribution) + 1))

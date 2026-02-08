@@ -19,6 +19,7 @@ from sae_experiments.models.sparse_autoencoder import SparseAutoencoder
 from sae_experiments.models.sae_trainer import SAETrainer
 from sae_experiments.utils.checkpoint_utils import resolve_experiment_dir
 from sae_experiments.utils.sae_validation import compute_activation_stats, reconstruction_loss
+from sae_experiments.utils.random_utils import resolve_seed, set_global_seed
 
 
 def main() -> None:
@@ -36,6 +37,17 @@ def main() -> None:
     config = load_config(args.config)
     model_cfg = config.get("model", {})
     data_cfg = config.get("dataset", {})
+    reproducibility_cfg = config.get("reproducibility", {})
+    training_cfg = config.get("training", {})
+    seed = resolve_seed(
+        reproducibility_cfg.get("seed", training_cfg.get("seed")),
+        fallback_seed=42,
+    )
+    set_global_seed(
+        seed,
+        deterministic=bool(reproducibility_cfg.get("deterministic", True)),
+        benchmark=bool(reproducibility_cfg.get("benchmark", False)),
+    )
     experiment_cfg = dict(config.get("experiment", {}))
     if args.experiment_name:
         experiment_cfg["name"] = args.experiment_name
@@ -76,6 +88,7 @@ def main() -> None:
         sae=sae,
         config=config,
         target_layer=target_layer,
+        activation_site=model_cfg.get("activation_site", "residual"),
         llava_model=model,
     )
 
@@ -96,6 +109,8 @@ def main() -> None:
             "activation_stats": activation_stats,
             "reconstruction_loss": recon_loss,
             "activation_samples": int(activations.shape[0]),
+            "seed": seed,
+            "deterministic": bool(reproducibility_cfg.get("deterministic", True)),
         },
     )
     save_config(config, os.path.join(experiment_dir, "config.yaml"))
