@@ -28,7 +28,7 @@ def main() -> None:
     parser.add_argument("--target_layer", type=int, default=None)
     parser.add_argument("--position_type", type=str, default=None)
     parser.add_argument("--checkpoint_path", type=str, default=None)
-    parser.add_argument("--show_progress", action="store_true", help="Show training progress bar.")
+    parser.add_argument("--show_progress", type=bool, default=True)
     parser.add_argument("--experiment_dir", type=str, default=None)
     parser.add_argument("--experiment_name", type=str, default=None)
     args = parser.parse_args()

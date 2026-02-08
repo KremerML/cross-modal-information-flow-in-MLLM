@@ -38,6 +38,7 @@ def main() -> None:
     parser.add_argument("--max_samples", type=int, default=None)
     parser.add_argument("--experiment_dir", type=str, default=None)
     parser.add_argument("--experiment_name", type=str, default=None)
+    parser.add_argument("--no_progress", action="store_true", help="Disable progress bars.")
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -84,12 +85,14 @@ def main() -> None:
     sae.eval()
 
     identifier = FeatureIdentifier(sae, model, dataset, model_cfg.get("target_layer", 12))
+    show_progress = not args.no_progress
     identifier.compute_feature_activations(
         position_type=feat_cfg.get("position_type", "attribute"),
         max_samples=args.max_samples,
         include_predictions=True,
         correctness_metric=feat_cfg.get("correctness_metric", "string_match"),
         logprob_normalize=feat_cfg.get("logprob_normalize", True),
+        show_progress=show_progress,
     )
 
     features = identifier.find_discriminative_features(
@@ -135,7 +138,13 @@ def main() -> None:
     identifier.save_feature_statistics(os.path.join(experiment_dir, "feature_stats.json"))
 
     visualizer = FeatureVisualizer(sae, model, dataset, identifier.feature_acts, identifier.metadata)
-    for feature_idx in top_features[: min(10, len(top_features))]:
+    viz_features = top_features[: min(10, len(top_features))]
+    viz_iter = viz_features
+    if show_progress and viz_features:
+        from tqdm import tqdm
+
+        viz_iter = tqdm(viz_features, desc="Visualizing features")
+    for feature_idx in viz_iter:
         visualizer.visualize_feature(
             feature_idx,
             os.path.join(os.path.dirname(catalog_path), f"feature_{feature_idx}.png"),

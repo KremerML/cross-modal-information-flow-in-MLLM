@@ -7,9 +7,9 @@ sweep:
   feature_position_types: ["attribute"]
   grid:
     top_k: [50, 200, 500]
-    min_activation: [0.0, 0.05]
+    min_activation: [0.0]
     mode: ["residual", "replace"]
-    delta_scale: [1.0, 2.0]
+    delta_scale: [2.0]
   steps:
     train: true
     identify: true

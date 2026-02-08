@@ -35,6 +35,7 @@ class ActivationCollector:
         tokenizer=None,
         max_samples: Optional[int] = None,
         device: Optional[str] = None,
+        show_progress: bool = False,
     ) -> Tuple[torch.Tensor, List[Dict[str, Any]]]:
         if hasattr(dataset, "create_dataloader"):
             data_loader = dataset.create_dataloader()
@@ -58,7 +59,16 @@ class ActivationCollector:
         metadata: List[Dict[str, Any]] = []
         offset = 0
 
-        for idx, (batch, line) in enumerate(zip(data_loader, questions)):
+        iterator = zip(data_loader, questions)
+        total = len(questions) if questions is not None else None
+        if max_samples is not None and total is not None:
+            total = min(total, max_samples)
+        if show_progress:
+            from tqdm import tqdm
+
+            iterator = tqdm(iterator, total=total, desc="Collecting activations")
+
+        for idx, (batch, line) in enumerate(iterator):
             if max_samples is not None and idx >= max_samples:
                 break
 

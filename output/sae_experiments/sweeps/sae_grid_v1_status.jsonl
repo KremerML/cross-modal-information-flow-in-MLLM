@@ -1,0 +1,1 @@
+{"run_name": "sae_grid_v1_layer0_train-attribute_feat-attribute_top_k50_min_activation0.0_moderesidual_delta_scale1.0", "event": "start", "index": 1, "total": 48, "experiment_dir": "output/sae_experiments/sweeps/sae_grid_v1_layer0_train-attribute_feat-attribute_top_k50_min_activation0.0_moderesidual_delta_scale1.0", "timestamp": "2026-02-08 12:35:29"}

@@ -1,6 +1,7 @@
 """Identify discriminative SAE features for attribute binding."""
 
 from typing import Dict, List, Optional, Tuple
+import math
 import json
 
 import numpy as np
@@ -29,6 +30,7 @@ class FeatureIdentifier:
         include_predictions: bool = False,
         correctness_metric: str = "string_match",
         logprob_normalize: bool = True,
+        show_progress: bool = False,
     ) -> Tuple[np.ndarray, List[dict]]:
         collector = ActivationCollector(self.model, self.layer_idx)
         activations, metadata = collector.collect_from_dataset(
@@ -36,6 +38,7 @@ class FeatureIdentifier:
             position_type=position_type,
             tokenizer=self.dataset.tokenizer,
             max_samples=max_samples,
+            show_progress=show_progress,
         )
         if activations.numel() == 0:
             return np.empty((0, self.sae.n_features)), []
@@ -47,8 +50,14 @@ class FeatureIdentifier:
         if batch_size is None:
             batch_size = activations.shape[0]
         feats_list = []
+        starts = range(0, activations.shape[0], batch_size)
+        if show_progress:
+            from tqdm import tqdm
+
+            total_batches = math.ceil(activations.shape[0] / batch_size)
+            starts = tqdm(starts, total=total_batches, desc="Encoding SAE")
         with torch.no_grad():
-            for start in range(0, activations.shape[0], batch_size):
+            for start in starts:
                 batch = activations[start : start + batch_size]
                 feats_list.append(self.sae.encode(batch).cpu())
         feats = torch.cat(feats_list, dim=0).numpy()
@@ -65,11 +74,12 @@ class FeatureIdentifier:
 
         predictions = None
         if include_predictions or correctness_metric == "string_match":
-            predictions = self._compute_predictions(max_samples=max_samples)
+            predictions = self._compute_predictions(max_samples=max_samples, show_progress=show_progress)
         if correctness_metric == "option_logprob":
             option_scores = self._compute_option_logprobs(
                 max_samples=max_samples,
                 normalize=logprob_normalize,
+                show_progress=show_progress,
             )
         else:
             option_scores = {}
@@ -158,14 +168,26 @@ class FeatureIdentifier:
         with open(path, "w", encoding="utf-8") as handle:
             json.dump(self.feature_stats, handle, indent=2)
 
-    def _compute_predictions(self, max_samples: Optional[int] = None) -> Dict[str, str]:
+    def _compute_predictions(
+        self,
+        max_samples: Optional[int] = None,
+        show_progress: bool = False,
+    ) -> Dict[str, str]:
         data_loader = self.dataset.create_dataloader()
         predictions: Dict[str, str] = {}
         try:
             device = next(self.model.parameters()).device
         except StopIteration:
             device = "cuda" if torch.cuda.is_available() else "cpu"
-        for idx, (batch, line) in enumerate(zip(data_loader, self.dataset.questions)):
+        iterator = zip(data_loader, self.dataset.questions)
+        total = len(self.dataset.questions)
+        if max_samples is not None:
+            total = min(total, max_samples)
+        if show_progress:
+            from tqdm import tqdm
+
+            iterator = tqdm(iterator, total=total, desc="Generating predictions")
+        for idx, (batch, line) in enumerate(iterator):
             if max_samples is not None and idx >= max_samples:
                 break
             input_ids, image_tensor, image_sizes, _, _ = batch
@@ -195,6 +217,7 @@ class FeatureIdentifier:
         self,
         max_samples: Optional[int] = None,
         normalize: bool = True,
+        show_progress: bool = False,
     ) -> Dict[str, Dict[str, float]]:
         data_loader = self.dataset.create_dataloader()
         results: Dict[str, Dict[str, float]] = {}
@@ -202,7 +225,15 @@ class FeatureIdentifier:
             device = next(self.model.parameters()).device
         except StopIteration:
             device = "cuda" if torch.cuda.is_available() else "cpu"
-        for idx, (batch, line) in enumerate(zip(data_loader, self.dataset.questions)):
+        iterator = zip(data_loader, self.dataset.questions)
+        total = len(self.dataset.questions)
+        if max_samples is not None:
+            total = min(total, max_samples)
+        if show_progress:
+            from tqdm import tqdm
+
+            iterator = tqdm(iterator, total=total, desc="Scoring options")
+        for idx, (batch, line) in enumerate(iterator):
             if max_samples is not None and idx >= max_samples:
                 break
             input_ids, image_tensor, image_sizes, _, _ = batch
