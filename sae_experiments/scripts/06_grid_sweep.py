@@ -45,10 +45,16 @@ def _run(cmd: List[str], dry_run: bool, log_path: Optional[str] = None) -> None:
         print("DRY RUN:", " ".join(cmd))
         return
     if log_path:
+        os.makedirs(os.path.dirname(log_path), exist_ok=True)
         with open(log_path, "a", encoding="utf-8") as handle:
             handle.write(f"$ {' '.join(cmd)}\n")
             handle.flush()
-            subprocess.run(cmd, check=True, stdout=handle, stderr=subprocess.STDOUT)
+            try:
+                subprocess.run(cmd, check=True, stdout=handle, stderr=subprocess.STDOUT)
+            except subprocess.CalledProcessError as exc:
+                handle.write(f"\n[command failed] returncode={exc.returncode}\n")
+                handle.flush()
+                raise
         return
     subprocess.run(cmd, check=True)
 
@@ -166,6 +172,10 @@ def main() -> None:
         status_log = os.path.join(output_base, f"{sweep_name}_status.jsonl")
 
         print(f"[{idx}/{len(runs)}] {run_name}")
+        os.makedirs(experiment_dir, exist_ok=True)
+        if not os.path.exists(run_log):
+            with open(run_log, "a", encoding="utf-8") as handle:
+                handle.write(f"[run start] {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
         _log_status(
             status_log,
             {
