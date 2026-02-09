@@ -7,6 +7,7 @@ import json
 import os
 import random
 import statistics
+import time
 
 import numpy as np
 import torch
@@ -36,6 +37,7 @@ class AblationExperiment:
         binding_features: List[int],
         feature_stats: Optional[Dict[int, dict]] = None,
         random_seed_offset: int = 0,
+        progress_label: Optional[str] = None,
         show_progress: bool = False,
         max_samples: Optional[int] = None,
     ) -> Dict[str, dict]:
@@ -95,7 +97,29 @@ class AblationExperiment:
         random_results_first = []
         random_feature_sets: List[List[int]] = []
         random_set_summaries: List[dict] = []
+        random_start = time.time()
         for set_idx in range(n_random_sets):
+            if show_progress:
+                elapsed = time.time() - random_start
+                done = set_idx
+                remaining = None
+                if done > 0:
+                    avg_per_set = elapsed / done
+                    remaining = avg_per_set * (n_random_sets - done)
+                label = progress_label or "Ablation"
+                if remaining is None:
+                    print(
+                        f"[{label}] Random control set {set_idx + 1}/{n_random_sets} starting...",
+                        flush=True,
+                    )
+                else:
+                    print(
+                        f"[{label}] Random control set {set_idx + 1}/{n_random_sets} starting "
+                        f"(elapsed {self._format_duration(elapsed)}, "
+                        f"ETA {self._format_duration(remaining)})",
+                        flush=True,
+                    )
+
             random_features = self._sample_random_features(
                 binding_features=binding_features,
                 n_random_features=n_random,
@@ -106,6 +130,7 @@ class AblationExperiment:
             )
             random_feature_sets.append(random_features)
 
+            set_start = time.time()
             set_results = ablator.batch_ablation_experiment(
                 dataset,
                 random_features,
@@ -122,6 +147,13 @@ class AblationExperiment:
             set_summary["set_index"] = set_idx
             set_summary["feature_count"] = len(random_features)
             random_set_summaries.append(set_summary)
+            if show_progress:
+                label = progress_label or "Ablation"
+                print(
+                    f"[{label}] Random control set {set_idx + 1}/{n_random_sets} completed "
+                    f"in {self._format_duration(time.time() - set_start)}",
+                    flush=True,
+                )
             if set_idx == 0:
                 random_results_first = set_results
 
@@ -457,3 +489,14 @@ class AblationExperiment:
             extreme = sum(1 for x in distribution if x <= observed)
         # +1 smoothing avoids zero p-values for small random-set counts.
         return float((extreme + 1) / (len(distribution) + 1))
+
+    @staticmethod
+    def _format_duration(seconds: float) -> str:
+        seconds = max(0.0, float(seconds))
+        total = int(seconds)
+        hours = total // 3600
+        minutes = (total % 3600) // 60
+        secs = total % 60
+        if hours > 0:
+            return f"{hours:02d}:{minutes:02d}:{secs:02d}"
+        return f"{minutes:02d}:{secs:02d}"

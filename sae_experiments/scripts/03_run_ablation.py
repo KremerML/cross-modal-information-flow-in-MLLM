@@ -1,7 +1,6 @@
 """Run ablation experiments for SAE features."""
 
 import argparse
-import copy
 import json
 import os
 from pathlib import Path
@@ -77,16 +76,22 @@ def main() -> None:
     )
     model.eval()
 
+    task_types = data_cfg.get("task_types", ["ChooseAttr"])
+    if isinstance(task_types, str):
+        task_types = [task_types]
+    if not task_types:
+        task_types = ["ChooseAttr"]
+    task_type = str(task_types[0])
+
     dataset = AttributeVQADataset(
         refined_dataset=data_cfg.get("refined_dataset", ""),
         image_folder=data_cfg.get("image_folder", ""),
         tokenizer=tokenizer,
         image_processor=image_processor,
         model_config=model.config,
-        task_type=data_cfg.get("task_types", ["ChooseAttr"])[0],
+        task_type=task_type,
         conv_mode=model_cfg.get("conv_mode", "vicuna_v1"),
     )
-    control_dataset = dataset.create_control_dataset(task_type="ChooseRel")
 
     sae = SparseAutoencoder(
         d_model=model_cfg.get("d_model", 4096),
@@ -116,6 +121,7 @@ def main() -> None:
         dataset,
         binding_features,
         feature_stats=feature_stats,
+        progress_label=task_type,
         show_progress=show_progress,
         max_samples=args.max_samples,
     )
@@ -123,37 +129,13 @@ def main() -> None:
         "seed": seed,
         "deterministic": bool(reproducibility_cfg.get("deterministic", True)),
         "activation_site": model_cfg.get("activation_site", "residual"),
+        "task_type": task_type,
+        "configured_task_types": task_types,
     }
-    if control_dataset is None:
-        results["task_specificity"] = {
-            "skipped": True,
-            "reason": "Control dataset not found or missing required columns for ChooseRel.",
-        }
-    else:
-        rel_results = experiment.run_three_condition_test(
-            control_dataset,
-            binding_features,
-            feature_stats=feature_stats,
-            random_seed_offset=10_000,
-            show_progress=show_progress,
-            max_samples=args.max_samples,
-        )
-        choose_attr_view = copy.deepcopy(
-            {
-                "baseline": results.get("baseline"),
-                "binding": results.get("binding"),
-                "random": results.get("random"),
-                "significance": results.get("significance"),
-                "ablation_settings": results.get("ablation_settings"),
-                "evaluation_settings": results.get("evaluation_settings"),
-                "random_control_settings": results.get("random_control_settings"),
-            }
-        )
-        specificity = {
-            "choose_attr": choose_attr_view,
-            "choose_rel": rel_results,
-        }
-        results["task_specificity"] = specificity
+    results["task_specificity"] = {
+        "skipped": True,
+        "reason": "03_run_ablation.py now runs only dataset.task_types[0] from config.",
+    }
 
     output_path = args.output or os.path.join(experiment_dir, "results", "ablation_results.json")
     os.makedirs(os.path.dirname(output_path), exist_ok=True)

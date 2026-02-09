@@ -4,7 +4,7 @@ model:
   d_model: 4096
   conv_mode: "vicuna_v1"
   model_base: null
-  activation_site: "residual"
+  activation_site: "attn_out"
 
 sae:
   n_features: 32768
@@ -23,9 +23,9 @@ reproducibility:
   benchmark: false
 
 experiment:
-  output_dir: "output/sae_experiments/first_pass_layer11_residual"
+  output_dir: "output/sae_experiments/first_pass_layer11_attn_out"
   output_base: "output/sae_experiments"
-  name: "first_pass_layer11_residual"
+  name: "first_pass_layer11_attn_out"
   use_timestamp: false
 
 dataset:
