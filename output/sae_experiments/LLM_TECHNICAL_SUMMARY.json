@@ -1,0 +1,704 @@
+{
+  "base_dir": "output/sae_experiments",
+  "run_count": 14,
+  "summary_markdown": "output/sae_experiments/LLM_TECHNICAL_SUMMARY.md",
+  "runs": [
+    {
+      "run_dir": "exp_default",
+      "config": {
+        "target_layer": 12,
+        "activation_site": "residual(default)",
+        "train_position_type": "(not_set)",
+        "feature_position_type": "attribute",
+        "feature_top_k": 50,
+        "feature_min_activation": 0.1,
+        "feature_aggregation": "(default)",
+        "ablation_position_type": "attribute",
+        "ablation_mode": "residual",
+        "delta_scale": 1.0,
+        "n_random_features": 50,
+        "n_random_sets": null,
+        "random_sampling": null,
+        "primary_metric": "pred_token_prob",
+        "task_types": [
+          "ChooseAttr"
+        ]
+      },
+      "knockout_summary": {
+        "rows": 64,
+        "flows": {
+          "Image->Last": {
+            "top_layer": 0,
+            "top_effect_size": 0.0,
+            "top_margin_drop": 0.0,
+            "layer11_effect_size": 0.0,
+            "layer11_margin_drop": 0.0
+          },
+          "Image->Question": {
+            "top_layer": 0,
+            "top_effect_size": 0.0,
+            "top_margin_drop": 0.0,
+            "layer11_effect_size": 0.0,
+            "layer11_margin_drop": 0.0
+          }
+        }
+      }
+    },
+    {
+      "run_dir": "exp_run1",
+      "config": {
+        "target_layer": 12,
+        "activation_site": "residual(default)",
+        "train_position_type": "(not_set)",
+        "feature_position_type": "attribute",
+        "feature_top_k": 50,
+        "feature_min_activation": 0.1,
+        "feature_aggregation": "(default)",
+        "ablation_position_type": "attribute",
+        "ablation_mode": "residual",
+        "delta_scale": 1.0,
+        "n_random_features": 50,
+        "n_random_sets": null,
+        "random_sampling": null,
+        "primary_metric": "pred_token_prob",
+        "task_types": [
+          "ChooseAttr"
+        ]
+      },
+      "results": {
+        "result_file": "exp_run1/results/ablation_results.json",
+        "baseline_accuracy": 0.6590649942987458,
+        "binding_accuracy_drop": 0.0,
+        "random_accuracy_drop": 0.0,
+        "binding_minus_random_accuracy_drop": 0.0,
+        "binding_mean_margin_drop": null,
+        "random_mean_margin_drop": null,
+        "binding_minus_random_margin_drop": null,
+        "binding_mean_probability_drop": -1.7088760399899977e-05,
+        "random_mean_probability_drop": -1.7111562404828304e-05,
+        "binding_mean_gt_probability_drop": -2.465169314847794e-09,
+        "random_mean_gt_probability_drop": -1.876451394824075e-08,
+        "binding_mean_relative_perturbation": null,
+        "random_mean_relative_perturbation": null,
+        "random_n_sets_reported": null,
+        "binding_rows": 877,
+        "random_rows": 877,
+        "random_set_summaries": 0,
+        "significance_accuracy_empirical_p": null,
+        "significance_margin_empirical_p": null,
+        "meta_activation_site": null,
+        "meta_task_type": null
+      },
+      "hypothesis_report": {
+        "primary_metric": "pred_token_prob",
+        "mean_drop": -1.7088760399899977e-05,
+        "p_value": 0.9995961592240319,
+        "effect_size": 1.7105617486851652e-05,
+        "hypothesis_supported": false,
+        "test_type": null,
+        "random_set_count": null
+      },
+      "feature_files": {
+        "feature_stats_count": 9191,
+        "feature_catalog_count": 50
+      }
+    },
+    {
+      "run_dir": "exp_run2_all_residual",
+      "config": {
+        "target_layer": null,
+        "activation_site": "residual(default)",
+        "train_position_type": "(not_set)",
+        "feature_position_type": null,
+        "feature_top_k": null,
+        "feature_min_activation": null,
+        "feature_aggregation": "(default)",
+        "ablation_position_type": null,
+        "ablation_mode": null,
+        "delta_scale": null,
+        "n_random_features": null,
+        "n_random_sets": null,
+        "random_sampling": null,
+        "primary_metric": null,
+        "task_types": null
+      },
+      "results": {
+        "result_file": "exp_run2_all_residual/results/ablation_results.json",
+        "baseline_accuracy": 0.6590649942987458,
+        "binding_accuracy_drop": 0.0011402508551882073,
+        "random_accuracy_drop": 0.0022805017103763037,
+        "binding_minus_random_accuracy_drop": -0.0011402508551880963,
+        "binding_mean_margin_drop": null,
+        "random_mean_margin_drop": null,
+        "binding_minus_random_margin_drop": null,
+        "binding_mean_probability_drop": 0.00043981981929922594,
+        "random_mean_probability_drop": -0.0009974883179028466,
+        "binding_mean_gt_probability_drop": 1.645428610087886e-07,
+        "random_mean_gt_probability_drop": -2.4083788407380653e-08,
+        "binding_mean_relative_perturbation": null,
+        "random_mean_relative_perturbation": null,
+        "random_n_sets_reported": null,
+        "binding_rows": 877,
+        "random_rows": 877,
+        "random_set_summaries": 0,
+        "significance_accuracy_empirical_p": null,
+        "significance_margin_empirical_p": null,
+        "meta_activation_site": null,
+        "meta_task_type": null
+      },
+      "hypothesis_report": {
+        "primary_metric": "pred_token_prob",
+        "mean_drop": 0.00043981981929922594,
+        "p_value": 1.5863066421455764e-10,
+        "effect_size": 0.21874100420425135,
+        "hypothesis_supported": true,
+        "test_type": null,
+        "random_set_count": null
+      },
+      "feature_files": {
+        "feature_stats_count": 9191,
+        "feature_catalog_count": 50
+      }
+    },
+    {
+      "run_dir": "exp_run3_attr_residual_weak",
+      "config": {
+        "target_layer": null,
+        "activation_site": "residual(default)",
+        "train_position_type": "(not_set)",
+        "feature_position_type": null,
+        "feature_top_k": null,
+        "feature_min_activation": null,
+        "feature_aggregation": "(default)",
+        "ablation_position_type": null,
+        "ablation_mode": null,
+        "delta_scale": null,
+        "n_random_features": null,
+        "n_random_sets": null,
+        "random_sampling": null,
+        "primary_metric": null,
+        "task_types": null
+      },
+      "results": {
+        "result_file": "exp_run3_attr_residual_weak/results/ablation_results.json",
+        "baseline_accuracy": 0.6590649942987458,
+        "binding_accuracy_drop": 0.0011402508551882073,
+        "random_accuracy_drop": 0.0011402508551882073,
+        "binding_minus_random_accuracy_drop": 0.0,
+        "binding_mean_margin_drop": null,
+        "random_mean_margin_drop": null,
+        "binding_minus_random_margin_drop": null,
+        "binding_mean_probability_drop": 1.2812925717170046e-05,
+        "random_mean_probability_drop": 9.000131450466038e-06,
+        "binding_mean_gt_probability_drop": 9.324124191610144e-10,
+        "random_mean_gt_probability_drop": 3.792757246744903e-09,
+        "binding_mean_relative_perturbation": null,
+        "random_mean_relative_perturbation": null,
+        "random_n_sets_reported": null,
+        "binding_rows": 877,
+        "random_rows": 877,
+        "random_set_summaries": 0,
+        "significance_accuracy_empirical_p": null,
+        "significance_margin_empirical_p": null,
+        "meta_activation_site": null,
+        "meta_task_type": null
+      },
+      "hypothesis_report": {
+        "primary_metric": "pred_token_prob",
+        "mean_drop": 1.2812925717170046e-05,
+        "p_value": 0.9270501168577321,
+        "effect_size": 0.0030942853532920666,
+        "hypothesis_supported": false,
+        "test_type": null,
+        "random_set_count": null
+      },
+      "feature_files": {
+        "feature_stats_count": 9191,
+        "feature_catalog_count": 50
+      }
+    },
+    {
+      "run_dir": "exp_run4",
+      "config": {
+        "target_layer": null,
+        "activation_site": "residual(default)",
+        "train_position_type": "(not_set)",
+        "feature_position_type": null,
+        "feature_top_k": null,
+        "feature_min_activation": null,
+        "feature_aggregation": "(default)",
+        "ablation_position_type": null,
+        "ablation_mode": null,
+        "delta_scale": null,
+        "n_random_features": null,
+        "n_random_sets": null,
+        "random_sampling": null,
+        "primary_metric": null,
+        "task_types": null
+      },
+      "results": {
+        "result_file": "exp_run4/results/ablation_results.json",
+        "baseline_accuracy": 0.6590649942987458,
+        "binding_accuracy_drop": 0.0011402508551882073,
+        "random_accuracy_drop": 0.0,
+        "binding_minus_random_accuracy_drop": 0.0011402508551882073,
+        "binding_mean_margin_drop": null,
+        "random_mean_margin_drop": null,
+        "binding_minus_random_margin_drop": null,
+        "binding_mean_probability_drop": 2.432498176122337e-05,
+        "random_mean_probability_drop": 4.0446678888022965e-05,
+        "binding_mean_gt_probability_drop": -2.717188825391389e-09,
+        "random_mean_gt_probability_drop": -7.791572340570533e-09,
+        "binding_mean_relative_perturbation": null,
+        "random_mean_relative_perturbation": null,
+        "random_n_sets_reported": null,
+        "binding_rows": 877,
+        "random_rows": 877,
+        "random_set_summaries": 0,
+        "significance_accuracy_empirical_p": null,
+        "significance_margin_empirical_p": null,
+        "meta_activation_site": null,
+        "meta_task_type": null
+      },
+      "hypothesis_report": {
+        "primary_metric": "pred_token_prob",
+        "mean_drop": 2.432498176122337e-05,
+        "p_value": 0.7880373071063455,
+        "effect_size": -0.009086671648639624,
+        "hypothesis_supported": false,
+        "test_type": null,
+        "random_set_count": null
+      },
+      "feature_files": {
+        "feature_stats_count": 9191,
+        "feature_catalog_count": 50
+      }
+    },
+    {
+      "run_dir": "first_pass_layer11_residual",
+      "config": {
+        "target_layer": 11,
+        "activation_site": "residual",
+        "train_position_type": "(not_set)",
+        "feature_position_type": "attribute",
+        "feature_top_k": 200,
+        "feature_min_activation": 0.0,
+        "feature_aggregation": "mean",
+        "ablation_position_type": "attribute",
+        "ablation_mode": "replace",
+        "delta_scale": 1.0,
+        "n_random_features": 200,
+        "n_random_sets": 5,
+        "random_sampling": "matched",
+        "primary_metric": "forced_choice_margin",
+        "task_types": [
+          "ChooseAttr"
+        ]
+      },
+      "results": {
+        "result_file": "first_pass_layer11_residual/results/ablation_results.json",
+        "baseline_accuracy": 0.6590649942987458,
+        "binding_accuracy_drop": -0.0011402508551880963,
+        "random_accuracy_drop": -0.0022805017103761926,
+        "binding_minus_random_accuracy_drop": 0.0011402508551880963,
+        "binding_mean_margin_drop": 0.0013514466371993708,
+        "random_mean_margin_drop": 0.0014014829576606683,
+        "binding_minus_random_margin_drop": -5.003632046129752e-05,
+        "binding_mean_probability_drop": 0.00040296212841194875,
+        "random_mean_probability_drop": 0.0003618422296735009,
+        "binding_mean_gt_probability_drop": 6.68869410789346e-08,
+        "random_mean_gt_probability_drop": 6.241499562163916e-08,
+        "binding_mean_relative_perturbation": 0.000166906638097186,
+        "random_mean_relative_perturbation": 0.00016714980208256536,
+        "random_n_sets_reported": 15,
+        "binding_rows": 877,
+        "random_rows": 877,
+        "random_set_summaries": 15,
+        "significance_accuracy_empirical_p": 0.0625,
+        "significance_margin_empirical_p": 1.0,
+        "meta_activation_site": "residual",
+        "meta_task_type": "ChooseAttr"
+      },
+      "feature_files": {
+        "feature_stats_count": 551,
+        "feature_catalog_count": 200
+      }
+    },
+    {
+      "run_dir": "rerun_layer11_attn_out_20260209_211336",
+      "config": {
+        "target_layer": 11,
+        "activation_site": "attn_out",
+        "train_position_type": "attribute",
+        "feature_position_type": "attribute",
+        "feature_top_k": 200,
+        "feature_min_activation": 0.0,
+        "feature_aggregation": "mean",
+        "ablation_position_type": "attribute",
+        "ablation_mode": "replace",
+        "delta_scale": 1.0,
+        "n_random_features": 200,
+        "n_random_sets": 15,
+        "random_sampling": "matched",
+        "primary_metric": "forced_choice_margin",
+        "task_types": [
+          "ChooseAttr"
+        ]
+      }
+    },
+    {
+      "run_dir": "rerun_layer11_attn_out_20260209_213255",
+      "config": {
+        "target_layer": 11,
+        "activation_site": "attn_out",
+        "train_position_type": "attribute",
+        "feature_position_type": "attribute",
+        "feature_top_k": 200,
+        "feature_min_activation": 0.0,
+        "feature_aggregation": "mean",
+        "ablation_position_type": "attribute",
+        "ablation_mode": "replace",
+        "delta_scale": 1.0,
+        "n_random_features": 200,
+        "n_random_sets": 15,
+        "random_sampling": "matched",
+        "primary_metric": "forced_choice_margin",
+        "task_types": [
+          "ChooseAttr"
+        ]
+      },
+      "results": {
+        "result_file": "rerun_layer11_attn_out_20260209_213255/results/ablation_results.json",
+        "baseline_accuracy": 0.6590649942987458,
+        "binding_accuracy_drop": 0.0011402508551882073,
+        "random_accuracy_drop": 0.0012162675788674137,
+        "binding_minus_random_accuracy_drop": -7.601672367920633e-05,
+        "binding_mean_margin_drop": -0.0021054053736414423,
+        "random_mean_margin_drop": -0.001967491452547971,
+        "binding_minus_random_margin_drop": -0.00013791392109347139,
+        "binding_mean_probability_drop": -9.208183603928326e-05,
+        "random_mean_probability_drop": -6.067634127249694e-05,
+        "binding_mean_gt_probability_drop": 1.7399771842016352e-08,
+        "random_mean_gt_probability_drop": 1.8640541096188215e-08,
+        "binding_mean_relative_perturbation": 0.00030304036646137955,
+        "random_mean_relative_perturbation": 0.00030302565425039253,
+        "random_n_sets_reported": 15,
+        "binding_rows": 877,
+        "random_rows": 877,
+        "random_set_summaries": 15,
+        "significance_accuracy_empirical_p": 1.0,
+        "significance_margin_empirical_p": 1.0,
+        "meta_activation_site": "attn_out",
+        "meta_task_type": "ChooseAttr"
+      },
+      "hypothesis_report": {
+        "primary_metric": "forced_choice_margin",
+        "mean_drop": -0.0021054053736414423,
+        "p_value": 1.0,
+        "effect_size": -2.547096051979856,
+        "hypothesis_supported": false,
+        "test_type": "empirical_random_set",
+        "random_set_count": 15.0
+      },
+      "knockout_summary": {
+        "rows": 64,
+        "flows": {
+          "Image->Last": {
+            "top_layer": 2,
+            "top_effect_size": 0.5903643366526166,
+            "top_margin_drop": 0.017400947653175142,
+            "layer11_effect_size": 0.10814973771878589,
+            "layer11_margin_drop": 0.0009020405258138241
+          },
+          "Image->Question": {
+            "top_layer": 0,
+            "top_effect_size": 0.806171758702782,
+            "top_margin_drop": 0.5084878103493269,
+            "layer11_effect_size": 0.6053664329044577,
+            "layer11_margin_drop": 0.1688140939828294
+          }
+        }
+      },
+      "feature_files": {
+        "feature_stats_count": 1072,
+        "feature_catalog_count": 200
+      }
+    },
+    {
+      "run_dir": "sae_q_layer0",
+      "config": {
+        "target_layer": 12,
+        "activation_site": "residual(default)",
+        "train_position_type": "(not_set)",
+        "feature_position_type": "attribute",
+        "feature_top_k": 50,
+        "feature_min_activation": 0.1,
+        "feature_aggregation": "(default)",
+        "ablation_position_type": "attribute",
+        "ablation_mode": "residual",
+        "delta_scale": 1.0,
+        "n_random_features": 50,
+        "n_random_sets": null,
+        "random_sampling": null,
+        "primary_metric": "pred_token_prob",
+        "task_types": [
+          "ChooseAttr"
+        ]
+      },
+      "results": {
+        "result_file": "sae_q_layer0/results/ablation_results_fixed.json",
+        "baseline_accuracy": 0.6590649942987458,
+        "binding_accuracy_drop": 0.0,
+        "random_accuracy_drop": 0.0011402508551882073,
+        "binding_minus_random_accuracy_drop": -0.0011402508551882073,
+        "binding_mean_margin_drop": -4.1925993031414465e-05,
+        "random_mean_margin_drop": 7.738631593230276e-05,
+        "binding_minus_random_margin_drop": -0.00011931230896371723,
+        "binding_mean_probability_drop": -1.3924413015524365e-05,
+        "random_mean_probability_drop": -4.358061227178628e-05,
+        "binding_mean_gt_probability_drop": -4.051630505061793e-09,
+        "random_mean_gt_probability_drop": 5.029935364457233e-09,
+        "binding_mean_relative_perturbation": null,
+        "random_mean_relative_perturbation": null,
+        "random_n_sets_reported": null,
+        "binding_rows": 877,
+        "random_rows": 877,
+        "random_set_summaries": 0,
+        "significance_accuracy_empirical_p": null,
+        "significance_margin_empirical_p": null,
+        "meta_activation_site": null,
+        "meta_task_type": null
+      },
+      "feature_files": {
+        "feature_stats_count": 10789,
+        "feature_catalog_count": 50
+      }
+    },
+    {
+      "run_dir": "sae_q_layer11",
+      "config": {
+        "target_layer": 12,
+        "activation_site": "residual(default)",
+        "train_position_type": "(not_set)",
+        "feature_position_type": "attribute",
+        "feature_top_k": 50,
+        "feature_min_activation": 0.1,
+        "feature_aggregation": "(default)",
+        "ablation_position_type": "attribute",
+        "ablation_mode": "residual",
+        "delta_scale": 1.0,
+        "n_random_features": 50,
+        "n_random_sets": null,
+        "random_sampling": null,
+        "primary_metric": "pred_token_prob",
+        "task_types": [
+          "ChooseAttr"
+        ]
+      },
+      "results": {
+        "result_file": "sae_q_layer11/results/ablation_results_fixed.json",
+        "baseline_accuracy": 0.6590649942987458,
+        "binding_accuracy_drop": 0.0011402508551882073,
+        "random_accuracy_drop": 0.0011402508551882073,
+        "binding_minus_random_accuracy_drop": 0.0,
+        "binding_mean_margin_drop": 3.6532759430098995e-05,
+        "random_mean_margin_drop": 0.0005990075774559016,
+        "binding_minus_random_margin_drop": -0.0005624748180258026,
+        "binding_mean_probability_drop": -1.9257397580989546e-05,
+        "random_mean_probability_drop": 9.274261843247452e-05,
+        "binding_mean_gt_probability_drop": -1.0883665194219656e-09,
+        "random_mean_gt_probability_drop": 2.958832791598963e-09,
+        "binding_mean_relative_perturbation": null,
+        "random_mean_relative_perturbation": null,
+        "random_n_sets_reported": null,
+        "binding_rows": 877,
+        "random_rows": 877,
+        "random_set_summaries": 0,
+        "significance_accuracy_empirical_p": null,
+        "significance_margin_empirical_p": null,
+        "meta_activation_site": null,
+        "meta_task_type": null
+      },
+      "feature_files": {
+        "feature_stats_count": 14914,
+        "feature_catalog_count": 50
+      }
+    },
+    {
+      "run_dir": "sweeps/sae_grid_v1_layer0_train-attribute_feat-attribute_top_k50_min_activation0.0_modereplace_delta_scale1.0",
+      "config": {
+        "target_layer": 0,
+        "activation_site": "residual(default)",
+        "train_position_type": "(not_set)",
+        "feature_position_type": "attribute",
+        "feature_top_k": 50,
+        "feature_min_activation": 0.0,
+        "feature_aggregation": "(default)",
+        "ablation_position_type": "attribute",
+        "ablation_mode": "replace",
+        "delta_scale": 1.0,
+        "n_random_features": 50,
+        "n_random_sets": null,
+        "random_sampling": null,
+        "primary_metric": "pred_token_prob",
+        "task_types": [
+          "ChooseAttr"
+        ]
+      },
+      "results": {
+        "result_file": "sweeps/sae_grid_v1_layer0_train-attribute_feat-attribute_top_k50_min_activation0.0_modereplace_delta_scale1.0/results/ablation_results.json",
+        "baseline_accuracy": 0.6590649942987458,
+        "binding_accuracy_drop": 0.0011402508551882073,
+        "random_accuracy_drop": 0.0011402508551882073,
+        "binding_minus_random_accuracy_drop": 0.0,
+        "binding_mean_margin_drop": -0.001409935229824863,
+        "random_mean_margin_drop": -0.0013703626043452652,
+        "binding_minus_random_margin_drop": -3.957262547959789e-05,
+        "binding_mean_probability_drop": -0.00011470166280304964,
+        "random_mean_probability_drop": -0.0001443235401144865,
+        "binding_mean_gt_probability_drop": 6.562360435876215e-10,
+        "random_mean_gt_probability_drop": 1.0251565695922023e-08,
+        "binding_mean_relative_perturbation": null,
+        "random_mean_relative_perturbation": null,
+        "random_n_sets_reported": null,
+        "binding_rows": 877,
+        "random_rows": 877,
+        "random_set_summaries": 0,
+        "significance_accuracy_empirical_p": null,
+        "significance_margin_empirical_p": null,
+        "meta_activation_site": null,
+        "meta_task_type": null
+      },
+      "feature_files": {
+        "feature_stats_count": 559,
+        "feature_catalog_count": 50
+      }
+    },
+    {
+      "run_dir": "sweeps/sae_grid_v1_layer0_train-attribute_feat-attribute_top_k50_min_activation0.0_modereplace_delta_scale2.0",
+      "config": {
+        "target_layer": 0,
+        "activation_site": "residual(default)",
+        "train_position_type": "(not_set)",
+        "feature_position_type": "attribute",
+        "feature_top_k": 50,
+        "feature_min_activation": 0.0,
+        "feature_aggregation": "(default)",
+        "ablation_position_type": "attribute",
+        "ablation_mode": "replace",
+        "delta_scale": 2.0,
+        "n_random_features": 50,
+        "n_random_sets": null,
+        "random_sampling": null,
+        "primary_metric": "pred_token_prob",
+        "task_types": [
+          "ChooseAttr"
+        ]
+      },
+      "feature_files": {
+        "feature_stats_count": 535,
+        "feature_catalog_count": 50
+      }
+    },
+    {
+      "run_dir": "sweeps/sae_grid_v1_layer0_train-attribute_feat-attribute_top_k50_min_activation0.0_moderesidual_delta_scale1.0",
+      "config": {
+        "target_layer": 0,
+        "activation_site": "residual(default)",
+        "train_position_type": "(not_set)",
+        "feature_position_type": "attribute",
+        "feature_top_k": 50,
+        "feature_min_activation": 0.0,
+        "feature_aggregation": "(default)",
+        "ablation_position_type": "attribute",
+        "ablation_mode": "residual",
+        "delta_scale": 1.0,
+        "n_random_features": 50,
+        "n_random_sets": null,
+        "random_sampling": null,
+        "primary_metric": "pred_token_prob",
+        "task_types": [
+          "ChooseAttr"
+        ]
+      },
+      "results": {
+        "result_file": "sweeps/sae_grid_v1_layer0_train-attribute_feat-attribute_top_k50_min_activation0.0_moderesidual_delta_scale1.0/results/ablation_results.json",
+        "baseline_accuracy": 0.6590649942987458,
+        "binding_accuracy_drop": 0.0,
+        "random_accuracy_drop": 0.0011402508551882073,
+        "binding_minus_random_accuracy_drop": -0.0011402508551882073,
+        "binding_mean_margin_drop": 1.520264033025529e-06,
+        "random_mean_margin_drop": 8.842120744497511e-05,
+        "binding_minus_random_margin_drop": -8.690094341194958e-05,
+        "binding_mean_probability_drop": -1.0984415611084402e-05,
+        "random_mean_probability_drop": 9.947960841614953e-06,
+        "binding_mean_gt_probability_drop": 1.6711840698824179e-09,
+        "random_mean_gt_probability_drop": -1.8386664951249425e-09,
+        "binding_mean_relative_perturbation": null,
+        "random_mean_relative_perturbation": null,
+        "random_n_sets_reported": null,
+        "binding_rows": 877,
+        "random_rows": 877,
+        "random_set_summaries": 0,
+        "significance_accuracy_empirical_p": null,
+        "significance_margin_empirical_p": null,
+        "meta_activation_site": null,
+        "meta_task_type": null
+      },
+      "feature_files": {
+        "feature_stats_count": 561,
+        "feature_catalog_count": 50
+      }
+    },
+    {
+      "run_dir": "sweeps/sae_grid_v1_layer0_train-attribute_feat-attribute_top_k50_min_activation0.0_moderesidual_delta_scale2.0",
+      "config": {
+        "target_layer": 0,
+        "activation_site": "residual(default)",
+        "train_position_type": "(not_set)",
+        "feature_position_type": "attribute",
+        "feature_top_k": 50,
+        "feature_min_activation": 0.0,
+        "feature_aggregation": "(default)",
+        "ablation_position_type": "attribute",
+        "ablation_mode": "residual",
+        "delta_scale": 2.0,
+        "n_random_features": 50,
+        "n_random_sets": null,
+        "random_sampling": null,
+        "primary_metric": "pred_token_prob",
+        "task_types": [
+          "ChooseAttr"
+        ]
+      },
+      "results": {
+        "result_file": "sweeps/sae_grid_v1_layer0_train-attribute_feat-attribute_top_k50_min_activation0.0_moderesidual_delta_scale2.0/results/ablation_results.json",
+        "baseline_accuracy": 0.6590649942987458,
+        "binding_accuracy_drop": 0.0,
+        "random_accuracy_drop": 0.0,
+        "binding_minus_random_accuracy_drop": 0.0,
+        "binding_mean_margin_drop": -3.8251882088517685e-06,
+        "random_mean_margin_drop": 0.0004412292939044987,
+        "binding_minus_random_margin_drop": -0.00044505448211335045,
+        "binding_mean_probability_drop": -8.637270334780964e-06,
+        "random_mean_probability_drop": 6.802541500078504e-07,
+        "binding_mean_gt_probability_drop": -3.2773340833275138e-09,
+        "random_mean_gt_probability_drop": -1.4104812636751718e-08,
+        "binding_mean_relative_perturbation": null,
+        "random_mean_relative_perturbation": null,
+        "random_n_sets_reported": null,
+        "binding_rows": 877,
+        "random_rows": 877,
+        "random_set_summaries": 0,
+        "significance_accuracy_empirical_p": null,
+        "significance_margin_empirical_p": null,
+        "meta_activation_site": null,
+        "meta_task_type": null
+      },
+      "feature_files": {
+        "feature_stats_count": 563,
+        "feature_catalog_count": 50
+      }
+    }
+  ]
+}
