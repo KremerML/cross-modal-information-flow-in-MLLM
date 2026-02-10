@@ -137,9 +137,9 @@ def find_token_range(tokenizer, token_array, substring, model_name):
   toks = tokenizer.convert_ids_to_tokens(token_array)
 
 
-  if model_name == model_name == "llava-v1.6-vicuna-7b" or model_name == "llava-v1.5-7b" or model_name == "llava-v1.5-13b":
+  if model_name in ("llava-v1.6-vicuna-7b", "llava-v1.5-7b", "llava-v1.5-13b"):
       whole_string = "".join(toks).replace("▁", " ")
-  elif model_name == "llama3-llava-next-8b" or "llava-next-qwen-32b":
+  elif model_name in ("llama3-llava-next-8b", "llava-next-qwen-32b"):
     whole_string = "".join(toks).replace("Ġ"," ").replace("Ċ","\n")
 
 

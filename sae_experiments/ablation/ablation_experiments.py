@@ -336,6 +336,9 @@ class AblationExperiment:
             for idx in available
         }
         valid_metric_pool = {idx for idx in available if candidate_stats.get(idx) is not None}
+        # Randomized nearest-neighbor matching width. Keeps candidates close in metric space
+        # while allowing independent random control sets across repeats.
+        neighbor_width = 16
 
         for feature_idx in binding_features[:target_count]:
             target_value = self._extract_metric_value(feature_stats.get(feature_idx, {}), matched_metric)
@@ -344,10 +347,25 @@ class AblationExperiment:
                     break
                 choice = rng.choice(sorted(available))
             else:
-                choice = min(
-                    sorted(valid_metric_pool),
-                    key=lambda idx: abs(candidate_stats[idx] - target_value),
+                scored = sorted(
+                    (abs(candidate_stats[idx] - target_value), idx)
+                    for idx in valid_metric_pool
                 )
+                window = scored[: min(neighbor_width, len(scored))]
+                if len(window) == 1:
+                    choice = window[0][1]
+                else:
+                    # Prefer closer matches but sample stochastically.
+                    max_dist = window[-1][0]
+                    if max_dist <= 0.0:
+                        choice = rng.choice([idx for _, idx in window])
+                    else:
+                        weights = [(max_dist - dist) + 1e-12 for dist, _ in window]
+                        choice = rng.choices(
+                            [idx for _, idx in window],
+                            weights=weights,
+                            k=1,
+                        )[0]
                 valid_metric_pool.discard(choice)
             if choice in available:
                 available.remove(choice)
@@ -402,10 +420,12 @@ class AblationExperiment:
             return {}
         if len(set_summaries) == 1:
             summary = dict(set_summaries[0])
+            summary.pop("set_index", None)
             summary["n_sets"] = 1
             return summary
 
         aggregate = dict(set_summaries[0])
+        aggregate.pop("set_index", None)
         aggregate["n_sets"] = len(set_summaries)
         metric_keys = [
             "baseline_accuracy",

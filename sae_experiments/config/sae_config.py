@@ -27,6 +27,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "epochs": 10,
         "seed": 42,
         "dtype": "float32",
+        "position_type": "attribute",
     },
     "reproducibility": {
         "seed": 42,

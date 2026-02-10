@@ -131,9 +131,11 @@ class FeatureAblator:
             "output_scores": True,
             "pad_token_id": tokenizer.eos_token_id,
         }
-        with torch.inference_mode():
-            output = self.model.generate(**inps)
-        hook.remove()
+        try:
+            with torch.inference_mode():
+                output = self.model.generate(**inps)
+        finally:
+            hook.remove()
 
         answer_token_id = output["sequences"][:, 0]
         logits_first = output["scores"][0]
@@ -265,28 +267,30 @@ class FeatureAblator:
                 )
             if resolved_block_config:
                 attn_hooks = set_block_attn_hooks_llava(self.model, resolved_block_config)
-            with torch.inference_mode():
-                ablated = self.model.generate(**inps)
-                ablated_true_lp = self._sequence_logprob(
-                    input_ids,
-                    image_tensor,
-                    image_sizes,
-                    true_option,
-                    dataset.tokenizer,
-                    normalize=logprob_normalize,
-                )
-                ablated_false_lp = self._sequence_logprob(
-                    input_ids,
-                    image_tensor,
-                    image_sizes,
-                    false_option,
-                    dataset.tokenizer,
-                    normalize=logprob_normalize,
-                )
-            if hook:
-                hook.remove()
-            if attn_hooks:
-                remove_wrapper_llava(self.model, attn_hooks)
+            try:
+                with torch.inference_mode():
+                    ablated = self.model.generate(**inps)
+                    ablated_true_lp = self._sequence_logprob(
+                        input_ids,
+                        image_tensor,
+                        image_sizes,
+                        true_option,
+                        dataset.tokenizer,
+                        normalize=logprob_normalize,
+                    )
+                    ablated_false_lp = self._sequence_logprob(
+                        input_ids,
+                        image_tensor,
+                        image_sizes,
+                        false_option,
+                        dataset.tokenizer,
+                        normalize=logprob_normalize,
+                    )
+            finally:
+                if hook:
+                    hook.remove()
+                if attn_hooks:
+                    remove_wrapper_llava(self.model, attn_hooks)
 
             ablated_pred = dataset.tokenizer.batch_decode(
                 ablated["sequences"], skip_special_tokens=True

@@ -1,0 +1,20 @@
+{
+  "primary_metric": "forced_choice_margin",
+  "t_stat": -5.838081072052718,
+  "p_value": 1.0,
+  "effect_size": -2.547096051979856,
+  "baseline_ci_low": 1.105141805819863,
+  "baseline_ci_high": 1.3299936658865765,
+  "mean_drop": -0.0021054053736414423,
+  "pred_t_stat": -1.0737512660476871,
+  "pred_p_value": 0.283229859225091,
+  "pred_effect_size": -0.036278550347228475,
+  "pred_mean_drop": -9.208183603928326e-05,
+  "gt_t_stat": 1.9611238610328479,
+  "gt_p_value": 0.05018102634453196,
+  "gt_effect_size": 0.06382953625411193,
+  "gt_mean_drop": 1.7399771842016352e-08,
+  "hypothesis_supported": false,
+  "test_type": "empirical_random_set",
+  "random_set_count": 15.0
+}

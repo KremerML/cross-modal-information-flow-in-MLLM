@@ -23,6 +23,7 @@ from sae_experiments.knockout.knockout_runner import run_knockout_sweep
 from sae_experiments.models.sae_trainer import SAETrainer
 from sae_experiments.models.sparse_autoencoder import SparseAutoencoder
 from sae_experiments.utils.checkpoint_utils import load_checkpoint, resolve_experiment_dir, save_checkpoint
+from sae_experiments.utils.config_utils import resolve_primary_task_type
 from sae_experiments.utils.knockout_utils import build_block_config, estimate_inputs_embeds_shape, resolve_flow_ranges
 from sae_experiments.utils.sae_validation import (
     compute_activation_stats,
@@ -71,6 +72,7 @@ def _ensure_sae_for_layer(
         sae=sae,
         config=config,
         target_layer=layer,
+        activation_site=model_cfg.get("activation_site", "residual"),
         llava_model=model,
     )
 
@@ -80,7 +82,9 @@ def _ensure_sae_for_layer(
         raise ValueError(f"Invalid checkpoint path: {checkpoint_path}")
     if os.path.exists(checkpoint_path) and not skip_reuse:
         state, metadata = load_checkpoint(checkpoint_path)
-        if state.get("target_layer") == layer:
+        if state.get("target_layer") == layer and state.get(
+            "activation_site", "residual"
+        ) == model_cfg.get("activation_site", "residual"):
             sae.load_state_dict(state["sae_state"])
             activations_cache, _ = trainer.collect_activations(
                 dataset,
@@ -118,6 +122,10 @@ def _ensure_sae_for_layer(
                 candidate_path = os.path.join(root, "sae_checkpoint.pt")
                 state, metadata = load_checkpoint(candidate_path)
                 if state.get("target_layer") != layer:
+                    continue
+                if state.get("activation_site", "residual") != model_cfg.get(
+                    "activation_site", "residual"
+                ):
                     continue
                 sae.load_state_dict(state["sae_state"])
                 if activations_cache is None:
@@ -169,6 +177,7 @@ def _ensure_sae_for_layer(
         "sae_state": sae.state_dict(),
         "config": config.to_dict() if hasattr(config, "to_dict") else config,
         "target_layer": layer,
+        "activation_site": model_cfg.get("activation_site", "residual"),
     }
     save_checkpoint(state, checkpoint_path, metadata)
     reuse_info.update({"reused": False, "trained": True})
@@ -256,7 +265,7 @@ def main() -> None:
         tokenizer=tokenizer,
         image_processor=image_processor,
         model_config=model.config,
-        task_type=data_cfg.get("task_types", ["ChooseAttr"])[0],
+        task_type=resolve_primary_task_type(data_cfg.get("task_types")),
         conv_mode=model_cfg.get("conv_mode", "vicuna_v1"),
     )
 
@@ -322,7 +331,13 @@ def main() -> None:
                 skip_reuse=args.force_train,
             )
 
-            identifier = FeatureIdentifier(sae, model, dataset, layer)
+            identifier = FeatureIdentifier(
+                sae,
+                model,
+                dataset,
+                layer,
+                activation_site=model_cfg.get("activation_site", "residual"),
+            )
             identifier.compute_feature_activations(
                 position_type=position_type,
                 max_samples=args.feature_max_samples,
@@ -330,6 +345,7 @@ def main() -> None:
                 include_predictions=True,
                 correctness_metric=feat_cfg.get("correctness_metric", "option_logprob"),
                 logprob_normalize=feat_cfg.get("logprob_normalize", True),
+                aggregation=feat_cfg.get("aggregation", "mean"),
             )
             features = identifier.find_discriminative_features(
                 threshold=feat_cfg.get("discrimination_threshold", 2.0),
@@ -343,7 +359,10 @@ def main() -> None:
                     min_activation=fallback.get("min_activation", 0.0),
                     min_diff=fallback.get("min_diff", 0.0),
                 )
-            top_features = identifier.get_top_k_features(feat_cfg.get("top_k", 50))
+            top_features = identifier.get_top_k_features(
+                feat_cfg.get("top_k", 50),
+                score_key=feat_cfg.get("score_key", "ratio"),
+            )
             if not top_features:
                 top_features = features[: feat_cfg.get("top_k", 50)]
 
@@ -402,7 +421,12 @@ def main() -> None:
                 catalog_data = json.load(handle)
             feature_indices = [int(idx) for idx in catalog_data.keys()]
 
-            ablator = FeatureAblator(model, sae, layer)
+            ablator = FeatureAblator(
+                model,
+                sae,
+                layer,
+                activation_site=model_cfg.get("activation_site", "residual"),
+            )
             resolver = _make_attn_block_resolver(
                 flow, layer, knockout_cfg.get("window", 1), model, model_name
             )
@@ -424,6 +448,8 @@ def main() -> None:
                 position_type=position_type,
                 mode=ablation_cfg.get("mode", "residual"),
                 delta_scale=ablation_cfg.get("delta_scale", 1.0),
+                operation=ablation_cfg.get("operation", "zero"),
+                operation_scale=ablation_cfg.get("operation_scale", 1.0),
                 logprob_normalize=config.get("evaluation", {}).get("logprob_normalize", True),
                 show_progress=True,
                 max_samples=args.ablation_max_samples,
@@ -435,6 +461,8 @@ def main() -> None:
                 position_type=position_type,
                 mode=ablation_cfg.get("mode", "residual"),
                 delta_scale=ablation_cfg.get("delta_scale", 1.0),
+                operation=ablation_cfg.get("operation", "zero"),
+                operation_scale=ablation_cfg.get("operation_scale", 1.0),
                 logprob_normalize=config.get("evaluation", {}).get("logprob_normalize", True),
                 apply_sae=False,
                 attn_block_resolver=resolver,
@@ -448,6 +476,8 @@ def main() -> None:
                 position_type=position_type,
                 mode=ablation_cfg.get("mode", "residual"),
                 delta_scale=ablation_cfg.get("delta_scale", 1.0),
+                operation=ablation_cfg.get("operation", "zero"),
+                operation_scale=ablation_cfg.get("operation_scale", 1.0),
                 logprob_normalize=config.get("evaluation", {}).get("logprob_normalize", True),
                 apply_sae=True,
                 attn_block_resolver=resolver,

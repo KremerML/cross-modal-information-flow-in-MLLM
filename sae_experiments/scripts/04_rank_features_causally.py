@@ -22,6 +22,7 @@ from sae_experiments.config.sae_config import load_config
 from sae_experiments.data.attribute_dataset import AttributeVQADataset
 from sae_experiments.models.sparse_autoencoder import SparseAutoencoder
 from sae_experiments.utils.checkpoint_utils import resolve_experiment_dir
+from sae_experiments.utils.config_utils import resolve_primary_task_type
 from sae_experiments.utils.random_utils import resolve_seed, set_global_seed
 
 
@@ -140,7 +141,7 @@ def main() -> None:
         tokenizer=tokenizer,
         image_processor=image_processor,
         model_config=model.config,
-        task_type=data_cfg.get("task_types", ["ChooseAttr"])[0],
+        task_type=resolve_primary_task_type(data_cfg.get("task_types")),
         conv_mode=model_cfg.get("conv_mode", "vicuna_v1"),
     )
 
@@ -240,4 +241,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

@@ -18,8 +18,23 @@ from sae_experiments.data.attribute_dataset import AttributeVQADataset
 from sae_experiments.models.sparse_autoencoder import SparseAutoencoder
 from sae_experiments.models.sae_trainer import SAETrainer
 from sae_experiments.utils.checkpoint_utils import resolve_experiment_dir
+from sae_experiments.utils.config_utils import (
+    resolve_primary_task_type,
+    resolve_training_position_type,
+)
 from sae_experiments.utils.sae_validation import compute_activation_stats, reconstruction_loss
 from sae_experiments.utils.random_utils import resolve_seed, set_global_seed
+
+
+def _parse_bool(value):
+    if isinstance(value, bool):
+        return value
+    text = str(value).strip().lower()
+    if text in {"1", "true", "t", "yes", "y", "on"}:
+        return True
+    if text in {"0", "false", "f", "no", "n", "off"}:
+        return False
+    raise argparse.ArgumentTypeError(f"Invalid boolean value: {value}")
 
 
 def main() -> None:
@@ -29,7 +44,7 @@ def main() -> None:
     parser.add_argument("--target_layer", type=int, default=None)
     parser.add_argument("--position_type", type=str, default=None)
     parser.add_argument("--checkpoint_path", type=str, default=None)
-    parser.add_argument("--show_progress", type=bool, default=True)
+    parser.add_argument("--show_progress", type=_parse_bool, default=True)
     parser.add_argument("--experiment_dir", type=str, default=None)
     parser.add_argument("--experiment_name", type=str, default=None)
     args = parser.parse_args()
@@ -39,6 +54,7 @@ def main() -> None:
     data_cfg = config.get("dataset", {})
     reproducibility_cfg = config.get("reproducibility", {})
     training_cfg = config.get("training", {})
+    feat_cfg = config.get("feature_identification", {})
     seed = resolve_seed(
         reproducibility_cfg.get("seed", training_cfg.get("seed")),
         fallback_seed=42,
@@ -73,7 +89,7 @@ def main() -> None:
         tokenizer=tokenizer,
         image_processor=image_processor,
         model_config=model.config,
-        task_type=data_cfg.get("task_types", ["ChooseAttr"])[0],
+        task_type=resolve_primary_task_type(data_cfg.get("task_types")),
         conv_mode=model_cfg.get("conv_mode", "vicuna_v1"),
     )
 
@@ -94,7 +110,12 @@ def main() -> None:
 
     activations, _ = trainer.collect_activations(
         dataset,
-        position_type=args.position_type or "question",
+        position_type=resolve_training_position_type(
+            args.position_type,
+            training_cfg,
+            feat_cfg,
+            default="question",
+        ),
         tokenizer=tokenizer,
         max_samples=args.max_samples,
     )

@@ -21,6 +21,7 @@ from sae_experiments.feature_analysis.feature_catalog import FeatureCatalog
 from sae_experiments.models.sparse_autoencoder import SparseAutoencoder
 from sae_experiments.analysis.result_schema import validate_ablation_results
 from sae_experiments.utils.checkpoint_utils import resolve_experiment_dir
+from sae_experiments.utils.config_utils import resolve_primary_task_type, resolve_task_types
 from sae_experiments.utils.random_utils import resolve_seed, set_global_seed
 
 
@@ -76,12 +77,8 @@ def main() -> None:
     )
     model.eval()
 
-    task_types = data_cfg.get("task_types", ["ChooseAttr"])
-    if isinstance(task_types, str):
-        task_types = [task_types]
-    if not task_types:
-        task_types = ["ChooseAttr"]
-    task_type = str(task_types[0])
+    task_types = resolve_task_types(data_cfg.get("task_types"))
+    task_type = resolve_primary_task_type(task_types)
 
     dataset = AttributeVQADataset(
         refined_dataset=data_cfg.get("refined_dataset", ""),

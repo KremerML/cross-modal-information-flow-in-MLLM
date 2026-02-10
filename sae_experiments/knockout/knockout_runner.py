@@ -37,16 +37,17 @@ def _sequence_logprob(
     if block_config:
         hooks = set_block_attn_hooks_llava(model, block_config)
 
-    with torch.inference_mode():
-        outputs = model(
-            input_ids=input_ids_full,
-            images=image_tensor,
-            image_sizes=image_sizes,
-            use_cache=False,
-        )
-
-    if hooks:
-        remove_wrapper_llava(model, hooks)
+    try:
+        with torch.inference_mode():
+            outputs = model(
+                input_ids=input_ids_full,
+                images=image_tensor,
+                image_sizes=image_sizes,
+                use_cache=False,
+            )
+    finally:
+        if hooks:
+            remove_wrapper_llava(model, hooks)
 
     logits = outputs.logits
     log_probs = torch.log_softmax(logits[0], dim=-1)

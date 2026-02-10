@@ -59,71 +59,71 @@ class ActivationCollector:
         activations: List[torch.Tensor] = []
         metadata: List[Dict[str, Any]] = []
         offset = 0
+        try:
+            iterator = zip(data_loader, questions)
+            total = len(questions) if questions is not None else None
+            if max_samples is not None and total is not None:
+                total = min(total, max_samples)
+            if show_progress:
+                from tqdm import tqdm
 
-        iterator = zip(data_loader, questions)
-        total = len(questions) if questions is not None else None
-        if max_samples is not None and total is not None:
-            total = min(total, max_samples)
-        if show_progress:
-            from tqdm import tqdm
+                iterator = tqdm(iterator, total=total, desc="Collecting activations")
 
-            iterator = tqdm(iterator, total=total, desc="Collecting activations")
+            for idx, (batch, line) in enumerate(iterator):
+                if max_samples is not None and idx >= max_samples:
+                    break
 
-        for idx, (batch, line) in enumerate(iterator):
-            if max_samples is not None and idx >= max_samples:
-                break
+                input_ids, image_tensor, image_sizes, prompts, _ = batch
+                input_ids = input_ids.to(device)
+                image_tensor = [img.to(device) for img in image_tensor]
 
-            input_ids, image_tensor, image_sizes, prompts, _ = batch
-            input_ids = input_ids.to(device)
-            image_tensor = [img.to(device) for img in image_tensor]
-
-            image_token_count = self._estimate_image_token_count(
-                input_ids, image_tensor, image_sizes
-            )
-
-            self.storage.pop("acts", None)
-            with torch.no_grad():
-                _ = self.model(
-                    input_ids=input_ids,
-                    images=image_tensor,
-                    image_sizes=image_sizes,
-                    use_cache=False,
+                image_token_count = self._estimate_image_token_count(
+                    input_ids, image_tensor, image_sizes
                 )
 
-            acts = self.storage.get("acts")
-            if acts is None:
-                continue
-            acts = self._normalize_activation_tensor(acts)
-            if acts is None:
-                continue
+                self.storage.pop("acts", None)
+                with torch.no_grad():
+                    _ = self.model(
+                        input_ids=input_ids,
+                        images=image_tensor,
+                        image_sizes=image_sizes,
+                        use_cache=False,
+                    )
 
-            question_text = dataset_dict[line["q_id"]]["question"]
-            positions = self._select_positions(
-                position_type,
-                input_ids,
-                image_token_count,
-                question_text,
-                tokenizer,
-                line,
-            )
-            if not positions:
-                continue
+                acts = self.storage.get("acts")
+                if acts is None:
+                    continue
+                acts = self._normalize_activation_tensor(acts)
+                if acts is None:
+                    continue
 
-            activations.append(acts[positions])
-            metadata.append(
-                {
-                    "question_id": line["q_id"],
-                    "question": question_text,
-                    "answer": dataset_dict[line["q_id"]].get("answer", ""),
-                    "positions": positions,
-                    "attribute_tokens": line.get("attribute_tokens", []),
-                    "start_idx": offset,
-                    "count": len(positions),
-                }
-            )
-            offset += len(positions)
+                question_text = dataset_dict[line["q_id"]]["question"]
+                positions = self._select_positions(
+                    position_type,
+                    input_ids,
+                    image_token_count,
+                    question_text,
+                    tokenizer,
+                    line,
+                )
+                if not positions:
+                    continue
 
-        self.hook_manager.remove_hooks()
+                activations.append(acts[positions])
+                metadata.append(
+                    {
+                        "question_id": line["q_id"],
+                        "question": question_text,
+                        "answer": dataset_dict[line["q_id"]].get("answer", ""),
+                        "positions": positions,
+                        "attribute_tokens": line.get("attribute_tokens", []),
+                        "start_idx": offset,
+                        "count": len(positions),
+                    }
+                )
+                offset += len(positions)
+        finally:
+            self.hook_manager.remove_hooks()
 
         if not activations:
             return torch.empty(0), metadata

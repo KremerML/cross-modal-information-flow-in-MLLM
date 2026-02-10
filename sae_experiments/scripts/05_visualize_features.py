@@ -20,6 +20,7 @@ from sae_experiments.feature_analysis.feature_identifier import FeatureIdentifie
 from sae_experiments.feature_analysis.feature_visualizer import FeatureVisualizer
 from sae_experiments.models.sparse_autoencoder import SparseAutoencoder
 from sae_experiments.utils.checkpoint_utils import resolve_experiment_dir
+from sae_experiments.utils.config_utils import resolve_primary_task_type
 
 
 def _resolve_dtype(value: str) -> torch.dtype:
@@ -68,7 +69,7 @@ def main() -> None:
         tokenizer=tokenizer,
         image_processor=image_processor,
         model_config=model.config,
-        task_type=data_cfg.get("task_types", ["ChooseAttr"])[0],
+        task_type=resolve_primary_task_type(data_cfg.get("task_types")),
         conv_mode=model_cfg.get("conv_mode", "vicuna_v1"),
     )
 
@@ -89,7 +90,13 @@ def main() -> None:
     catalog.load_from_json(catalog_path)
     features = list(catalog.features.keys())
 
-    identifier = FeatureIdentifier(sae, model, dataset, model_cfg.get("target_layer", 12))
+    identifier = FeatureIdentifier(
+        sae,
+        model,
+        dataset,
+        model_cfg.get("target_layer", 12),
+        activation_site=model_cfg.get("activation_site", "residual"),
+    )
     identifier.compute_feature_activations(
         position_type="attribute",
         max_samples=args.max_samples,
