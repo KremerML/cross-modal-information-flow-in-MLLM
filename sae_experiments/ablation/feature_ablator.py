@@ -143,6 +143,47 @@ class FeatureAblator:
         prediction = tokenizer.batch_decode(output["sequences"], skip_special_tokens=True)[0].strip().lower()
         return prediction, prob
 
+    def compute_baseline_cache(
+        self,
+        dataset,
+        logprob_normalize: bool = True,
+        max_samples: Optional[int] = None,
+        score_options: bool = True,
+        show_progress: bool = False,
+        progress_desc: str = "Baseline",
+    ) -> List[Dict[str, Any]]:
+        baseline_cache: List[Dict[str, Any]] = []
+        data_loader = dataset.create_dataloader()
+        try:
+            device = next(self.model.parameters()).device
+        except StopIteration:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+
+        iterator = zip(data_loader, dataset.questions)
+        if show_progress:
+            total = len(dataset.questions)
+            if max_samples is not None:
+                total = min(total, max_samples)
+            iterator = tqdm(iterator, total=total, desc=progress_desc)
+
+        for idx, (batch, line) in enumerate(iterator):
+            if max_samples is not None and idx >= max_samples:
+                break
+            input_ids, image_tensor, image_sizes, _, _ = batch
+            input_ids = input_ids.to(device=device)
+            image_tensor = [img.to(device=device) for img in image_tensor]
+            baseline_record = self._compute_baseline_record(
+                input_ids=input_ids,
+                image_tensor=image_tensor,
+                image_sizes=image_sizes,
+                dataset=dataset,
+                line=line,
+                logprob_normalize=logprob_normalize,
+                score_options=score_options,
+            )
+            baseline_cache.append(baseline_record)
+        return baseline_cache
+
     def batch_ablation_experiment(
         self,
         dataset,
@@ -158,6 +199,8 @@ class FeatureAblator:
         attn_block_resolver: Optional[callable] = None,
         show_progress: bool = False,
         max_samples: Optional[int] = None,
+        baseline_cache: Optional[Any] = None,
+        score_options: bool = True,
     ) -> List[dict]:
         results = []
         data_loader = dataset.create_dataloader()
@@ -192,45 +235,34 @@ class FeatureAblator:
                 "pad_token_id": dataset.tokenizer.eos_token_id,
             }
 
-            with torch.inference_mode():
-                baseline = self.model.generate(**inps)
+            baseline_record = self._resolve_cached_baseline(
+                baseline_cache=baseline_cache,
+                sample_idx=idx,
+                question_id=line.get("q_id"),
+            )
+            if baseline_record is None:
+                baseline_record = self._compute_baseline_record(
+                    input_ids=input_ids,
+                    image_tensor=image_tensor,
+                    image_sizes=image_sizes,
+                    dataset=dataset,
+                    line=line,
+                    logprob_normalize=logprob_normalize,
+                    score_options=score_options,
+                )
+            baseline_pred = baseline_record.get("baseline_pred", "")
+            baseline_prob = baseline_record.get("baseline_prob", 0.0)
+            baseline_gt_prob = baseline_record.get("baseline_gt_prob")
+            baseline_true_lp = baseline_record.get("baseline_true_logprob")
+            baseline_false_lp = baseline_record.get("baseline_false_logprob")
+            baseline_margin = baseline_record.get("baseline_margin")
 
-            baseline_pred = dataset.tokenizer.batch_decode(
-                baseline["sequences"], skip_special_tokens=True
-            )[0].strip().lower()
-            baseline_logits = baseline["scores"][0]
-            baseline_probs = torch.softmax(baseline_logits, dim=-1)
-            baseline_prob = baseline_probs[0][baseline["sequences"][:, 0]].item()
             gt_token_id = self._get_answer_token_id(
                 dataset.dataset_dict[line["q_id"]].get("answer", ""),
                 dataset.tokenizer,
             )
-            baseline_gt_prob = (
-                baseline_probs[0][gt_token_id].item() if gt_token_id is not None else None
-            )
             true_option = dataset.dataset_dict[line["q_id"]].get("true option", "").strip()
             false_option = dataset.dataset_dict[line["q_id"]].get("false option", "").strip()
-            baseline_true_lp = self._sequence_logprob(
-                input_ids,
-                image_tensor,
-                image_sizes,
-                true_option,
-                dataset.tokenizer,
-                normalize=logprob_normalize,
-            )
-            baseline_false_lp = self._sequence_logprob(
-                input_ids,
-                image_tensor,
-                image_sizes,
-                false_option,
-                dataset.tokenizer,
-                normalize=logprob_normalize,
-            )
-            baseline_margin = (
-                baseline_true_lp - baseline_false_lp
-                if baseline_true_lp is not None and baseline_false_lp is not None
-                else None
-            )
 
             positions = self._resolve_positions(
                 position_type,
@@ -270,22 +302,26 @@ class FeatureAblator:
             try:
                 with torch.inference_mode():
                     ablated = self.model.generate(**inps)
-                    ablated_true_lp = self._sequence_logprob(
-                        input_ids,
-                        image_tensor,
-                        image_sizes,
-                        true_option,
-                        dataset.tokenizer,
-                        normalize=logprob_normalize,
-                    )
-                    ablated_false_lp = self._sequence_logprob(
-                        input_ids,
-                        image_tensor,
-                        image_sizes,
-                        false_option,
-                        dataset.tokenizer,
-                        normalize=logprob_normalize,
-                    )
+                    if score_options:
+                        ablated_true_lp = self._sequence_logprob(
+                            input_ids,
+                            image_tensor,
+                            image_sizes,
+                            true_option,
+                            dataset.tokenizer,
+                            normalize=logprob_normalize,
+                        )
+                        ablated_false_lp = self._sequence_logprob(
+                            input_ids,
+                            image_tensor,
+                            image_sizes,
+                            false_option,
+                            dataset.tokenizer,
+                            normalize=logprob_normalize,
+                        )
+                    else:
+                        ablated_true_lp = None
+                        ablated_false_lp = None
             finally:
                 if hook:
                     hook.remove()
@@ -307,7 +343,10 @@ class FeatureAblator:
                 else None
             )
 
-            answer = dataset.dataset_dict[line["q_id"]].get("answer", "").strip().lower()
+            answer = baseline_record.get(
+                "answer",
+                dataset.dataset_dict[line["q_id"]].get("answer", "").strip().lower(),
+            )
             results.append(
                 {
                     "question_id": line["q_id"],
@@ -347,6 +386,108 @@ class FeatureAblator:
             )
 
         return results
+
+    def _compute_baseline_record(
+        self,
+        input_ids,
+        image_tensor,
+        image_sizes,
+        dataset,
+        line: Dict[str, Any],
+        logprob_normalize: bool = True,
+        score_options: bool = True,
+    ) -> Dict[str, Any]:
+        inps = {
+            "inputs": input_ids,
+            "images": image_tensor,
+            "image_sizes": image_sizes,
+            "do_sample": False,
+            "num_beams": 1,
+            "max_new_tokens": 1,
+            "use_cache": True,
+            "return_dict_in_generate": True,
+            "output_scores": True,
+            "pad_token_id": dataset.tokenizer.eos_token_id,
+        }
+        with torch.inference_mode():
+            baseline = self.model.generate(**inps)
+
+        baseline_pred = dataset.tokenizer.batch_decode(
+            baseline["sequences"], skip_special_tokens=True
+        )[0].strip().lower()
+        baseline_logits = baseline["scores"][0]
+        baseline_probs = torch.softmax(baseline_logits, dim=-1)
+        baseline_prob = baseline_probs[0][baseline["sequences"][:, 0]].item()
+        gt_token_id = self._get_answer_token_id(
+            dataset.dataset_dict[line["q_id"]].get("answer", ""),
+            dataset.tokenizer,
+        )
+        baseline_gt_prob = (
+            baseline_probs[0][gt_token_id].item() if gt_token_id is not None else None
+        )
+
+        if score_options:
+            true_option = dataset.dataset_dict[line["q_id"]].get("true option", "").strip()
+            false_option = dataset.dataset_dict[line["q_id"]].get("false option", "").strip()
+            baseline_true_lp = self._sequence_logprob(
+                input_ids,
+                image_tensor,
+                image_sizes,
+                true_option,
+                dataset.tokenizer,
+                normalize=logprob_normalize,
+            )
+            baseline_false_lp = self._sequence_logprob(
+                input_ids,
+                image_tensor,
+                image_sizes,
+                false_option,
+                dataset.tokenizer,
+                normalize=logprob_normalize,
+            )
+        else:
+            baseline_true_lp = None
+            baseline_false_lp = None
+        baseline_margin = (
+            baseline_true_lp - baseline_false_lp
+            if baseline_true_lp is not None and baseline_false_lp is not None
+            else None
+        )
+        answer = dataset.dataset_dict[line["q_id"]].get("answer", "").strip().lower()
+        return {
+            "question_id": line["q_id"],
+            "answer": answer,
+            "baseline_pred": baseline_pred,
+            "baseline_prob": baseline_prob,
+            "baseline_gt_prob": baseline_gt_prob,
+            "baseline_true_logprob": baseline_true_lp,
+            "baseline_false_logprob": baseline_false_lp,
+            "baseline_margin": baseline_margin,
+        }
+
+    @staticmethod
+    def _resolve_cached_baseline(
+        baseline_cache: Optional[Any],
+        sample_idx: int,
+        question_id: Any,
+    ) -> Optional[Dict[str, Any]]:
+        if baseline_cache is None:
+            return None
+        if isinstance(baseline_cache, dict):
+            entry = baseline_cache.get(question_id)
+            if entry is None:
+                entry = baseline_cache.get(str(question_id))
+            return entry if isinstance(entry, dict) else None
+        if isinstance(baseline_cache, list):
+            if sample_idx < 0 or sample_idx >= len(baseline_cache):
+                return None
+            entry = baseline_cache[sample_idx]
+            if not isinstance(entry, dict):
+                return None
+            cached_qid = entry.get("question_id")
+            if cached_qid is None or str(cached_qid) == str(question_id):
+                return entry
+        return None
 
     def compute_ablation_effect(self, results: List[dict]) -> dict:
         baseline_correct = [r["baseline_pred"] == r["answer"] for r in results]
