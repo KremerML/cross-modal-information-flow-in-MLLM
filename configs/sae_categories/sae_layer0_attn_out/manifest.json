@@ -1,0 +1,52 @@
+{
+  "base_config": "configs/sae_layer0_attn_out.yaml",
+  "dataset_dir": "datasets/by_attribute_category",
+  "output_root": "configs/sae_categories",
+  "profile_name": "sae_layer0_attn_out",
+  "output_dir": "configs/sae_categories/sae_layer0_attn_out",
+  "categories": [
+    "color",
+    "size",
+    "shape",
+    "material",
+    "state"
+  ],
+  "min_rows_threshold": 95,
+  "generated": [
+    {
+      "category": "color",
+      "status": "ready",
+      "dataset_path": "datasets/by_attribute_category/ChooseAttr_color.csv",
+      "config_path": "configs/sae_categories/sae_layer0_attn_out/color.yaml",
+      "rows": 602
+    },
+    {
+      "category": "size",
+      "status": "too_small",
+      "dataset_path": "datasets/by_attribute_category/ChooseAttr_size.csv",
+      "config_path": "configs/sae_categories/sae_layer0_attn_out/size.yaml",
+      "rows": 87
+    },
+    {
+      "category": "shape",
+      "status": "too_small",
+      "dataset_path": "datasets/by_attribute_category/ChooseAttr_shape.csv",
+      "config_path": "configs/sae_categories/sae_layer0_attn_out/shape.yaml",
+      "rows": 15
+    },
+    {
+      "category": "material",
+      "status": "ready",
+      "dataset_path": "datasets/by_attribute_category/ChooseAttr_material.csv",
+      "config_path": "configs/sae_categories/sae_layer0_attn_out/material.yaml",
+      "rows": 96
+    },
+    {
+      "category": "state",
+      "status": "ready",
+      "dataset_path": "datasets/by_attribute_category/ChooseAttr_state.csv",
+      "config_path": "configs/sae_categories/sae_layer0_attn_out/state.yaml",
+      "rows": 151
+    }
+  ]
+}
