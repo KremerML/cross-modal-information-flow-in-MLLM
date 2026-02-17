@@ -17,6 +17,19 @@ from sae_experiments.utils.checkpoint_utils import resolve_experiment_dir
 
 
 def main() -> None:
+    """Generate statistical and hypothesis-testing reports from ablation outputs.
+
+    Args:
+        None: CLI arguments are parsed inside this function.
+
+    Returns:
+        None: Writes analysis JSON and comparison plot artifacts to disk.
+
+    Raises:
+        FileNotFoundError: If the configured ablation results file is missing.
+        ValueError: If report configuration is malformed.
+        RuntimeError: If analysis routines fail.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, required=True)
     parser.add_argument("--results", type=str, default=None)

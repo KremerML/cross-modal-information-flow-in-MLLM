@@ -5,7 +5,7 @@ import json
 import os
 from pathlib import Path
 import sys
-from typing import Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import torch
 from llava.model.builder import load_pretrained_model
@@ -40,22 +40,57 @@ FLOW_POSITION_MAP = {
 
 
 def _select_top_layers(summary: List[Dict], flow: str, top_k: int) -> List[int]:
+    """Select the strongest knockout layers for a flow by effect size.
+
+    Args:
+        summary (List[Dict]): Knockout summary rows containing ``flow``, ``layer``, and ``effect_size``.
+        flow (str): Flow label to filter (for example ``Image->Question``).
+        top_k (int): Number of top layers to return.
+
+    Returns:
+        List[int]: Layer indices sorted by descending estimated effect.
+
+    Raises:
+        KeyError: If required summary fields are missing.
+        TypeError: If summary rows are malformed.
+    """
     rows = [row for row in summary if row.get("flow") == flow]
     rows = sorted(rows, key=lambda r: r.get("effect_size", 0.0), reverse=True)
     return [row["layer"] for row in rows[:top_k]]
 
 
 def _ensure_sae_for_layer(
-    model,
-    dataset,
-    config,
+    model: Any,
+    dataset: AttributeVQADataset,
+    config: Dict[str, Any],
     layer: int,
     position_type: str,
     sae_dir: str,
-    reuse_cfg: Dict,
-    train_max_samples: int = None,
+    reuse_cfg: Dict[str, Any],
+    train_max_samples: Optional[int] = None,
     skip_reuse: bool = False,
-) -> Tuple[SparseAutoencoder, str, Dict]:
+) -> Tuple[SparseAutoencoder, str, Dict[str, Any]]:
+    """Load/reuse/train an SAE for a target layer and save its checkpoint.
+
+    Args:
+        model: Loaded LLaVA model used for activation collection.
+        dataset: Dataset object with tokenizer/image processing context.
+        config: Full experiment config mapping.
+        layer (int): Transformer layer used for activation collection/intervention.
+        position_type (str): Token position subset used during activation collection.
+        sae_dir (str): Output directory for checkpoint persistence.
+        reuse_cfg (Dict[str, Any]): Reuse policy and quality-threshold settings.
+        train_max_samples (Optional[int]): Optional cap on SAE training activation samples.
+        skip_reuse (bool): If ``True``, force retraining and ignore reuse candidates.
+
+    Returns:
+        Tuple[SparseAutoencoder, str, Dict[str, Any]]: Loaded/trained SAE, checkpoint path, and reuse metadata.
+
+    Raises:
+        ValueError: If checkpoint paths are invalid.
+        FileNotFoundError: If configured reuse paths reference missing checkpoints.
+        RuntimeError: If activation collection or SAE training fails.
+    """
     os.makedirs(sae_dir, exist_ok=True)
     checkpoint_path = os.path.join(sae_dir, "sae_checkpoint.pt")
     model_cfg = config.get("model", {})
@@ -184,8 +219,50 @@ def _ensure_sae_for_layer(
     return sae, checkpoint_path, reuse_info
 
 
-def _make_attn_block_resolver(flow: str, layer: int, window: int, model, model_name: str):
-    def resolver(input_ids, image_tensor, image_sizes, dataset, line):
+def _make_attn_block_resolver(
+    flow: str,
+    layer: int,
+    window: int,
+    model: Any,
+    model_name: str,
+) -> Callable[..., Optional[Dict[str, Any]]]:
+    """Create a resolver that builds per-sample attention block configs.
+
+    Args:
+        flow (str): Knockout flow name used for source/target token ranges.
+        layer (int): Center layer index for attention blocking.
+        window (int): Layer window width passed to block config generation.
+        model: Loaded LLaVA model instance.
+        model_name (str): Model name used by token-range utilities.
+
+    Returns:
+        Callable[..., Optional[Dict[str, Any]]]: Resolver callable accepted by ``FeatureAblator``.
+
+    Raises:
+        RuntimeError: Raised indirectly if range/config resolution fails.
+    """
+    def resolver(
+        input_ids: Any,
+        image_tensor: Any,
+        image_sizes: Any,
+        dataset: AttributeVQADataset,
+        line: Dict[str, Any],
+    ) -> Optional[Dict[str, Any]]:
+        """Resolve a knockout block specification for one dataset item.
+
+        Args:
+            input_ids: Token IDs for the sample prompt.
+            image_tensor: Processed image tensor for the sample.
+            image_sizes: Original image size metadata.
+            dataset: Dataset object exposing ``dataset_dict`` and tokenizer.
+            line: Sample row containing at least ``q_id``.
+
+        Returns:
+            Optional[Dict[str, Any]]: Blocking config or ``None`` if ranges cannot be resolved.
+
+        Raises:
+            KeyError: If required row fields are missing.
+        """
         inputs_embeds_shape = estimate_inputs_embeds_shape(
             model, input_ids, image_tensor, image_sizes
         )
@@ -209,6 +286,19 @@ def _make_attn_block_resolver(flow: str, layer: int, window: int, model, model_n
 
 
 def main() -> None:
+    """Run an end-to-end knockout-aligned SAE discovery pipeline.
+
+    Args:
+        None: CLI arguments are parsed in this function.
+
+    Returns:
+        None: Writes knockout, SAE, and ablation artifacts under the experiment directory.
+
+    Raises:
+        FileNotFoundError: If required config or dataset files are missing.
+        ValueError: If layer/flow selections are invalid.
+        RuntimeError: If any pipeline stage fails.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, required=True)
     parser.add_argument("--experiment_dir", type=str, default=None)

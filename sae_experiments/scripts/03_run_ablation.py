@@ -26,6 +26,17 @@ from sae_experiments.utils.random_utils import resolve_seed, set_global_seed
 
 
 def _resolve_dtype(value: str) -> torch.dtype:
+    """Map a config dtype string to a torch dtype.
+
+    Args:
+        value (str): Text dtype token (for example ``float32`` or ``fp16``).
+
+    Returns:
+        torch.dtype: Resolved dtype for SAE loading/evaluation.
+
+    Raises:
+        None: Unknown values default to ``torch.float32``.
+    """
     value = str(value).lower()
     if value in ("float16", "fp16", "half"):
         return torch.float16
@@ -35,6 +46,19 @@ def _resolve_dtype(value: str) -> torch.dtype:
 
 
 def main() -> None:
+    """Run three-condition feature ablation and persist structured results.
+
+    Args:
+        None: Arguments are consumed from CLI flags parsed in this function.
+
+    Returns:
+        None: Writes validated ablation results JSON to disk.
+
+    Raises:
+        FileNotFoundError: If config, checkpoint, or feature catalog files are missing.
+        ValueError: If the resolved task configuration is invalid.
+        RuntimeError: If ablation execution fails.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, required=True)
     parser.add_argument("--features", type=str, default=None)

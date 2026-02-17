@@ -27,6 +27,17 @@ from sae_experiments.utils.random_utils import resolve_seed, set_global_seed
 
 
 def _resolve_dtype(value: str) -> torch.dtype:
+    """Map a config dtype string to a torch dtype.
+
+    Args:
+        value (str): Text dtype token (for example ``float32`` or ``bf16``).
+
+    Returns:
+        torch.dtype: Resolved dtype used for SAE inference.
+
+    Raises:
+        None: Unknown values default to ``torch.float32``.
+    """
     value = str(value).lower()
     if value in ("float16", "fp16", "half"):
         return torch.float16
@@ -42,6 +53,23 @@ def _load_candidates(
     score_key: str,
     n_features: int,
 ) -> List[int]:
+    """Load and rank candidate feature indices from multiple input formats.
+
+    Args:
+        candidates_path (str | None): Optional JSON path with explicit feature candidates or scores.
+        feature_stats_path (str): Fallback path to ``feature_stats.json``.
+        pool_size (int): Maximum number of candidates to keep.
+        score_key (str): Statistic key used when ranking from feature stats.
+        n_features (int): SAE latent dimensionality used for fallback range generation.
+
+    Returns:
+        List[int]: Candidate feature indices ordered by descending priority.
+
+    Raises:
+        OSError: If an input file exists but cannot be read.
+        json.JSONDecodeError: If a candidate JSON file is malformed.
+        ValueError: If numeric conversions fail for candidate indices/scores.
+    """
     if candidates_path and os.path.exists(candidates_path):
         with open(candidates_path, "r", encoding="utf-8") as handle:
             blob = json.load(handle)
@@ -88,7 +116,7 @@ def _load_candidates(
 def _rank_candidates(
     *,
     ablator: FeatureAblator,
-    dataset,
+    dataset: AttributeVQADataset,
     candidates: List[int],
     metric: str,
     position_type: str,
@@ -103,6 +131,32 @@ def _rank_candidates(
     show_progress: bool,
     progress_desc: str,
 ) -> Dict[str, Any]:
+    """Rank candidate features by direct intervention effect.
+
+    Args:
+        ablator (FeatureAblator): Ablation engine used to run feature interventions.
+        dataset (AttributeVQADataset): Evaluation dataset used for per-feature scoring.
+        candidates (List[int]): Feature indices to evaluate.
+        metric (str): Summary metric key used for ranking (for example ``mean_margin_drop``).
+        position_type (str): Token position subset for intervention.
+        mode (str): SAE intervention mode (for example ``residual`` or ``replace``).
+        delta_scale (float): Scale for residual-delta interventions.
+        operation (str): Feature operation (for example ``zero``).
+        operation_scale (float): Operation scaling factor.
+        logprob_normalize (bool): Whether to length-normalize option log-probabilities.
+        max_samples (Optional[int]): Optional cap on evaluated dataset samples.
+        score_options (bool): Whether to compute option scores required for margin metrics.
+        baseline_cache (Optional[Any]): Optional cached baseline outputs aligned to ``dataset``.
+        show_progress (bool): Whether to show a progress bar over candidates.
+        progress_desc (str): Progress-bar description label.
+
+    Returns:
+        Dict[str, Any]: Ranking payload containing raw scores, summaries, and sorted candidates.
+
+    Raises:
+        RuntimeError: If ablation execution fails for any candidate.
+        ValueError: If a candidate index or requested metric is invalid.
+    """
     scores: Dict[int, float] = {}
     summaries: Dict[int, Dict[str, Any]] = {}
     iterator = candidates
@@ -146,6 +200,19 @@ def _rank_candidates(
 
 
 def _serialize_stage(stage_name: str, stage: Dict[str, Any], top_n: int = 50) -> Dict[str, Any]:
+    """Convert an in-memory ranking stage payload to JSON-friendly output.
+
+    Args:
+        stage_name (str): Stage label (for example ``coarse`` or ``fine``).
+        stage (Dict[str, Any]): Raw stage payload returned by ``_rank_candidates``.
+        top_n (int): Number of top features to include in ``top_features``.
+
+    Returns:
+        Dict[str, Any]: Serialized stage payload with stringified JSON object keys.
+
+    Raises:
+        ValueError: If stage payload fields are inconsistent.
+    """
     ranked = stage.get("ranked", [])
     scores = stage.get("scores", {})
     summaries = stage.get("summaries", {})
@@ -163,6 +230,19 @@ def _serialize_stage(stage_name: str, stage: Dict[str, Any], top_n: int = 50) ->
 
 
 def main() -> None:
+    """Run single-stage or two-stage causal ranking for SAE features.
+
+    Args:
+        None: CLI arguments are parsed in this function.
+
+    Returns:
+        None: Writes ranked feature scores and optional stage breakdowns to a JSON file.
+
+    Raises:
+        FileNotFoundError: If required config/checkpoint inputs are missing.
+        ValueError: If no valid candidate features are available.
+        RuntimeError: If model loading or ranking execution fails.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, required=True)
     parser.add_argument("--sae_checkpoint", type=str, default=None)
@@ -288,7 +368,24 @@ def main() -> None:
 
     baseline_cache_store: Dict[Tuple[Optional[int], bool], List[Dict[str, Any]]] = {}
 
-    def _get_baseline_cache(max_samples: Optional[int], score_options: bool, stage_name: str):
+    def _get_baseline_cache(
+        max_samples: Optional[int],
+        score_options: bool,
+        stage_name: str,
+    ) -> List[Dict[str, Any]]:
+        """Return cached baseline outputs keyed by stage sampling/scoring settings.
+
+        Args:
+            max_samples (Optional[int]): Optional cap on baseline sample count.
+            score_options (bool): Whether baseline rows include option-score fields.
+            stage_name (str): Stage label used only for progress messaging.
+
+        Returns:
+            List[Dict[str, Any]]: Baseline rows aligned with dataset iteration order.
+
+        Raises:
+            RuntimeError: If baseline cache computation fails.
+        """
         cache_key = (max_samples, score_options)
         if cache_key not in baseline_cache_store:
             baseline_cache_store[cache_key] = ablator.compute_baseline_cache(

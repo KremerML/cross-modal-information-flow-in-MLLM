@@ -12,6 +12,18 @@ if str(ROOT) not in sys.path:
 
 
 def main() -> None:
+    """Run training, feature identification, ablation, analysis, and visualization sequentially.
+
+    Args:
+        None: CLI arguments are parsed in this function.
+
+    Returns:
+        None: Executes subprocess stages and writes artifacts through each stage script.
+
+    Raises:
+        FileNotFoundError: If ``--skip_train`` is set and no SAE checkpoint is available.
+        subprocess.CalledProcessError: If any pipeline stage exits with a non-zero code.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, required=True)
     parser.add_argument("--sae_checkpoint", type=str, default=None)

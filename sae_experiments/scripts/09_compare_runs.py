@@ -12,11 +12,36 @@ from typing import Any, Dict, List
 
 
 def _load_json(path: str) -> Dict[str, Any]:
+    """Load a JSON file into a dictionary.
+
+    Args:
+        path (str): JSON file path.
+
+    Returns:
+        Dict[str, Any]: Parsed JSON object.
+
+    Raises:
+        OSError: If the file cannot be read.
+        json.JSONDecodeError: If the file content is invalid JSON.
+    """
     with open(path, "r", encoding="utf-8") as handle:
         return json.load(handle)
 
 
-def _safe_get_metric(blob: Dict[str, Any], path: List[str], default=None):
+def _safe_get_metric(blob: Dict[str, Any], path: List[str], default: Any = None) -> Any:
+    """Traverse nested dictionaries safely and return a metric value.
+
+    Args:
+        blob (Dict[str, Any]): Input mapping.
+        path (List[str]): Ordered key path to traverse.
+        default (Any): Fallback value when the path does not exist.
+
+    Returns:
+        Any: Resolved value or ``default``.
+
+    Raises:
+        None: Missing keys are handled by returning ``default``.
+    """
     cur = blob
     for key in path:
         if not isinstance(cur, dict) or key not in cur:
@@ -26,6 +51,19 @@ def _safe_get_metric(blob: Dict[str, Any], path: List[str], default=None):
 
 
 def _collect_rows(root: str, pattern: str) -> List[Dict[str, Any]]:
+    """Collect per-run comparison rows from ablation result files.
+
+    Args:
+        root (str): Root directory containing run subdirectories.
+        pattern (str): Glob pattern under ``root`` that matches result JSON files.
+
+    Returns:
+        List[Dict[str, Any]]: One summary row per discovered run.
+
+    Raises:
+        OSError: If result files cannot be read.
+        json.JSONDecodeError: If a result file is malformed.
+    """
     results_paths = sorted(glob.glob(os.path.join(root, pattern)))
     rows: List[Dict[str, Any]] = []
     for results_path in results_paths:
@@ -68,7 +106,31 @@ def _collect_rows(root: str, pattern: str) -> List[Dict[str, Any]]:
 
 
 def _sort_rows(rows: List[Dict[str, Any]], key: str, descending: bool = True) -> List[Dict[str, Any]]:
-    def sort_key(row: Dict[str, Any]):
+    """Sort run summary rows by a numeric metric key.
+
+    Args:
+        rows (List[Dict[str, Any]]): Comparison rows.
+        key (str): Metric field used for ordering.
+        descending (bool): Sort direction flag.
+
+    Returns:
+        List[Dict[str, Any]]: Sorted rows.
+
+    Raises:
+        None: Non-numeric values are handled with sentinel ordering.
+    """
+    def sort_key(row: Dict[str, Any]) -> float:
+        """Build a numeric sort key with stable handling for missing/non-numeric values.
+
+        Args:
+            row (Dict[str, Any]): Comparison row.
+
+        Returns:
+            float: Numeric sort key used by ``sorted``.
+
+        Raises:
+            None: Conversion failures map to sentinel values.
+        """
         value = row.get(key)
         if value is None:
             return float("-inf") if descending else float("inf")
@@ -81,6 +143,18 @@ def _sort_rows(rows: List[Dict[str, Any]], key: str, descending: bool = True) ->
 
 
 def _write_csv(path: str, rows: List[Dict[str, Any]]) -> None:
+    """Write comparison rows to CSV.
+
+    Args:
+        path (str): Output CSV file path.
+        rows (List[Dict[str, Any]]): Rows to write.
+
+    Returns:
+        None: Persists CSV output to disk.
+
+    Raises:
+        OSError: If output file creation or writing fails.
+    """
     os.makedirs(os.path.dirname(path), exist_ok=True)
     if not rows:
         with open(path, "w", encoding="utf-8") as handle:
@@ -94,6 +168,18 @@ def _write_csv(path: str, rows: List[Dict[str, Any]]) -> None:
 
 
 def main() -> None:
+    """Aggregate and export run comparison summaries across experiment directories.
+
+    Args:
+        None: CLI arguments are parsed in this function.
+
+    Returns:
+        None: Writes JSON and CSV summary files.
+
+    Raises:
+        OSError: If results cannot be discovered or written.
+        json.JSONDecodeError: If a discovered results file is malformed.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--root",
@@ -136,4 +222,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

@@ -22,6 +22,19 @@ from sae_experiments.utils.checkpoint_utils import resolve_experiment_dir
 
 
 def main() -> None:
+    """Run a configurable layerwise attention knockout sweep.
+
+    Args:
+        None: Arguments are provided via CLI flags parsed in this function.
+
+    Returns:
+        None: Writes knockout result artifacts to disk.
+
+    Raises:
+        FileNotFoundError: If the configured dataset path cannot be read.
+        ValueError: If required configuration values are invalid.
+        RuntimeError: If model loading or sweep execution fails.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, required=True)
     parser.add_argument("--experiment_dir", type=str, default=None)

@@ -22,17 +22,53 @@ if str(ROOT) not in sys.path:
 
 
 def _load_yaml(path: str) -> Dict[str, Any]:
+    """Load a YAML file into a dictionary.
+
+    Args:
+        path (str): YAML file path.
+
+    Returns:
+        Dict[str, Any]: Parsed YAML mapping, or an empty mapping when the file is empty.
+
+    Raises:
+        OSError: If ``path`` cannot be read.
+        yaml.YAMLError: If file contents are invalid YAML.
+    """
     with open(path, "r", encoding="utf-8") as handle:
         return yaml.safe_load(handle) or {}
 
 
 def _write_yaml(data: Dict[str, Any], path: str) -> None:
+    """Write a dictionary to YAML.
+
+    Args:
+        data (Dict[str, Any]): YAML-serializable mapping.
+        path (str): Output YAML path.
+
+    Returns:
+        None: Creates parent directories and writes YAML content.
+
+    Raises:
+        OSError: If the file cannot be written.
+        yaml.YAMLError: If ``data`` cannot be serialized.
+    """
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as handle:
         yaml.safe_dump(data, handle, sort_keys=False)
 
 
 def _grid_product(grid: Dict[str, List[Any]]) -> List[Dict[str, Any]]:
+    """Compute Cartesian product combinations from a sweep grid.
+
+    Args:
+        grid (Dict[str, List[Any]]): Mapping from hyperparameter key to candidate values.
+
+    Returns:
+        List[Dict[str, Any]]: One dictionary per grid combination.
+
+    Raises:
+        ValueError: If a grid value list is malformed.
+    """
     keys = list(grid.keys())
     values = [grid[key] for key in keys]
     combos = []
@@ -42,6 +78,20 @@ def _grid_product(grid: Dict[str, List[Any]]) -> List[Dict[str, Any]]:
 
 
 def _run(cmd: List[str], dry_run: bool, log_path: Optional[str] = None) -> None:
+    """Execute a subprocess command optionally with command logging.
+
+    Args:
+        cmd (List[str]): Command tokens passed to ``subprocess.run``.
+        dry_run (bool): If ``True``, print command instead of executing it.
+        log_path (Optional[str]): Optional file path for stdout/stderr redirection.
+
+    Returns:
+        None: Executes command or prints dry-run preview.
+
+    Raises:
+        subprocess.CalledProcessError: If the command exits with a non-zero code.
+        OSError: If log file creation fails.
+    """
     if dry_run:
         print("DRY RUN:", " ".join(cmd))
         return
@@ -61,6 +111,18 @@ def _run(cmd: List[str], dry_run: bool, log_path: Optional[str] = None) -> None:
 
 
 def _log_status(path: str, payload: Dict[str, Any]) -> None:
+    """Append a timestamped JSON line entry to the sweep status log.
+
+    Args:
+        path (str): JSONL status file path.
+        payload (Dict[str, Any]): Event payload to append.
+
+    Returns:
+        None: Appends one JSON line to ``path``.
+
+    Raises:
+        OSError: If the status file cannot be written.
+    """
     os.makedirs(os.path.dirname(path), exist_ok=True)
     payload = dict(payload)
     payload["timestamp"] = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -69,6 +131,17 @@ def _log_status(path: str, payload: Dict[str, Any]) -> None:
 
 
 def _cleanup_cuda() -> None:
+    """Release Python and CUDA memory between sweep stages.
+
+    Args:
+        None.
+
+    Returns:
+        None: Attempts best-effort cache cleanup.
+
+    Raises:
+        None: Exceptions from CUDA cleanup are intentionally swallowed.
+    """
     try:
         import torch
 
@@ -81,6 +154,19 @@ def _cleanup_cuda() -> None:
 
 
 def _training_cache_key(run: Dict[str, Any], run_config: Dict[str, Any], train_position: str) -> str:
+    """Build a deterministic key for reusable training-equivalent runs.
+
+    Args:
+        run (Dict[str, Any]): Current sweep run specification.
+        run_config (Dict[str, Any]): Resolved run configuration mapping.
+        train_position (str): Position type used during SAE training.
+
+    Returns:
+        str: Stable JSON key used to cache/reuse compatible checkpoints.
+
+    Raises:
+        TypeError: If payload fields are not JSON serializable.
+    """
     model_cfg = run_config.get("model", {})
     dataset_cfg = run_config.get("dataset", {})
     payload = {
@@ -106,6 +192,19 @@ def _training_cache_key(run: Dict[str, Any], run_config: Dict[str, Any], train_p
 
 
 def main() -> None:
+    """Execute the configured grid sweep for train/identify/ablation stages.
+
+    Args:
+        None: CLI arguments are parsed inside this function.
+
+    Returns:
+        None: Produces per-run configs, logs, and result artifacts.
+
+    Raises:
+        ValueError: If required sweep configuration keys are missing.
+        subprocess.CalledProcessError: If a stage command fails and stop-on-error is enabled.
+        OSError: If run artifacts cannot be created.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, required=True, help="Sweep config YAML.")
     parser.add_argument("--dry_run", action="store_true", help="Print commands without running.")

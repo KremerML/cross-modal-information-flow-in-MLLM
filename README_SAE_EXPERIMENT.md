@@ -105,6 +105,27 @@ Note: `option_logprob` requires `true option`/`false option` columns in the data
 - Analysis report: `output/sae_experiments/exp_run1/analysis/hypothesis_report.json`
 - Visualization dashboard: `output/sae_experiments/exp_run1/feature_dashboard/`
 
+## Category-Split Datasets (ChooseAttr)
+You can split `ChooseAttr` into per-attribute-category datasets and generate matching configs:
+
+```bash
+python sae_experiments/scripts/07_build_category_datasets.py \
+  --input_csv datasets/GQA_val_correct_question_with_choose_ChooseAttr.csv \
+  --output_dir datasets/by_attribute_category \
+  --policy first
+
+python sae_experiments/scripts/08_generate_category_configs.py \
+  --base_config configs/sae_first_layer11_attn_out.yaml \
+  --dataset_dir datasets/by_attribute_category \
+  --output_dir configs/sae_categories
+```
+
+Generated files:
+- Datasets: `datasets/by_attribute_category/ChooseAttr_<category>.csv`
+- Split manifest: `datasets/by_attribute_category/manifest.json`
+- Configs: `configs/sae_categories/<base_config_stem>/<category>.yaml`
+- Config manifest: `configs/sae_categories/<base_config_stem>/manifest.json`
+
 ## Notes
 - The pipeline reuses the existing LLaVA data loader from `InformationFlow.py`.
 - For attention-knockout baselines, see `AblationExperiment.run_attention_knockout_baseline`.

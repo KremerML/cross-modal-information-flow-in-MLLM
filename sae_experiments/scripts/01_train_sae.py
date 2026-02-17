@@ -26,7 +26,18 @@ from sae_experiments.utils.sae_validation import compute_activation_stats, recon
 from sae_experiments.utils.random_utils import resolve_seed, set_global_seed
 
 
-def _parse_bool(value):
+def _parse_bool(value: object) -> bool:
+    """Parse a permissive CLI boolean value.
+
+    Args:
+        value (object): Raw CLI value (bool or string-like token).
+
+    Returns:
+        bool: Parsed boolean value.
+
+    Raises:
+        argparse.ArgumentTypeError: If ``value`` is not a supported boolean token.
+    """
     if isinstance(value, bool):
         return value
     text = str(value).strip().lower()
@@ -38,6 +49,19 @@ def _parse_bool(value):
 
 
 def main() -> None:
+    """Train an SAE checkpoint from collected LLaVA activations.
+
+    Args:
+        None: Arguments are supplied through CLI flags parsed in this function.
+
+    Returns:
+        None: Saves a trained SAE checkpoint and resolved config to the experiment directory.
+
+    Raises:
+        FileNotFoundError: If required dataset or checkpoint paths are missing.
+        ValueError: If configuration values are invalid.
+        RuntimeError: If model loading, activation collection, or training fails.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, required=True)
     parser.add_argument("--max_samples", type=int, default=None)

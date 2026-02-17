@@ -24,6 +24,17 @@ from sae_experiments.utils.config_utils import resolve_primary_task_type
 
 
 def _resolve_dtype(value: str) -> torch.dtype:
+    """Map a config dtype string to a torch dtype.
+
+    Args:
+        value (str): Text dtype token (for example ``float32`` or ``bf16``).
+
+    Returns:
+        torch.dtype: Resolved dtype used for SAE inference.
+
+    Raises:
+        None: Unknown values default to ``torch.float32``.
+    """
     value = str(value).lower()
     if value in ("float16", "fp16", "half"):
         return torch.float16
@@ -33,6 +44,19 @@ def _resolve_dtype(value: str) -> torch.dtype:
 
 
 def main() -> None:
+    """Build a feature dashboard for the selected SAE feature catalog.
+
+    Args:
+        None: CLI arguments are parsed within this function.
+
+    Returns:
+        None: Writes feature visualizations and dashboard assets to disk.
+
+    Raises:
+        FileNotFoundError: If checkpoint or catalog inputs are missing.
+        ValueError: If configuration values are invalid.
+        RuntimeError: If activation collection or rendering fails.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, required=True)
     parser.add_argument("--catalog", type=str, default=None)
