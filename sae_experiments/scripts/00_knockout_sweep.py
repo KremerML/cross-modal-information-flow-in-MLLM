@@ -19,6 +19,7 @@ from InformationFlow import create_data_loader
 from sae_experiments.config.sae_config import load_config, save_config
 from sae_experiments.knockout.knockout_runner import run_knockout_sweep
 from sae_experiments.utils.checkpoint_utils import resolve_experiment_dir
+from sae_experiments.utils.config_utils import resolve_primary_task_type
 
 
 def main() -> None:
@@ -75,7 +76,7 @@ def main() -> None:
     dataset_dict = df.set_index("question_id").T.to_dict("dict")
     questions = [{**detail, "q_id": qu_id} for qu_id, detail in dataset_dict.items()]
 
-    task_name = refined_dataset.split("/")[-1].split(".csv")[0].split("_")[-1]
+    task_name = resolve_primary_task_type(data_cfg.get("task_types"), default="ChooseAttr")
     data_loader = create_data_loader(
         questions,
         data_cfg.get("image_folder", ""),
@@ -121,6 +122,7 @@ def main() -> None:
 
     print(f"Saved knockout results to {results_path}")
     print(f"Saved knockout summary to {summary_path}")
+    print(f"Task type: {task_name}")
     print(f"Experiment directory: {experiment_dir}")
 
 

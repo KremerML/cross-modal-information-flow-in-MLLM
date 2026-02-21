@@ -22,6 +22,7 @@ class FeatureIdentifier:
         self.feature_stats: Dict[int, Dict[str, float]] = {}
         self.feature_acts: Optional[np.ndarray] = None
         self.metadata: Optional[List[dict]] = None
+        self.feature_distribution_summary: Optional[Dict[str, object]] = None
 
     def compute_feature_activations(
         self,
@@ -127,29 +128,63 @@ class FeatureIdentifier:
         threshold: float = 2.0,
         min_activation: float = 0.0,
         min_diff: float = 0.0,
+        selection_method: str = "ratio",
     ) -> List[int]:
         if self.feature_acts is None or self.metadata is None:
             raise ValueError("Run compute_feature_activations first")
+
+        selection_method = str(selection_method).strip().lower()
+        if selection_method in ("diff", "absolute_diff"):
+            selection_method = "abs_diff"
+        if selection_method not in {"ratio", "abs_diff"}:
+            raise ValueError(
+                f"Unsupported selection_method={selection_method}. "
+                "Expected one of: ratio, abs_diff"
+            )
 
         correct_mask = np.array(
             [meta.get("is_correct", False) for meta in self.metadata], dtype=bool
         )
         if correct_mask.sum() == 0 or (~correct_mask).sum() == 0:
+            self.feature_distribution_summary = {
+                "selection_method": selection_method,
+                "n_features": int(self.feature_acts.shape[1]),
+                "n_samples": int(self.feature_acts.shape[0]),
+                "n_correct": int(correct_mask.sum()),
+                "n_incorrect": int((~correct_mask).sum()),
+                "empty_split": True,
+            }
             return []
 
         correct_mean = self.feature_acts[correct_mask].mean(axis=0)
         incorrect_mean = self.feature_acts[~correct_mask].mean(axis=0)
-        denom = np.maximum(incorrect_mean, min_activation if min_activation > 0 else 1e-8)
-        ratio = (correct_mean + 1e-8) / (denom + 1e-8)
+        # Always compute ratio as a diagnostic signal, even when not used for gating.
+        denom_diag = np.maximum(incorrect_mean, 1e-8)
+        ratio_diag = (correct_mean + 1e-8) / (denom_diag + 1e-8)
         diff = correct_mean - incorrect_mean
 
-        mask = (ratio > threshold) & (correct_mean >= min_activation) & (diff >= min_diff)
+        if selection_method == "abs_diff":
+            mask = (correct_mean >= min_activation) & (diff >= min_diff)
+        else:
+            denom_gate = np.maximum(incorrect_mean, min_activation if min_activation > 0 else 1e-8)
+            ratio_gate = (correct_mean + 1e-8) / (denom_gate + 1e-8)
+            mask = (ratio_gate > threshold) & (correct_mean >= min_activation) & (diff >= min_diff)
+
+        self.feature_distribution_summary = self._build_feature_distribution_summary(
+            selection_method=selection_method,
+            correct_mask=correct_mask,
+            correct_mean=correct_mean,
+            incorrect_mean=incorrect_mean,
+            diff=diff,
+            ratio=ratio_diag,
+        )
+
         features = np.where(mask)[0].tolist()
         for idx in features:
             self.feature_stats[idx] = {
                 "correct_mean": float(correct_mean[idx]),
                 "incorrect_mean": float(incorrect_mean[idx]),
-                "ratio": float(ratio[idx]),
+                "ratio": float(ratio_diag[idx]),
                 "diff": float(diff[idx]),
             }
         return features
@@ -193,6 +228,60 @@ class FeatureIdentifier:
     def save_feature_statistics(self, path: str) -> None:
         with open(path, "w", encoding="utf-8") as handle:
             json.dump(self.feature_stats, handle, indent=2)
+
+    def get_feature_distribution_summary(self) -> Dict[str, object]:
+        if self.feature_distribution_summary is None:
+            return {}
+        return dict(self.feature_distribution_summary)
+
+    def save_feature_distribution_summary(self, path: str) -> None:
+        with open(path, "w", encoding="utf-8") as handle:
+            json.dump(self.get_feature_distribution_summary(), handle, indent=2)
+
+    @staticmethod
+    def _percentile_stats(values: np.ndarray) -> Dict[str, float]:
+        if values.size == 0:
+            return {
+                "min": 0.0,
+                "max": 0.0,
+                "mean": 0.0,
+                "p50": 0.0,
+                "p90": 0.0,
+                "p95": 0.0,
+                "p99": 0.0,
+                "p99_5": 0.0,
+            }
+        return {
+            "min": float(np.min(values)),
+            "max": float(np.max(values)),
+            "mean": float(np.mean(values)),
+            "p50": float(np.percentile(values, 50)),
+            "p90": float(np.percentile(values, 90)),
+            "p95": float(np.percentile(values, 95)),
+            "p99": float(np.percentile(values, 99)),
+            "p99_5": float(np.percentile(values, 99.5)),
+        }
+
+    def _build_feature_distribution_summary(
+        self,
+        selection_method: str,
+        correct_mask: np.ndarray,
+        correct_mean: np.ndarray,
+        incorrect_mean: np.ndarray,
+        diff: np.ndarray,
+        ratio: np.ndarray,
+    ) -> Dict[str, object]:
+        return {
+            "selection_method": selection_method,
+            "n_features": int(correct_mean.shape[0]),
+            "n_samples": int(self.feature_acts.shape[0]) if self.feature_acts is not None else 0,
+            "n_correct": int(correct_mask.sum()),
+            "n_incorrect": int((~correct_mask).sum()),
+            "correct_mean": self._percentile_stats(correct_mean),
+            "incorrect_mean": self._percentile_stats(incorrect_mean),
+            "diff": self._percentile_stats(diff),
+            "ratio": self._percentile_stats(ratio),
+        }
 
     def _compute_predictions(
         self,

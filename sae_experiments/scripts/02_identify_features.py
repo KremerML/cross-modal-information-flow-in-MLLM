@@ -140,10 +140,25 @@ def main() -> None:
         show_progress=show_progress,
     )
 
+    top_k = feat_cfg.get("top_k", 50)
+    selection_method = str(feat_cfg.get("selection_method", "ratio")).lower()
+    discrimination_method = str(
+        feat_cfg.get("discrimination_method", selection_method)
+    ).strip().lower()
+    if discrimination_method in ("causal_hybrid", ""):
+        discrimination_method = "ratio"
+    if discrimination_method in ("diff", "absolute_diff"):
+        discrimination_method = "abs_diff"
+    if discrimination_method == "abs_diff" and feat_cfg.get("discrimination_threshold") is not None:
+        print(
+            "[info] feature_identification.discrimination_threshold is unused in abs_diff mode."
+        )
+    top_features = []
     features = identifier.find_discriminative_features(
         threshold=feat_cfg.get("discrimination_threshold", 2.0),
         min_activation=feat_cfg.get("min_activation", 0.0),
         min_diff=feat_cfg.get("min_diff", 0.0),
+        selection_method=discrimination_method,
     )
     if not features:
         fallback = feat_cfg.get("fallback", {})
@@ -154,15 +169,14 @@ def main() -> None:
             threshold=fallback_threshold,
             min_activation=fallback_min_activation,
             min_diff=fallback_min_diff,
+            selection_method=discrimination_method,
         )
         if features:
             print(
                 "No features found with primary thresholds; using fallback thresholds:",
                 f"threshold={fallback_threshold}, min_activation={fallback_min_activation}, min_diff={fallback_min_diff}",
             )
-    top_k = feat_cfg.get("top_k", 50)
-    selection_method = str(feat_cfg.get("selection_method", "ratio")).lower()
-    top_features = []
+
     if selection_method == "causal_hybrid":
         causal_scores_path = feat_cfg.get("causal_scores_path")
         if causal_scores_path and os.path.exists(causal_scores_path):
@@ -205,6 +219,9 @@ def main() -> None:
     os.makedirs(os.path.dirname(catalog_path), exist_ok=True)
     catalog.export_to_json(catalog_path)
     identifier.save_feature_statistics(os.path.join(experiment_dir, "feature_stats.json"))
+    identifier.save_feature_distribution_summary(
+        os.path.join(experiment_dir, "feature_stats_summary.json")
+    )
 
     visualizer = FeatureVisualizer(sae, model, dataset, identifier.feature_acts, identifier.metadata)
     viz_features = top_features[: min(10, len(top_features))]
