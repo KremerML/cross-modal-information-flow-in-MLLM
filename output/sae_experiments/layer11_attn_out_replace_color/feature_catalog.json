@@ -1,0 +1,1802 @@
+{
+  "3095": {
+    "name": "feature_3095",
+    "type": "binding",
+    "discrimination_score": 158568.53125,
+    "ratio": 158568.53125,
+    "diff": 0.0031713605858385563,
+    "correct_mean": 0.0031713605858385563,
+    "incorrect_mean": 0.0
+  },
+  "15516": {
+    "name": "feature_15516",
+    "type": "binding",
+    "discrimination_score": 82762.234375,
+    "ratio": 82762.234375,
+    "diff": 0.0016552347224205732,
+    "correct_mean": 0.0016552347224205732,
+    "incorrect_mean": 0.0
+  },
+  "28312": {
+    "name": "feature_28312",
+    "type": "binding",
+    "discrimination_score": 69410.40625,
+    "ratio": 69410.40625,
+    "diff": 0.0013881981140002608,
+    "correct_mean": 0.0013881981140002608,
+    "incorrect_mean": 0.0
+  },
+  "11925": {
+    "name": "feature_11925",
+    "type": "binding",
+    "discrimination_score": 66290.71875,
+    "ratio": 66290.71875,
+    "diff": 0.0013258043909445405,
+    "correct_mean": 0.0013258043909445405,
+    "incorrect_mean": 0.0
+  },
+  "12334": {
+    "name": "feature_12334",
+    "type": "binding",
+    "discrimination_score": 65578.953125,
+    "ratio": 65578.953125,
+    "diff": 0.001311569008976221,
+    "correct_mean": 0.001311569008976221,
+    "incorrect_mean": 0.0
+  },
+  "27167": {
+    "name": "feature_27167",
+    "type": "binding",
+    "discrimination_score": 53661.7890625,
+    "ratio": 53661.7890625,
+    "diff": 0.0010732257505878806,
+    "correct_mean": 0.0010732257505878806,
+    "incorrect_mean": 0.0
+  },
+  "13153": {
+    "name": "feature_13153",
+    "type": "binding",
+    "discrimination_score": 50870.84765625,
+    "ratio": 50870.84765625,
+    "diff": 0.001017406932078302,
+    "correct_mean": 0.001017406932078302,
+    "incorrect_mean": 0.0
+  },
+  "2651": {
+    "name": "feature_2651",
+    "type": "binding",
+    "discrimination_score": 50420.71484375,
+    "ratio": 50420.71484375,
+    "diff": 0.0010084043024107814,
+    "correct_mean": 0.0010084043024107814,
+    "incorrect_mean": 0.0
+  },
+  "14525": {
+    "name": "feature_14525",
+    "type": "binding",
+    "discrimination_score": 46784.85546875,
+    "ratio": 46784.85546875,
+    "diff": 0.0009356871014460921,
+    "correct_mean": 0.0009356871014460921,
+    "incorrect_mean": 0.0
+  },
+  "30696": {
+    "name": "feature_30696",
+    "type": "binding",
+    "discrimination_score": 41574.765625,
+    "ratio": 41574.765625,
+    "diff": 0.0008314853184856474,
+    "correct_mean": 0.0008314853184856474,
+    "incorrect_mean": 0.0
+  },
+  "26423": {
+    "name": "feature_26423",
+    "type": "binding",
+    "discrimination_score": 41388.45703125,
+    "ratio": 41388.45703125,
+    "diff": 0.0008277590968646109,
+    "correct_mean": 0.0008277590968646109,
+    "incorrect_mean": 0.0
+  },
+  "1482": {
+    "name": "feature_1482",
+    "type": "binding",
+    "discrimination_score": 40786.23046875,
+    "ratio": 40786.23046875,
+    "diff": 0.0008157145930454135,
+    "correct_mean": 0.0008157145930454135,
+    "incorrect_mean": 0.0
+  },
+  "28854": {
+    "name": "feature_28854",
+    "type": "binding",
+    "discrimination_score": 40690.421875,
+    "ratio": 40690.421875,
+    "diff": 0.0008137984550558031,
+    "correct_mean": 0.0008137984550558031,
+    "incorrect_mean": 0.0
+  },
+  "3290": {
+    "name": "feature_3290",
+    "type": "binding",
+    "discrimination_score": 38870.43359375,
+    "ratio": 38870.43359375,
+    "diff": 0.0007773986435495317,
+    "correct_mean": 0.0007773986435495317,
+    "incorrect_mean": 0.0
+  },
+  "17095": {
+    "name": "feature_17095",
+    "type": "binding",
+    "discrimination_score": 38865.76953125,
+    "ratio": 38865.76953125,
+    "diff": 0.0007773053366690874,
+    "correct_mean": 0.0007773053366690874,
+    "incorrect_mean": 0.0
+  },
+  "10709": {
+    "name": "feature_10709",
+    "type": "binding",
+    "discrimination_score": 37655.67578125,
+    "ratio": 37655.67578125,
+    "diff": 0.0007531034643761814,
+    "correct_mean": 0.0007531034643761814,
+    "incorrect_mean": 0.0
+  },
+  "31679": {
+    "name": "feature_31679",
+    "type": "binding",
+    "discrimination_score": 35907.84375,
+    "ratio": 35907.84375,
+    "diff": 0.0007181468536145985,
+    "correct_mean": 0.0007181468536145985,
+    "incorrect_mean": 0.0
+  },
+  "7151": {
+    "name": "feature_7151",
+    "type": "binding",
+    "discrimination_score": 35392.6640625,
+    "ratio": 35392.6640625,
+    "diff": 0.000707843282725662,
+    "correct_mean": 0.000707843282725662,
+    "incorrect_mean": 0.0
+  },
+  "14362": {
+    "name": "feature_14362",
+    "type": "binding",
+    "discrimination_score": 34858.55859375,
+    "ratio": 34858.55859375,
+    "diff": 0.0006971611874178052,
+    "correct_mean": 0.0006971611874178052,
+    "incorrect_mean": 0.0
+  },
+  "10811": {
+    "name": "feature_10811",
+    "type": "binding",
+    "discrimination_score": 33990.6015625,
+    "ratio": 33990.6015625,
+    "diff": 0.0006798020331189036,
+    "correct_mean": 0.0006798020331189036,
+    "incorrect_mean": 0.0
+  },
+  "7106": {
+    "name": "feature_7106",
+    "type": "binding",
+    "discrimination_score": 33134.2734375,
+    "ratio": 33134.2734375,
+    "diff": 0.0006626754184253514,
+    "correct_mean": 0.0006626754184253514,
+    "incorrect_mean": 0.0
+  },
+  "22988": {
+    "name": "feature_22988",
+    "type": "binding",
+    "discrimination_score": 33076.37890625,
+    "ratio": 33076.37890625,
+    "diff": 0.0006615175516344607,
+    "correct_mean": 0.0006615175516344607,
+    "incorrect_mean": 0.0
+  },
+  "32535": {
+    "name": "feature_32535",
+    "type": "binding",
+    "discrimination_score": 32309.7421875,
+    "ratio": 32309.7421875,
+    "diff": 0.0006461848388426006,
+    "correct_mean": 0.0006461848388426006,
+    "incorrect_mean": 0.0
+  },
+  "21409": {
+    "name": "feature_21409",
+    "type": "binding",
+    "discrimination_score": 31726.9453125,
+    "ratio": 31726.9453125,
+    "diff": 0.0006345288711600006,
+    "correct_mean": 0.0006345288711600006,
+    "incorrect_mean": 0.0
+  },
+  "13514": {
+    "name": "feature_13514",
+    "type": "binding",
+    "discrimination_score": 31683.21875,
+    "ratio": 31683.21875,
+    "diff": 0.0006336543592624366,
+    "correct_mean": 0.0006336543592624366,
+    "incorrect_mean": 0.0
+  },
+  "384": {
+    "name": "feature_384",
+    "type": "binding",
+    "discrimination_score": 31640.474609375,
+    "ratio": 31640.474609375,
+    "diff": 0.0006327994633466005,
+    "correct_mean": 0.0006327994633466005,
+    "incorrect_mean": 0.0
+  },
+  "29553": {
+    "name": "feature_29553",
+    "type": "binding",
+    "discrimination_score": 31431.28515625,
+    "ratio": 31431.28515625,
+    "diff": 0.0006286156713031232,
+    "correct_mean": 0.0006286156713031232,
+    "incorrect_mean": 0.0
+  },
+  "7607": {
+    "name": "feature_7607",
+    "type": "binding",
+    "discrimination_score": 31180.294921875,
+    "ratio": 31180.294921875,
+    "diff": 0.0006235959008336067,
+    "correct_mean": 0.0006235959008336067,
+    "incorrect_mean": 0.0
+  },
+  "21629": {
+    "name": "feature_21629",
+    "type": "binding",
+    "discrimination_score": 30983.94921875,
+    "ratio": 30983.94921875,
+    "diff": 0.0006196689791977406,
+    "correct_mean": 0.0006196689791977406,
+    "incorrect_mean": 0.0
+  },
+  "29289": {
+    "name": "feature_29289",
+    "type": "binding",
+    "discrimination_score": 30954.345703125,
+    "ratio": 30954.345703125,
+    "diff": 0.0006190768908709288,
+    "correct_mean": 0.0006190768908709288,
+    "incorrect_mean": 0.0
+  },
+  "7794": {
+    "name": "feature_7794",
+    "type": "binding",
+    "discrimination_score": 30780.26953125,
+    "ratio": 30780.26953125,
+    "diff": 0.0006155953742563725,
+    "correct_mean": 0.0006155953742563725,
+    "incorrect_mean": 0.0
+  },
+  "19332": {
+    "name": "feature_19332",
+    "type": "binding",
+    "discrimination_score": 30371.82421875,
+    "ratio": 30371.82421875,
+    "diff": 0.0006074264529161155,
+    "correct_mean": 0.0006074264529161155,
+    "incorrect_mean": 0.0
+  },
+  "6858": {
+    "name": "feature_6858",
+    "type": "binding",
+    "discrimination_score": 29897.759765625,
+    "ratio": 29897.759765625,
+    "diff": 0.0005979451816529036,
+    "correct_mean": 0.0005979451816529036,
+    "incorrect_mean": 0.0
+  },
+  "17672": {
+    "name": "feature_17672",
+    "type": "binding",
+    "discrimination_score": 29333.830078125,
+    "ratio": 29333.830078125,
+    "diff": 0.0005866665742360055,
+    "correct_mean": 0.0005866665742360055,
+    "incorrect_mean": 0.0
+  },
+  "31256": {
+    "name": "feature_31256",
+    "type": "binding",
+    "discrimination_score": 27148.513671875,
+    "ratio": 27148.513671875,
+    "diff": 0.0005429602460935712,
+    "correct_mean": 0.0005429602460935712,
+    "incorrect_mean": 0.0
+  },
+  "20139": {
+    "name": "feature_20139",
+    "type": "binding",
+    "discrimination_score": 26198.962890625,
+    "ratio": 26198.962890625,
+    "diff": 0.0005239692400209606,
+    "correct_mean": 0.0005239692400209606,
+    "incorrect_mean": 0.0
+  },
+  "9802": {
+    "name": "feature_9802",
+    "type": "binding",
+    "discrimination_score": 24111.224609375,
+    "ratio": 24111.224609375,
+    "diff": 0.0004822144692298025,
+    "correct_mean": 0.0004822144692298025,
+    "incorrect_mean": 0.0
+  },
+  "12535": {
+    "name": "feature_12535",
+    "type": "binding",
+    "discrimination_score": 23658.7421875,
+    "ratio": 23658.7421875,
+    "diff": 0.00047316483687609434,
+    "correct_mean": 0.00047316483687609434,
+    "incorrect_mean": 0.0
+  },
+  "10794": {
+    "name": "feature_10794",
+    "type": "binding",
+    "discrimination_score": 23527.02734375,
+    "ratio": 23527.02734375,
+    "diff": 0.00047053053276613355,
+    "correct_mean": 0.00047053053276613355,
+    "incorrect_mean": 0.0
+  },
+  "16906": {
+    "name": "feature_16906",
+    "type": "binding",
+    "discrimination_score": 22945.71484375,
+    "ratio": 22945.71484375,
+    "diff": 0.00045890428009442985,
+    "correct_mean": 0.00045890428009442985,
+    "incorrect_mean": 0.0
+  },
+  "11237": {
+    "name": "feature_11237",
+    "type": "binding",
+    "discrimination_score": 22641.248046875,
+    "ratio": 22641.248046875,
+    "diff": 0.00045281494385562837,
+    "correct_mean": 0.00045281494385562837,
+    "incorrect_mean": 0.0
+  },
+  "12699": {
+    "name": "feature_12699",
+    "type": "binding",
+    "discrimination_score": 22505.1640625,
+    "ratio": 22505.1640625,
+    "diff": 0.00045009327004663646,
+    "correct_mean": 0.00045009327004663646,
+    "incorrect_mean": 0.0
+  },
+  "30762": {
+    "name": "feature_30762",
+    "type": "binding",
+    "discrimination_score": 22287.587890625,
+    "ratio": 22287.587890625,
+    "diff": 0.000445741752628237,
+    "correct_mean": 0.000445741752628237,
+    "incorrect_mean": 0.0
+  },
+  "7829": {
+    "name": "feature_7829",
+    "type": "binding",
+    "discrimination_score": 21796.34375,
+    "ratio": 21796.34375,
+    "diff": 0.0004359168524388224,
+    "correct_mean": 0.0004359168524388224,
+    "incorrect_mean": 0.0
+  },
+  "9120": {
+    "name": "feature_9120",
+    "type": "binding",
+    "discrimination_score": 21382.466796875,
+    "ratio": 21382.466796875,
+    "diff": 0.00042763931560330093,
+    "correct_mean": 0.00042763931560330093,
+    "incorrect_mean": 0.0
+  },
+  "26798": {
+    "name": "feature_26798",
+    "type": "binding",
+    "discrimination_score": 20949.32421875,
+    "ratio": 20949.32421875,
+    "diff": 0.00041897647315636277,
+    "correct_mean": 0.00041897647315636277,
+    "incorrect_mean": 0.0
+  },
+  "22504": {
+    "name": "feature_22504",
+    "type": "binding",
+    "discrimination_score": 20817.884765625,
+    "ratio": 20817.884765625,
+    "diff": 0.0004163476696703583,
+    "correct_mean": 0.0004163476696703583,
+    "incorrect_mean": 0.0
+  },
+  "11069": {
+    "name": "feature_11069",
+    "type": "binding",
+    "discrimination_score": 20757.52734375,
+    "ratio": 20757.52734375,
+    "diff": 0.00041514053009450436,
+    "correct_mean": 0.00041514053009450436,
+    "incorrect_mean": 0.0
+  },
+  "18169": {
+    "name": "feature_18169",
+    "type": "binding",
+    "discrimination_score": 20723.65234375,
+    "ratio": 20723.65234375,
+    "diff": 0.0004144630511291325,
+    "correct_mean": 0.0004144630511291325,
+    "incorrect_mean": 0.0
+  },
+  "22539": {
+    "name": "feature_22539",
+    "type": "binding",
+    "discrimination_score": 20658.095703125,
+    "ratio": 20658.095703125,
+    "diff": 0.0004131518944632262,
+    "correct_mean": 0.0004131518944632262,
+    "incorrect_mean": 0.0
+  },
+  "14677": {
+    "name": "feature_14677",
+    "type": "binding",
+    "discrimination_score": 20605.6640625,
+    "ratio": 20605.6640625,
+    "diff": 0.0004121032834518701,
+    "correct_mean": 0.0004121032834518701,
+    "incorrect_mean": 0.0
+  },
+  "8681": {
+    "name": "feature_8681",
+    "type": "binding",
+    "discrimination_score": 20399.591796875,
+    "ratio": 20399.591796875,
+    "diff": 0.0004079818318132311,
+    "correct_mean": 0.0004079818318132311,
+    "incorrect_mean": 0.0
+  },
+  "6953": {
+    "name": "feature_6953",
+    "type": "binding",
+    "discrimination_score": 19423.90625,
+    "ratio": 19423.90625,
+    "diff": 0.0003884680918417871,
+    "correct_mean": 0.0003884680918417871,
+    "incorrect_mean": 0.0
+  },
+  "15973": {
+    "name": "feature_15973",
+    "type": "binding",
+    "discrimination_score": 19298.181640625,
+    "ratio": 19298.181640625,
+    "diff": 0.0003859536082018167,
+    "correct_mean": 0.0003859536082018167,
+    "incorrect_mean": 0.0
+  },
+  "13595": {
+    "name": "feature_13595",
+    "type": "binding",
+    "discrimination_score": 18992.33984375,
+    "ratio": 18992.33984375,
+    "diff": 0.0003798367688432336,
+    "correct_mean": 0.0003798367688432336,
+    "incorrect_mean": 0.0
+  },
+  "31800": {
+    "name": "feature_31800",
+    "type": "binding",
+    "discrimination_score": 18978.201171875,
+    "ratio": 18978.201171875,
+    "diff": 0.00037955399602651596,
+    "correct_mean": 0.00037955399602651596,
+    "incorrect_mean": 0.0
+  },
+  "8902": {
+    "name": "feature_8902",
+    "type": "binding",
+    "discrimination_score": 18858.951171875,
+    "ratio": 18858.951171875,
+    "diff": 0.000377169024432078,
+    "correct_mean": 0.000377169024432078,
+    "incorrect_mean": 0.0
+  },
+  "6409": {
+    "name": "feature_6409",
+    "type": "binding",
+    "discrimination_score": 18825.572265625,
+    "ratio": 18825.572265625,
+    "diff": 0.00037650144076906145,
+    "correct_mean": 0.00037650144076906145,
+    "incorrect_mean": 0.0
+  },
+  "11371": {
+    "name": "feature_11371",
+    "type": "binding",
+    "discrimination_score": 18780.828125,
+    "ratio": 18780.828125,
+    "diff": 0.0003756065561901778,
+    "correct_mean": 0.0003756065561901778,
+    "incorrect_mean": 0.0
+  },
+  "25147": {
+    "name": "feature_25147",
+    "type": "binding",
+    "discrimination_score": 18584.947265625,
+    "ratio": 18584.947265625,
+    "diff": 0.0003716889477800578,
+    "correct_mean": 0.0003716889477800578,
+    "incorrect_mean": 0.0
+  },
+  "22767": {
+    "name": "feature_22767",
+    "type": "binding",
+    "discrimination_score": 18577.75,
+    "ratio": 18577.75,
+    "diff": 0.0003715449711307883,
+    "correct_mean": 0.0003715449711307883,
+    "incorrect_mean": 0.0
+  },
+  "6369": {
+    "name": "feature_6369",
+    "type": "binding",
+    "discrimination_score": 18422.66015625,
+    "ratio": 18422.66015625,
+    "diff": 0.000368443172192201,
+    "correct_mean": 0.000368443172192201,
+    "incorrect_mean": 0.0
+  },
+  "21802": {
+    "name": "feature_21802",
+    "type": "binding",
+    "discrimination_score": 18121.568359375,
+    "ratio": 18121.568359375,
+    "diff": 0.00036242135684005916,
+    "correct_mean": 0.00036242135684005916,
+    "incorrect_mean": 0.0
+  },
+  "26328": {
+    "name": "feature_26328",
+    "type": "binding",
+    "discrimination_score": 18078.458984375,
+    "ratio": 18078.458984375,
+    "diff": 0.0003615591849666089,
+    "correct_mean": 0.0003615591849666089,
+    "incorrect_mean": 0.0
+  },
+  "8157": {
+    "name": "feature_8157",
+    "type": "binding",
+    "discrimination_score": 17599.556640625,
+    "ratio": 17599.556640625,
+    "diff": 0.0003519811143632978,
+    "correct_mean": 0.0003519811143632978,
+    "incorrect_mean": 0.0
+  },
+  "5706": {
+    "name": "feature_5706",
+    "type": "binding",
+    "discrimination_score": 17466.04296875,
+    "ratio": 17466.04296875,
+    "diff": 0.0003493108379188925,
+    "correct_mean": 0.0003493108379188925,
+    "incorrect_mean": 0.0
+  },
+  "10050": {
+    "name": "feature_10050",
+    "type": "binding",
+    "discrimination_score": 17463.10546875,
+    "ratio": 17463.10546875,
+    "diff": 0.00034925207728520036,
+    "correct_mean": 0.00034925207728520036,
+    "incorrect_mean": 0.0
+  },
+  "25319": {
+    "name": "feature_25319",
+    "type": "binding",
+    "discrimination_score": 17055.5,
+    "ratio": 17055.5,
+    "diff": 0.0003410999779589474,
+    "correct_mean": 0.0003410999779589474,
+    "incorrect_mean": 0.0
+  },
+  "1718": {
+    "name": "feature_1718",
+    "type": "binding",
+    "discrimination_score": 16966.46484375,
+    "ratio": 16966.46484375,
+    "diff": 0.0003393192891962826,
+    "correct_mean": 0.0003393192891962826,
+    "incorrect_mean": 0.0
+  },
+  "11806": {
+    "name": "feature_11806",
+    "type": "binding",
+    "discrimination_score": 16865.345703125,
+    "ratio": 16865.345703125,
+    "diff": 0.00033729689312167466,
+    "correct_mean": 0.00033729689312167466,
+    "incorrect_mean": 0.0
+  },
+  "13483": {
+    "name": "feature_13483",
+    "type": "binding",
+    "discrimination_score": 16714.84375,
+    "ratio": 16714.84375,
+    "diff": 0.00033428685856051743,
+    "correct_mean": 0.00033428685856051743,
+    "incorrect_mean": 0.0
+  },
+  "12093": {
+    "name": "feature_12093",
+    "type": "binding",
+    "discrimination_score": 16460.982421875,
+    "ratio": 16460.982421875,
+    "diff": 0.0003292096371296793,
+    "correct_mean": 0.0003292096371296793,
+    "incorrect_mean": 0.0
+  },
+  "6744": {
+    "name": "feature_6744",
+    "type": "binding",
+    "discrimination_score": 15663.283203125,
+    "ratio": 15663.283203125,
+    "diff": 0.0003132556448690593,
+    "correct_mean": 0.0003132556448690593,
+    "incorrect_mean": 0.0
+  },
+  "1615": {
+    "name": "feature_1615",
+    "type": "binding",
+    "discrimination_score": 15569.4111328125,
+    "ratio": 15569.4111328125,
+    "diff": 0.00031137821497395635,
+    "correct_mean": 0.00031137821497395635,
+    "incorrect_mean": 0.0
+  },
+  "20218": {
+    "name": "feature_20218",
+    "type": "binding",
+    "discrimination_score": 15555.0615234375,
+    "ratio": 15555.0615234375,
+    "diff": 0.0003110912221018225,
+    "correct_mean": 0.0003110912221018225,
+    "incorrect_mean": 0.0
+  },
+  "30029": {
+    "name": "feature_30029",
+    "type": "binding",
+    "discrimination_score": 15541.0087890625,
+    "ratio": 15541.0087890625,
+    "diff": 0.0003108101664111018,
+    "correct_mean": 0.0003108101664111018,
+    "incorrect_mean": 0.0
+  },
+  "27927": {
+    "name": "feature_27927",
+    "type": "binding",
+    "discrimination_score": 15320.2724609375,
+    "ratio": 15320.2724609375,
+    "diff": 0.00030639543547295034,
+    "correct_mean": 0.00030639543547295034,
+    "incorrect_mean": 0.0
+  },
+  "6517": {
+    "name": "feature_6517",
+    "type": "binding",
+    "discrimination_score": 15197.1826171875,
+    "ratio": 15197.1826171875,
+    "diff": 0.0003039336297661066,
+    "correct_mean": 0.0003039336297661066,
+    "incorrect_mean": 0.0
+  },
+  "31565": {
+    "name": "feature_31565",
+    "type": "binding",
+    "discrimination_score": 14763.8203125,
+    "ratio": 14763.8203125,
+    "diff": 0.0002952663926407695,
+    "correct_mean": 0.0002952663926407695,
+    "incorrect_mean": 0.0
+  },
+  "11161": {
+    "name": "feature_11161",
+    "type": "binding",
+    "discrimination_score": 14740.2734375,
+    "ratio": 14740.2734375,
+    "diff": 0.0002947954635601491,
+    "correct_mean": 0.0002947954635601491,
+    "incorrect_mean": 0.0
+  },
+  "22323": {
+    "name": "feature_22323",
+    "type": "binding",
+    "discrimination_score": 14592.5673828125,
+    "ratio": 14592.5673828125,
+    "diff": 0.00029184133745729923,
+    "correct_mean": 0.00029184133745729923,
+    "incorrect_mean": 0.0
+  },
+  "1577": {
+    "name": "feature_1577",
+    "type": "binding",
+    "discrimination_score": 14580.384765625,
+    "ratio": 14580.384765625,
+    "diff": 0.00029159768018871546,
+    "correct_mean": 0.00029159768018871546,
+    "incorrect_mean": 0.0
+  },
+  "6166": {
+    "name": "feature_6166",
+    "type": "binding",
+    "discrimination_score": 14547.1611328125,
+    "ratio": 14547.1611328125,
+    "diff": 0.00029093321063555777,
+    "correct_mean": 0.00029093321063555777,
+    "incorrect_mean": 0.0
+  },
+  "24965": {
+    "name": "feature_24965",
+    "type": "binding",
+    "discrimination_score": 14496.9384765625,
+    "ratio": 14496.9384765625,
+    "diff": 0.0002899287501350045,
+    "correct_mean": 0.0002899287501350045,
+    "incorrect_mean": 0.0
+  },
+  "25123": {
+    "name": "feature_25123",
+    "type": "binding",
+    "discrimination_score": 14389.1376953125,
+    "ratio": 14389.1376953125,
+    "diff": 0.0002877727383747697,
+    "correct_mean": 0.0002877727383747697,
+    "incorrect_mean": 0.0
+  },
+  "26166": {
+    "name": "feature_26166",
+    "type": "binding",
+    "discrimination_score": 14298.4853515625,
+    "ratio": 14298.4853515625,
+    "diff": 0.000285959686152637,
+    "correct_mean": 0.000285959686152637,
+    "incorrect_mean": 0.0
+  },
+  "16701": {
+    "name": "feature_16701",
+    "type": "binding",
+    "discrimination_score": 14037.4248046875,
+    "ratio": 14037.4248046875,
+    "diff": 0.00028073848807252944,
+    "correct_mean": 0.00028073848807252944,
+    "incorrect_mean": 0.0
+  },
+  "24835": {
+    "name": "feature_24835",
+    "type": "binding",
+    "discrimination_score": 14014.9208984375,
+    "ratio": 14014.9208984375,
+    "diff": 0.00028028839733451605,
+    "correct_mean": 0.00028028839733451605,
+    "incorrect_mean": 0.0
+  },
+  "1791": {
+    "name": "feature_1791",
+    "type": "binding",
+    "discrimination_score": 13980.6796875,
+    "ratio": 13980.6796875,
+    "diff": 0.0002796035842038691,
+    "correct_mean": 0.0002796035842038691,
+    "incorrect_mean": 0.0
+  },
+  "19316": {
+    "name": "feature_19316",
+    "type": "binding",
+    "discrimination_score": 13976.4306640625,
+    "ratio": 13976.4306640625,
+    "diff": 0.00027951860101893544,
+    "correct_mean": 0.00027951860101893544,
+    "incorrect_mean": 0.0
+  },
+  "32417": {
+    "name": "feature_32417",
+    "type": "binding",
+    "discrimination_score": 13756.546875,
+    "ratio": 13756.546875,
+    "diff": 0.0002751209249254316,
+    "correct_mean": 0.0002751209249254316,
+    "incorrect_mean": 0.0
+  },
+  "32449": {
+    "name": "feature_32449",
+    "type": "binding",
+    "discrimination_score": 13712.880859375,
+    "ratio": 13712.880859375,
+    "diff": 0.0002742476062849164,
+    "correct_mean": 0.0002742476062849164,
+    "incorrect_mean": 0.0
+  },
+  "13475": {
+    "name": "feature_13475",
+    "type": "binding",
+    "discrimination_score": 13670.6455078125,
+    "ratio": 13670.6455078125,
+    "diff": 0.00027340289670974016,
+    "correct_mean": 0.00027340289670974016,
+    "incorrect_mean": 0.0
+  },
+  "12590": {
+    "name": "feature_12590",
+    "type": "binding",
+    "discrimination_score": 13275.2529296875,
+    "ratio": 13275.2529296875,
+    "diff": 0.00026549503672868013,
+    "correct_mean": 0.00026549503672868013,
+    "incorrect_mean": 0.0
+  },
+  "11845": {
+    "name": "feature_11845",
+    "type": "binding",
+    "discrimination_score": 13228.40234375,
+    "ratio": 13228.40234375,
+    "diff": 0.0002645580389071256,
+    "correct_mean": 0.0002645580389071256,
+    "incorrect_mean": 0.0
+  },
+  "10944": {
+    "name": "feature_10944",
+    "type": "binding",
+    "discrimination_score": 13163.9990234375,
+    "ratio": 13163.9990234375,
+    "diff": 0.00026326996157877147,
+    "correct_mean": 0.00026326996157877147,
+    "incorrect_mean": 0.0
+  },
+  "18391": {
+    "name": "feature_18391",
+    "type": "binding",
+    "discrimination_score": 13129.3623046875,
+    "ratio": 13129.3623046875,
+    "diff": 0.0002625772322062403,
+    "correct_mean": 0.0002625772322062403,
+    "incorrect_mean": 0.0
+  },
+  "31082": {
+    "name": "feature_31082",
+    "type": "binding",
+    "discrimination_score": 13106.5751953125,
+    "ratio": 13106.5751953125,
+    "diff": 0.0002621214953251183,
+    "correct_mean": 0.0002621214953251183,
+    "incorrect_mean": 0.0
+  },
+  "23852": {
+    "name": "feature_23852",
+    "type": "binding",
+    "discrimination_score": 13086.228515625,
+    "ratio": 13086.228515625,
+    "diff": 0.00026171456556767225,
+    "correct_mean": 0.00026171456556767225,
+    "incorrect_mean": 0.0
+  },
+  "24262": {
+    "name": "feature_24262",
+    "type": "binding",
+    "discrimination_score": 13017.02734375,
+    "ratio": 13017.02734375,
+    "diff": 0.0002603305329103023,
+    "correct_mean": 0.0002603305329103023,
+    "incorrect_mean": 0.0
+  },
+  "26104": {
+    "name": "feature_26104",
+    "type": "binding",
+    "discrimination_score": 12950.7197265625,
+    "ratio": 12950.7197265625,
+    "diff": 0.00025900438777171075,
+    "correct_mean": 0.00025900438777171075,
+    "incorrect_mean": 0.0
+  },
+  "27983": {
+    "name": "feature_27983",
+    "type": "binding",
+    "discrimination_score": 12454.134765625,
+    "ratio": 12454.134765625,
+    "diff": 0.0002490726765245199,
+    "correct_mean": 0.0002490726765245199,
+    "incorrect_mean": 0.0
+  },
+  "27253": {
+    "name": "feature_27253",
+    "type": "binding",
+    "discrimination_score": 12402.8740234375,
+    "ratio": 12402.8740234375,
+    "diff": 0.000248047464992851,
+    "correct_mean": 0.000248047464992851,
+    "incorrect_mean": 0.0
+  },
+  "16205": {
+    "name": "feature_16205",
+    "type": "binding",
+    "discrimination_score": 12174.4453125,
+    "ratio": 12174.4453125,
+    "diff": 0.00024347890575882047,
+    "correct_mean": 0.00024347890575882047,
+    "incorrect_mean": 0.0
+  },
+  "26771": {
+    "name": "feature_26771",
+    "type": "binding",
+    "discrimination_score": 11982.8486328125,
+    "ratio": 11982.8486328125,
+    "diff": 0.0002396469790255651,
+    "correct_mean": 0.0002396469790255651,
+    "incorrect_mean": 0.0
+  },
+  "24075": {
+    "name": "feature_24075",
+    "type": "binding",
+    "discrimination_score": 11796.7392578125,
+    "ratio": 11796.7392578125,
+    "diff": 0.00023592478828504682,
+    "correct_mean": 0.00023592478828504682,
+    "incorrect_mean": 0.0
+  },
+  "16659": {
+    "name": "feature_16659",
+    "type": "binding",
+    "discrimination_score": 11791.7470703125,
+    "ratio": 11791.7470703125,
+    "diff": 0.00023582493304274976,
+    "correct_mean": 0.00023582493304274976,
+    "incorrect_mean": 0.0
+  },
+  "9607": {
+    "name": "feature_9607",
+    "type": "binding",
+    "discrimination_score": 11715.0625,
+    "ratio": 11715.0625,
+    "diff": 0.00023429124848917127,
+    "correct_mean": 0.00023429124848917127,
+    "incorrect_mean": 0.0
+  },
+  "20181": {
+    "name": "feature_20181",
+    "type": "binding",
+    "discrimination_score": 11709.99609375,
+    "ratio": 11709.99609375,
+    "diff": 0.00023418992350343615,
+    "correct_mean": 0.00023418992350343615,
+    "incorrect_mean": 0.0
+  },
+  "18825": {
+    "name": "feature_18825",
+    "type": "binding",
+    "discrimination_score": 11576.548828125,
+    "ratio": 11576.548828125,
+    "diff": 0.00023152098583523184,
+    "correct_mean": 0.00023152098583523184,
+    "incorrect_mean": 0.0
+  },
+  "28577": {
+    "name": "feature_28577",
+    "type": "binding",
+    "discrimination_score": 11379.3505859375,
+    "ratio": 11379.3505859375,
+    "diff": 0.00022757700935471803,
+    "correct_mean": 0.00022757700935471803,
+    "incorrect_mean": 0.0
+  },
+  "26226": {
+    "name": "feature_26226",
+    "type": "binding",
+    "discrimination_score": 11199.1982421875,
+    "ratio": 11199.1982421875,
+    "diff": 0.00022397396969608963,
+    "correct_mean": 0.00022397396969608963,
+    "incorrect_mean": 0.0
+  },
+  "26566": {
+    "name": "feature_26566",
+    "type": "binding",
+    "discrimination_score": 11052.68359375,
+    "ratio": 11052.68359375,
+    "diff": 0.00022104366507846862,
+    "correct_mean": 0.00022104366507846862,
+    "incorrect_mean": 0.0
+  },
+  "4564": {
+    "name": "feature_4564",
+    "type": "binding",
+    "discrimination_score": 10988.375,
+    "ratio": 10988.375,
+    "diff": 0.00021975749405100942,
+    "correct_mean": 0.00021975749405100942,
+    "incorrect_mean": 0.0
+  },
+  "23375": {
+    "name": "feature_23375",
+    "type": "binding",
+    "discrimination_score": 10924.0498046875,
+    "ratio": 10924.0498046875,
+    "diff": 0.0002184710028814152,
+    "correct_mean": 0.0002184710028814152,
+    "incorrect_mean": 0.0
+  },
+  "10190": {
+    "name": "feature_10190",
+    "type": "binding",
+    "discrimination_score": 10777.5634765625,
+    "ratio": 10777.5634765625,
+    "diff": 0.00021554128034040332,
+    "correct_mean": 0.00021554128034040332,
+    "incorrect_mean": 0.0
+  },
+  "3245": {
+    "name": "feature_3245",
+    "type": "binding",
+    "discrimination_score": 10730.263671875,
+    "ratio": 10730.263671875,
+    "diff": 0.00021459527488332242,
+    "correct_mean": 0.00021459527488332242,
+    "incorrect_mean": 0.0
+  },
+  "984": {
+    "name": "feature_984",
+    "type": "binding",
+    "discrimination_score": 10717.3974609375,
+    "ratio": 10717.3974609375,
+    "diff": 0.0002143379533663392,
+    "correct_mean": 0.0002143379533663392,
+    "incorrect_mean": 0.0
+  },
+  "5391": {
+    "name": "feature_5391",
+    "type": "binding",
+    "discrimination_score": 10704.1455078125,
+    "ratio": 10704.1455078125,
+    "diff": 0.00021407290478236973,
+    "correct_mean": 0.00021407290478236973,
+    "incorrect_mean": 0.0
+  },
+  "30516": {
+    "name": "feature_30516",
+    "type": "binding",
+    "discrimination_score": 10651.2099609375,
+    "ratio": 10651.2099609375,
+    "diff": 0.00021301420929376036,
+    "correct_mean": 0.00021301420929376036,
+    "incorrect_mean": 0.0
+  },
+  "10869": {
+    "name": "feature_10869",
+    "type": "binding",
+    "discrimination_score": 10630.9453125,
+    "ratio": 10630.9453125,
+    "diff": 0.00021260890935081989,
+    "correct_mean": 0.00021260890935081989,
+    "incorrect_mean": 0.0
+  },
+  "2463": {
+    "name": "feature_2463",
+    "type": "binding",
+    "discrimination_score": 10617.462890625,
+    "ratio": 10617.462890625,
+    "diff": 0.00021233926236163825,
+    "correct_mean": 0.00021233926236163825,
+    "incorrect_mean": 0.0
+  },
+  "30585": {
+    "name": "feature_30585",
+    "type": "binding",
+    "discrimination_score": 10566.896484375,
+    "ratio": 10566.896484375,
+    "diff": 0.0002113279333570972,
+    "correct_mean": 0.0002113279333570972,
+    "incorrect_mean": 0.0
+  },
+  "18515": {
+    "name": "feature_18515",
+    "type": "binding",
+    "discrimination_score": 10509.826171875,
+    "ratio": 10509.826171875,
+    "diff": 0.0002101865247823298,
+    "correct_mean": 0.0002101865247823298,
+    "incorrect_mean": 0.0
+  },
+  "697": {
+    "name": "feature_697",
+    "type": "binding",
+    "discrimination_score": 10263.7587890625,
+    "ratio": 10263.7587890625,
+    "diff": 0.00020526516891550273,
+    "correct_mean": 0.00020526516891550273,
+    "incorrect_mean": 0.0
+  },
+  "5051": {
+    "name": "feature_5051",
+    "type": "binding",
+    "discrimination_score": 10187.3173828125,
+    "ratio": 10187.3173828125,
+    "diff": 0.0002037363447016105,
+    "correct_mean": 0.0002037363447016105,
+    "incorrect_mean": 0.0
+  },
+  "19478": {
+    "name": "feature_19478",
+    "type": "binding",
+    "discrimination_score": 10034.6376953125,
+    "ratio": 10034.6376953125,
+    "diff": 0.00020068275625817478,
+    "correct_mean": 0.00020068275625817478,
+    "incorrect_mean": 0.0
+  },
+  "13312": {
+    "name": "feature_13312",
+    "type": "binding",
+    "discrimination_score": 9984.7822265625,
+    "ratio": 9984.7822265625,
+    "diff": 0.00019968564447481185,
+    "correct_mean": 0.00019968564447481185,
+    "incorrect_mean": 0.0
+  },
+  "7007": {
+    "name": "feature_7007",
+    "type": "binding",
+    "discrimination_score": 9926.69921875,
+    "ratio": 9926.69921875,
+    "diff": 0.00019852397963404655,
+    "correct_mean": 0.00019852397963404655,
+    "incorrect_mean": 0.0
+  },
+  "19307": {
+    "name": "feature_19307",
+    "type": "binding",
+    "discrimination_score": 9912.12109375,
+    "ratio": 9912.12109375,
+    "diff": 0.00019823243201244622,
+    "correct_mean": 0.00019823243201244622,
+    "incorrect_mean": 0.0
+  },
+  "18043": {
+    "name": "feature_18043",
+    "type": "binding",
+    "discrimination_score": 9573.447265625,
+    "ratio": 9573.447265625,
+    "diff": 0.0001914589520310983,
+    "correct_mean": 0.0001914589520310983,
+    "incorrect_mean": 0.0
+  },
+  "18369": {
+    "name": "feature_18369",
+    "type": "binding",
+    "discrimination_score": 9525.357421875,
+    "ratio": 9525.357421875,
+    "diff": 0.0001904971431940794,
+    "correct_mean": 0.0001904971431940794,
+    "incorrect_mean": 0.0
+  },
+  "19076": {
+    "name": "feature_19076",
+    "type": "binding",
+    "discrimination_score": 9504.818359375,
+    "ratio": 9504.818359375,
+    "diff": 0.00019008637173101306,
+    "correct_mean": 0.00019008637173101306,
+    "incorrect_mean": 0.0
+  },
+  "15734": {
+    "name": "feature_15734",
+    "type": "binding",
+    "discrimination_score": 9337.97265625,
+    "ratio": 9337.97265625,
+    "diff": 0.00018674945749808103,
+    "correct_mean": 0.00018674945749808103,
+    "incorrect_mean": 0.0
+  },
+  "3397": {
+    "name": "feature_3397",
+    "type": "binding",
+    "discrimination_score": 9283.9140625,
+    "ratio": 9283.9140625,
+    "diff": 0.00018566827930044383,
+    "correct_mean": 0.00018566827930044383,
+    "incorrect_mean": 0.0
+  },
+  "20354": {
+    "name": "feature_20354",
+    "type": "binding",
+    "discrimination_score": 9227.7236328125,
+    "ratio": 9227.7236328125,
+    "diff": 0.00018454447854310274,
+    "correct_mean": 0.00018454447854310274,
+    "incorrect_mean": 0.0
+  },
+  "31813": {
+    "name": "feature_31813",
+    "type": "binding",
+    "discrimination_score": 9211.6064453125,
+    "ratio": 9211.6064453125,
+    "diff": 0.00018422212451696396,
+    "correct_mean": 0.00018422212451696396,
+    "incorrect_mean": 0.0
+  },
+  "12258": {
+    "name": "feature_12258",
+    "type": "binding",
+    "discrimination_score": 9130.06640625,
+    "ratio": 9130.06640625,
+    "diff": 0.00018259133503306657,
+    "correct_mean": 0.00018259133503306657,
+    "incorrect_mean": 0.0
+  },
+  "18539": {
+    "name": "feature_18539",
+    "type": "binding",
+    "discrimination_score": 8992.943359375,
+    "ratio": 8992.943359375,
+    "diff": 0.00017984886653721333,
+    "correct_mean": 0.00017984886653721333,
+    "incorrect_mean": 0.0
+  },
+  "24654": {
+    "name": "feature_24654",
+    "type": "binding",
+    "discrimination_score": 8892.794921875,
+    "ratio": 8892.794921875,
+    "diff": 0.00017784589726943523,
+    "correct_mean": 0.00017784589726943523,
+    "incorrect_mean": 0.0
+  },
+  "6447": {
+    "name": "feature_6447",
+    "type": "binding",
+    "discrimination_score": 8840.3369140625,
+    "ratio": 8840.3369140625,
+    "diff": 0.00017679674783721566,
+    "correct_mean": 0.00017679674783721566,
+    "incorrect_mean": 0.0
+  },
+  "20805": {
+    "name": "feature_20805",
+    "type": "binding",
+    "discrimination_score": 8791.08984375,
+    "ratio": 8791.08984375,
+    "diff": 0.00017581180145498365,
+    "correct_mean": 0.00017581180145498365,
+    "incorrect_mean": 0.0
+  },
+  "25140": {
+    "name": "feature_25140",
+    "type": "binding",
+    "discrimination_score": 8735.9638671875,
+    "ratio": 8735.9638671875,
+    "diff": 0.00017470927559770644,
+    "correct_mean": 0.00017470927559770644,
+    "incorrect_mean": 0.0
+  },
+  "3619": {
+    "name": "feature_3619",
+    "type": "binding",
+    "discrimination_score": 8694.6513671875,
+    "ratio": 8694.6513671875,
+    "diff": 0.000173883032402955,
+    "correct_mean": 0.000173883032402955,
+    "incorrect_mean": 0.0
+  },
+  "16531": {
+    "name": "feature_16531",
+    "type": "binding",
+    "discrimination_score": 8680.7138671875,
+    "ratio": 8680.7138671875,
+    "diff": 0.0001736042759148404,
+    "correct_mean": 0.0001736042759148404,
+    "incorrect_mean": 0.0
+  },
+  "10355": {
+    "name": "feature_10355",
+    "type": "binding",
+    "discrimination_score": 8678.0126953125,
+    "ratio": 8678.0126953125,
+    "diff": 0.0001735502592055127,
+    "correct_mean": 0.0001735502592055127,
+    "incorrect_mean": 0.0
+  },
+  "8768": {
+    "name": "feature_8768",
+    "type": "binding",
+    "discrimination_score": 8666.037109375,
+    "ratio": 8666.037109375,
+    "diff": 0.000173310749232769,
+    "correct_mean": 0.000173310749232769,
+    "incorrect_mean": 0.0
+  },
+  "32326": {
+    "name": "feature_32326",
+    "type": "binding",
+    "discrimination_score": 8589.732421875,
+    "ratio": 8589.732421875,
+    "diff": 0.0001717846462270245,
+    "correct_mean": 0.0001717846462270245,
+    "incorrect_mean": 0.0
+  },
+  "617": {
+    "name": "feature_617",
+    "type": "binding",
+    "discrimination_score": 8588.5517578125,
+    "ratio": 8588.5517578125,
+    "diff": 0.00017176104302052408,
+    "correct_mean": 0.00017176104302052408,
+    "incorrect_mean": 0.0
+  },
+  "7160": {
+    "name": "feature_7160",
+    "type": "binding",
+    "discrimination_score": 8477.9150390625,
+    "ratio": 8477.9150390625,
+    "diff": 0.00016954829334281385,
+    "correct_mean": 0.00016954829334281385,
+    "incorrect_mean": 0.0
+  },
+  "20220": {
+    "name": "feature_20220",
+    "type": "binding",
+    "discrimination_score": 8410.2275390625,
+    "ratio": 8410.2275390625,
+    "diff": 0.0001681945432210341,
+    "correct_mean": 0.0001681945432210341,
+    "incorrect_mean": 0.0
+  },
+  "19734": {
+    "name": "feature_19734",
+    "type": "binding",
+    "discrimination_score": 8406.75390625,
+    "ratio": 8406.75390625,
+    "diff": 0.00016812508692964911,
+    "correct_mean": 0.00016812508692964911,
+    "incorrect_mean": 0.0
+  },
+  "6767": {
+    "name": "feature_6767",
+    "type": "binding",
+    "discrimination_score": 8388.9208984375,
+    "ratio": 8388.9208984375,
+    "diff": 0.00016776841948740184,
+    "correct_mean": 0.00016776841948740184,
+    "incorrect_mean": 0.0
+  },
+  "31130": {
+    "name": "feature_31130",
+    "type": "binding",
+    "discrimination_score": 8368.5908203125,
+    "ratio": 8368.5908203125,
+    "diff": 0.00016736180987209082,
+    "correct_mean": 0.00016736180987209082,
+    "incorrect_mean": 0.0
+  },
+  "6606": {
+    "name": "feature_6606",
+    "type": "binding",
+    "discrimination_score": 8363.15625,
+    "ratio": 8363.15625,
+    "diff": 0.00016725313616916537,
+    "correct_mean": 0.00016725313616916537,
+    "incorrect_mean": 0.0
+  },
+  "29247": {
+    "name": "feature_29247",
+    "type": "binding",
+    "discrimination_score": 8359.80859375,
+    "ratio": 8359.80859375,
+    "diff": 0.00016718616825528443,
+    "correct_mean": 0.00016718616825528443,
+    "incorrect_mean": 0.0
+  },
+  "10200": {
+    "name": "feature_10200",
+    "type": "binding",
+    "discrimination_score": 8356.765625,
+    "ratio": 8356.765625,
+    "diff": 0.0001671253121457994,
+    "correct_mean": 0.0001671253121457994,
+    "incorrect_mean": 0.0
+  },
+  "31951": {
+    "name": "feature_31951",
+    "type": "binding",
+    "discrimination_score": 8286.8525390625,
+    "ratio": 8286.8525390625,
+    "diff": 0.00016572704771533608,
+    "correct_mean": 0.00016572704771533608,
+    "incorrect_mean": 0.0
+  },
+  "9057": {
+    "name": "feature_9057",
+    "type": "binding",
+    "discrimination_score": 8276.87109375,
+    "ratio": 8276.87109375,
+    "diff": 0.00016552742454223335,
+    "correct_mean": 0.00016552742454223335,
+    "incorrect_mean": 0.0
+  },
+  "29908": {
+    "name": "feature_29908",
+    "type": "binding",
+    "discrimination_score": 8179.2392578125,
+    "ratio": 8179.2392578125,
+    "diff": 0.00016357479034923017,
+    "correct_mean": 0.00016357479034923017,
+    "incorrect_mean": 0.0
+  },
+  "30656": {
+    "name": "feature_30656",
+    "type": "binding",
+    "discrimination_score": 8059.13671875,
+    "ratio": 8059.13671875,
+    "diff": 0.0001611727348063141,
+    "correct_mean": 0.0001611727348063141,
+    "incorrect_mean": 0.0
+  },
+  "12299": {
+    "name": "feature_12299",
+    "type": "binding",
+    "discrimination_score": 8009.53271484375,
+    "ratio": 8009.53271484375,
+    "diff": 0.0001601806579856202,
+    "correct_mean": 0.0001601806579856202,
+    "incorrect_mean": 0.0
+  },
+  "14797": {
+    "name": "feature_14797",
+    "type": "binding",
+    "discrimination_score": 7994.29541015625,
+    "ratio": 7994.29541015625,
+    "diff": 0.00015987591177690774,
+    "correct_mean": 0.00015987591177690774,
+    "incorrect_mean": 0.0
+  },
+  "25550": {
+    "name": "feature_25550",
+    "type": "binding",
+    "discrimination_score": 7972.93310546875,
+    "ratio": 7972.93310546875,
+    "diff": 0.0001594486675458029,
+    "correct_mean": 0.0001594486675458029,
+    "incorrect_mean": 0.0
+  },
+  "13472": {
+    "name": "feature_13472",
+    "type": "binding",
+    "discrimination_score": 7948.27783203125,
+    "ratio": 7948.27783203125,
+    "diff": 0.00015895556134637445,
+    "correct_mean": 0.00015895556134637445,
+    "incorrect_mean": 0.0
+  },
+  "15306": {
+    "name": "feature_15306",
+    "type": "binding",
+    "discrimination_score": 7864.3984375,
+    "ratio": 7864.3984375,
+    "diff": 0.00015727797290310264,
+    "correct_mean": 0.00015727797290310264,
+    "incorrect_mean": 0.0
+  },
+  "25476": {
+    "name": "feature_25476",
+    "type": "binding",
+    "discrimination_score": 7681.140625,
+    "ratio": 7681.140625,
+    "diff": 0.00015361281111836433,
+    "correct_mean": 0.00015361281111836433,
+    "incorrect_mean": 0.0
+  },
+  "7340": {
+    "name": "feature_7340",
+    "type": "binding",
+    "discrimination_score": 7674.84814453125,
+    "ratio": 7674.84814453125,
+    "diff": 0.00015348696615546942,
+    "correct_mean": 0.00015348696615546942,
+    "incorrect_mean": 0.0
+  },
+  "7491": {
+    "name": "feature_7491",
+    "type": "binding",
+    "discrimination_score": 7670.53564453125,
+    "ratio": 7670.53564453125,
+    "diff": 0.0001534007169539109,
+    "correct_mean": 0.0001534007169539109,
+    "incorrect_mean": 0.0
+  },
+  "22239": {
+    "name": "feature_22239",
+    "type": "binding",
+    "discrimination_score": 7663.228515625,
+    "ratio": 7663.228515625,
+    "diff": 0.0001532545720692724,
+    "correct_mean": 0.0001532545720692724,
+    "incorrect_mean": 0.0
+  },
+  "20376": {
+    "name": "feature_20376",
+    "type": "binding",
+    "discrimination_score": 7639.20751953125,
+    "ratio": 7639.20751953125,
+    "diff": 0.0001527741551399231,
+    "correct_mean": 0.0001527741551399231,
+    "incorrect_mean": 0.0
+  },
+  "7861": {
+    "name": "feature_7861",
+    "type": "binding",
+    "discrimination_score": 7494.09521484375,
+    "ratio": 7494.09521484375,
+    "diff": 0.00014987190661486238,
+    "correct_mean": 0.00014987190661486238,
+    "incorrect_mean": 0.0
+  },
+  "13027": {
+    "name": "feature_13027",
+    "type": "binding",
+    "discrimination_score": 7445.64697265625,
+    "ratio": 7445.64697265625,
+    "diff": 0.00014890293823555112,
+    "correct_mean": 0.00014890293823555112,
+    "incorrect_mean": 0.0
+  },
+  "18767": {
+    "name": "feature_18767",
+    "type": "binding",
+    "discrimination_score": 7349.08154296875,
+    "ratio": 7349.08154296875,
+    "diff": 0.00014697163715027273,
+    "correct_mean": 0.00014697163715027273,
+    "incorrect_mean": 0.0
+  },
+  "8473": {
+    "name": "feature_8473",
+    "type": "binding",
+    "discrimination_score": 7345.50439453125,
+    "ratio": 7345.50439453125,
+    "diff": 0.00014690008538309485,
+    "correct_mean": 0.00014690008538309485,
+    "incorrect_mean": 0.0
+  },
+  "18452": {
+    "name": "feature_18452",
+    "type": "binding",
+    "discrimination_score": 7311.9443359375,
+    "ratio": 7311.9443359375,
+    "diff": 0.00014622889284510165,
+    "correct_mean": 0.00014622889284510165,
+    "incorrect_mean": 0.0
+  },
+  "21398": {
+    "name": "feature_21398",
+    "type": "binding",
+    "discrimination_score": 7274.044921875,
+    "ratio": 7274.044921875,
+    "diff": 0.00014547089813277125,
+    "correct_mean": 0.00014547089813277125,
+    "incorrect_mean": 0.0
+  },
+  "4465": {
+    "name": "feature_4465",
+    "type": "binding",
+    "discrimination_score": 7259.13623046875,
+    "ratio": 7259.13623046875,
+    "diff": 0.00014517272938974202,
+    "correct_mean": 0.00014517272938974202,
+    "incorrect_mean": 0.0
+  },
+  "25000": {
+    "name": "feature_25000",
+    "type": "binding",
+    "discrimination_score": 7209.1044921875,
+    "ratio": 7209.1044921875,
+    "diff": 0.00014417209604289383,
+    "correct_mean": 0.00014417209604289383,
+    "incorrect_mean": 0.0
+  },
+  "22582": {
+    "name": "feature_22582",
+    "type": "binding",
+    "discrimination_score": 7079.591796875,
+    "ratio": 7079.591796875,
+    "diff": 0.0001415818405803293,
+    "correct_mean": 0.0001415818405803293,
+    "incorrect_mean": 0.0
+  },
+  "12988": {
+    "name": "feature_12988",
+    "type": "binding",
+    "discrimination_score": 6977.810546875,
+    "ratio": 6977.810546875,
+    "diff": 0.00013954621681477875,
+    "correct_mean": 0.00013954621681477875,
+    "incorrect_mean": 0.0
+  },
+  "17981": {
+    "name": "feature_17981",
+    "type": "binding",
+    "discrimination_score": 6922.58544921875,
+    "ratio": 6922.58544921875,
+    "diff": 0.00013844171189703047,
+    "correct_mean": 0.00013844171189703047,
+    "incorrect_mean": 0.0
+  },
+  "17351": {
+    "name": "feature_17351",
+    "type": "binding",
+    "discrimination_score": 6830.2666015625,
+    "ratio": 6830.2666015625,
+    "diff": 0.00013659533578902483,
+    "correct_mean": 0.00013659533578902483,
+    "incorrect_mean": 0.0
+  },
+  "9714": {
+    "name": "feature_9714",
+    "type": "binding",
+    "discrimination_score": 6778.8876953125,
+    "ratio": 6778.8876953125,
+    "diff": 0.0001355677522951737,
+    "correct_mean": 0.0001355677522951737,
+    "incorrect_mean": 0.0
+  },
+  "3303": {
+    "name": "feature_3303",
+    "type": "binding",
+    "discrimination_score": 6721.43017578125,
+    "ratio": 6721.43017578125,
+    "diff": 0.0001344186021015048,
+    "correct_mean": 0.0001344186021015048,
+    "incorrect_mean": 0.0
+  },
+  "10579": {
+    "name": "feature_10579",
+    "type": "binding",
+    "discrimination_score": 6682.015625,
+    "ratio": 6682.015625,
+    "diff": 0.00013363031030166894,
+    "correct_mean": 0.00013363031030166894,
+    "incorrect_mean": 0.0
+  },
+  "58": {
+    "name": "feature_58",
+    "type": "binding",
+    "discrimination_score": 6656.9775390625,
+    "ratio": 6656.9775390625,
+    "diff": 0.00013312954979483038,
+    "correct_mean": 0.00013312954979483038,
+    "incorrect_mean": 0.0
+  },
+  "1669": {
+    "name": "feature_1669",
+    "type": "binding",
+    "discrimination_score": 6654.04541015625,
+    "ratio": 6654.04541015625,
+    "diff": 0.00013307090557646006,
+    "correct_mean": 0.00013307090557646006,
+    "incorrect_mean": 0.0
+  },
+  "285": {
+    "name": "feature_285",
+    "type": "binding",
+    "discrimination_score": 6651.3291015625,
+    "ratio": 6651.3291015625,
+    "diff": 0.00013301658327691257,
+    "correct_mean": 0.00013301658327691257,
+    "incorrect_mean": 0.0
+  },
+  "10431": {
+    "name": "feature_10431",
+    "type": "binding",
+    "discrimination_score": 6649.37451171875,
+    "ratio": 6649.37451171875,
+    "diff": 0.00013297749683260918,
+    "correct_mean": 0.00013297749683260918,
+    "incorrect_mean": 0.0
+  },
+  "22609": {
+    "name": "feature_22609",
+    "type": "binding",
+    "discrimination_score": 6619.9326171875,
+    "ratio": 6619.9326171875,
+    "diff": 0.0001323886535828933,
+    "correct_mean": 0.0001323886535828933,
+    "incorrect_mean": 0.0
+  },
+  "10536": {
+    "name": "feature_10536",
+    "type": "binding",
+    "discrimination_score": 6605.09619140625,
+    "ratio": 6605.09619140625,
+    "diff": 0.00013209192547947168,
+    "correct_mean": 0.00013209192547947168,
+    "incorrect_mean": 0.0
+  },
+  "4054": {
+    "name": "feature_4054",
+    "type": "binding",
+    "discrimination_score": 6604.64306640625,
+    "ratio": 6604.64306640625,
+    "diff": 0.0001320828596362844,
+    "correct_mean": 0.0001320828596362844,
+    "incorrect_mean": 0.0
+  },
+  "17154": {
+    "name": "feature_17154",
+    "type": "binding",
+    "discrimination_score": 6588.86279296875,
+    "ratio": 6588.86279296875,
+    "diff": 0.0001317672576988116,
+    "correct_mean": 0.0001317672576988116,
+    "incorrect_mean": 0.0
+  },
+  "15980": {
+    "name": "feature_15980",
+    "type": "binding",
+    "discrimination_score": 6490.12060546875,
+    "ratio": 6490.12060546875,
+    "diff": 0.00012979241728316993,
+    "correct_mean": 0.00012979241728316993,
+    "incorrect_mean": 0.0
+  },
+  "5041": {
+    "name": "feature_5041",
+    "type": "binding",
+    "discrimination_score": 6427.20849609375,
+    "ratio": 6427.20849609375,
+    "diff": 0.00012853417138103396,
+    "correct_mean": 0.00012853417138103396,
+    "incorrect_mean": 0.0
+  },
+  "6078": {
+    "name": "feature_6078",
+    "type": "binding",
+    "discrimination_score": 6352.296875,
+    "ratio": 6352.296875,
+    "diff": 0.00012703593529295176,
+    "correct_mean": 0.00012703593529295176,
+    "incorrect_mean": 0.0
+  },
+  "1847": {
+    "name": "feature_1847",
+    "type": "binding",
+    "discrimination_score": 6268.56201171875,
+    "ratio": 6268.56201171875,
+    "diff": 0.0001253612426808104,
+    "correct_mean": 0.0001253612426808104,
+    "incorrect_mean": 0.0
+  },
+  "1300": {
+    "name": "feature_1300",
+    "type": "binding",
+    "discrimination_score": 6266.16748046875,
+    "ratio": 6266.16748046875,
+    "diff": 0.00012531335232779384,
+    "correct_mean": 0.00012531335232779384,
+    "incorrect_mean": 0.0
+  },
+  "15106": {
+    "name": "feature_15106",
+    "type": "binding",
+    "discrimination_score": 6252.703125,
+    "ratio": 6252.703125,
+    "diff": 0.0001250440691364929,
+    "correct_mean": 0.0001250440691364929,
+    "incorrect_mean": 0.0
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "meta": {
+    "experiment_dir": "output/sae_experiments/layer11_attn_out_replace_color",
+    "config_path": "configs/sae_categories/sae_layer11_attn_out/color.yaml",
+    "checkpoint_path": "output/sae_experiments/layer11_attn_out_replace_color/sae_checkpoint.pt",
+    "task_type": "ChooseAttr",
+    "dataset_path": "datasets/by_attribute_category/ChooseAttr_color.csv",
+    "layer_idx": 11,
+    "activation_site": "attn_out",
+    "n_features_ablated": 32768,
+    "mode": "replace",
+    "operation": "zero",
+    "operation_scale": 1.0,
+    "delta_scale": 1.0,
+    "logprob_normalize": true,
+    "max_samples": 128,
+    "position_types": [
+      "attribute",
+      "all"
+    ],
+    "seed": 42
+  },
+  "runs": {
+    "attribute": {
+      "summary": {
+        "baseline_accuracy": 0.8515625,
+        "ablated_accuracy": 0.8203125,
+        "accuracy_drop": 0.03125,
+        "mean_probability_drop": 0.0009639067575335503,
+        "baseline_gt_probability": 1.0908062441306043e-05,
+        "ablated_gt_probability": 1.1120367200412318e-05,
+        "mean_gt_probability_drop": -2.1230475910627433e-07,
+        "baseline_margin": 1.3365806530540192,
+        "ablated_margin": 1.2911057285964485,
+        "mean_margin_drop": 0.045474924457569885,
+        "mean_relative_perturbation": 0.002926430794791182
+      },
+      "sample_count": 128
+    },
+    "all": {
+      "summary": {
+        "baseline_accuracy": 0.8515625,
+        "ablated_accuracy": 0.8203125,
+        "accuracy_drop": 0.03125,
+        "mean_probability_drop": 0.015845856396481395,
+        "baseline_gt_probability": 1.0908062441306043e-05,
+        "ablated_gt_probability": 2.1079271864898885e-05,
+        "mean_gt_probability_drop": -1.0171209423592842e-05,
+        "baseline_margin": 1.3365806530540192,
+        "ablated_margin": 1.1680418572699032,
+        "mean_margin_drop": 0.1685387957841158,
+        "mean_relative_perturbation": 0.9986147705804584
+      },
+      "sample_count": 128
+    }
+  }
+}

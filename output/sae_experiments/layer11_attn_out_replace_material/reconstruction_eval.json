@@ -1,0 +1,10 @@
+{
+  "train": {
+    "rows": 185,
+    "mse": 0.00022691496320672937,
+    "normalized_mse": 0.02294279234672202,
+    "explained_variance": 0.977057207653278,
+    "mean_l0": 10722.378378378378,
+    "dead_feature_fraction": 0.06103515625
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "meta": {
+    "experiment_dir": "output/sae_experiments/full_latent_layer0_attn_out",
+    "config_path": "configs/sae_layer0_attn_out.yaml",
+    "checkpoint_path": "output/sae_experiments/layer0_attn_out_replace_color/sae_checkpoint.pt",
+    "task_type": "ChooseAttr",
+    "dataset_path": "datasets/GQA_val_correct_question_with_choose_ChooseAttr.csv",
+    "layer_idx": 0,
+    "activation_site": "attn_out",
+    "n_features_ablated": 32768,
+    "mode": "replace",
+    "operation": "zero",
+    "operation_scale": 1.0,
+    "delta_scale": 1.0,
+    "logprob_normalize": true,
+    "max_samples": 128,
+    "position_types": [
+      "attribute",
+      "all"
+    ],
+    "seed": 42
+  },
+  "runs": {
+    "attribute": {
+      "summary": {
+        "baseline_accuracy": 0.6484375,
+        "ablated_accuracy": 0.65625,
+        "accuracy_drop": -0.0078125,
+        "mean_probability_drop": -0.0036778845824301243,
+        "baseline_gt_probability": 2.299548796536044e-05,
+        "ablated_gt_probability": 2.3610922443850768e-05,
+        "mean_gt_probability_drop": -6.154344784903287e-07,
+        "baseline_margin": 1.1151744535192845,
+        "ablated_margin": 1.0931202128529551,
+        "mean_margin_drop": 0.022054240666329855,
+        "mean_relative_perturbation": 0.003237810781327472
+      },
+      "sample_count": 128
+    },
+    "all": {
+      "summary": {
+        "baseline_accuracy": 0.6484375,
+        "ablated_accuracy": 0.65625,
+        "accuracy_drop": -0.0078125,
+        "mean_probability_drop": 0.03057703096419573,
+        "baseline_gt_probability": 2.299548796536044e-05,
+        "ablated_gt_probability": 0.00018845063922867666,
+        "mean_gt_probability_drop": -0.00016545515126331622,
+        "baseline_margin": 1.1151744535192845,
+        "ablated_margin": 0.8015974144140878,
+        "mean_margin_drop": 0.3135770391051968,
+        "mean_relative_perturbation": 1.0164422702220426
+      },
+      "sample_count": 128
+    }
+  }
+}
