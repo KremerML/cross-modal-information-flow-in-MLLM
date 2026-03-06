@@ -29,36 +29,11 @@ def estimate_inputs_embeds_shape(model, input_ids, image_tensor, image_sizes) ->
         return None
 
 
-def find_token_range(tokenizer, token_array, substring: str, model_name: str) -> Tuple[int, int]:
-    """Find token start/end indices for a substring within a token array."""
-    toks = tokenizer.convert_ids_to_tokens(token_array)
-    model_name = model_name or ""
-    if model_name in ("llava-v1.6-vicuna-7b", "llava-v1.5-7b", "llava-v1.5-13b"):
-        whole_string = "".join(toks).replace("▁", " ")
-    else:
-        whole_string = "".join(toks).replace("Ġ", " ").replace("Ċ", "\n")
-
-    char_loc = whole_string.index(substring)
-    loc = 0
-    tok_start, tok_end = None, None
-    for i, t in enumerate(toks):
-        loc += len(t)
-        if tok_start is None and loc > char_loc:
-            tok_start = i
-        if tok_end is None and loc >= char_loc + len(substring):
-            tok_end = i + 1
-            break
-    return (tok_start, tok_end)
-
-
-def _split_input_ids_by_image_tokens(input_ids: torch.Tensor) -> List[torch.Tensor]:
-    image_token_indices = [-1] + torch.where(input_ids[0] == IMAGE_TOKEN_INDEX)[0].tolist() + [
-        input_ids[0].shape[0]
-    ]
-    input_ids_noim = []
-    for i in range(len(image_token_indices) - 1):
-        input_ids_noim.append(input_ids[0][image_token_indices[i] + 1 : image_token_indices[i + 1]])
-    return input_ids_noim
+def estimate_image_token_count(model, input_ids, image_tensor, image_sizes) -> int:
+    shape = estimate_inputs_embeds_shape(model, input_ids, image_tensor, image_sizes)
+    if shape is None:
+        return 0
+    return int(shape[1] - (input_ids.shape[-1] - 1))
 
 
 def get_image_token_range(input_ids: torch.Tensor, inputs_embeds_shape: Tuple[int, int, int]) -> List[int]:
@@ -72,21 +47,67 @@ def get_question_token_range(
     inputs_embeds_shape: Tuple[int, int, int],
     question_text: str,
     tokenizer,
-    model_name: str,
+    model_name: str = None,
 ) -> List[int]:
-    image_dim = inputs_embeds_shape[1] - (input_ids.shape[-1] - 1)
-    input_ids_noim = _split_input_ids_by_image_tokens(input_ids)
+    image_token_count = inputs_embeds_shape[1] - (input_ids.shape[-1] - 1)
+    from sae_experiments.utils.token_utils import get_question_token_range as _impl
+    return _impl(input_ids[0], image_token_count, question_text, tokenizer, IMAGE_TOKEN_INDEX)
+
+
+def sequence_logprob(
+    model,
+    tokenizer,
+    input_ids: torch.Tensor,
+    image_tensor,
+    image_sizes,
+    answer_text: str,
+    normalize: bool = True,
+    block_config: Optional[Dict[int, List[Tuple[int, int]]]] = None,
+) -> Optional[float]:
+    if not answer_text:
+        return None
+    answer_ids = tokenizer.encode(f" {answer_text.strip()}", add_special_tokens=False)
+    if not answer_ids:
+        return None
+    device = input_ids.device
+    answer_tensor = torch.tensor([answer_ids], device=device, dtype=input_ids.dtype)
+    input_ids_full = torch.cat([input_ids, answer_tensor], dim=1)
+
+    hooks = None
+    if block_config:
+        from methods import set_block_attn_hooks_llava, remove_wrapper_llava
+        hooks = set_block_attn_hooks_llava(model, block_config)
+
     try:
-        question_range = find_token_range(tokenizer, input_ids_noim[1], question_text, model_name)
-    except ValueError:
-        return []
-    return [
-        x
-        for x in range(
-            question_range[0] + len(input_ids_noim[0]) + 1 + image_dim - 1,
-            question_range[1] + len(input_ids_noim[0]) + 1 + image_dim - 1,
-        )
-    ]
+        with torch.inference_mode():
+            outputs = model(
+                input_ids=input_ids_full,
+                images=image_tensor,
+                image_sizes=image_sizes,
+                use_cache=False,
+            )
+    finally:
+        if hooks:
+            remove_wrapper_llava(model, hooks)
+
+    logits = outputs.logits
+    log_probs = torch.log_softmax(logits[0], dim=-1)
+    start = input_ids.shape[1]
+    inputs_embeds_shape = estimate_inputs_embeds_shape(model, input_ids, image_tensor, image_sizes)
+    if inputs_embeds_shape is not None:
+        image_dim = inputs_embeds_shape[1] - (input_ids.shape[-1] - 1)
+        start = input_ids.shape[1] + image_dim - 1
+    token_logps = []
+    for i, tok_id in enumerate(answer_ids):
+        idx = start + i - 1
+        if idx < 0 or idx >= log_probs.shape[0]:
+            continue
+        token_logps.append(log_probs[idx, tok_id].item())
+    if not token_logps:
+        return None
+    if normalize:
+        return float(sum(token_logps) / len(token_logps))
+    return float(sum(token_logps))
 
 
 def get_last_token_range(input_ids: torch.Tensor, inputs_embeds_shape: Tuple[int, int, int]) -> List[int]:

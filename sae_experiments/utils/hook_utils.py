@@ -40,48 +40,19 @@ def create_activation_capture_hook(storage_dict: Dict, key: str):
     return hook
 
 
-def create_intervention_hook(
-    sae,
-    feature_indices,
-    ablate: bool = True,
-    positions=None,
-    mode: str = "residual",
-    delta_scale: float = 1.0,
-):
-    def hook(module, inputs, output):
-        acts = output[0] if isinstance(output, (tuple, list)) else output
-        sae_param = next(sae.parameters())
-        acts_dtype = acts.dtype
-        acts_device = acts.device
-        acts_for_sae = acts.to(device=sae_param.device, dtype=sae_param.dtype)
-        feats_full = sae.encode(acts_for_sae)
-        feats_mod = feats_full.clone()
-        if ablate:
-            feats_mod[:, feature_indices] = 0.0
-        if mode == "replace":
-            recon_mod = sae.decode(feats_mod, target_shape=acts.shape)
-            out = recon_mod.to(device=acts_device, dtype=acts_dtype)
-            if positions:
-                original = acts
-                out_full = original.clone()
-                out_full[:, positions, :] = out[:, positions, :]
-                out = out_full
-        else:
-            recon_full = sae.decode(feats_full, target_shape=acts.shape)
-            recon_mod = sae.decode(feats_mod, target_shape=acts.shape)
-            delta = (recon_mod - recon_full).to(device=acts_device, dtype=acts_dtype)
-            if delta_scale != 1.0:
-                delta = delta * delta_scale
-            if positions:
-                mask = torch.zeros_like(acts, dtype=delta.dtype, device=acts_device)
-                mask[:, positions, :] = 1.0
-                delta = delta * mask
-            out = acts + delta
-        if isinstance(output, tuple):
-            return (out,) + output[1:]
-        if isinstance(output, list):
-            new_output = list(output)
-            new_output[0] = out
-            return new_output
-        return out
-    return hook
+def get_target_module(model, layer_idx: int, activation_site: str):
+    """Navigate to the target submodule for a given layer and activation site."""
+    if hasattr(model, "model") and hasattr(model.model, "layers"):
+        layer = model.model.layers[layer_idx]
+    elif hasattr(model, "layers"):
+        layer = model.layers[layer_idx]
+    elif hasattr(model, "transformer") and hasattr(model.transformer, "h"):
+        layer = model.transformer.h[layer_idx]
+    else:
+        raise ValueError("Unsupported model type for layer access")
+    site = str(activation_site).lower()
+    if site == "attn_out" and hasattr(layer, "self_attn"):
+        return layer.self_attn
+    if site == "mlp_out" and hasattr(layer, "mlp"):
+        return layer.mlp
+    return layer

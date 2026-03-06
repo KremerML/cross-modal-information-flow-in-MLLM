@@ -4,6 +4,19 @@ from __future__ import annotations
 
 from typing import Iterable, List, Mapping, Optional
 
+import torch
+
+
+def resolve_dtype(value) -> torch.dtype:
+    if isinstance(value, torch.dtype):
+        return value
+    value = str(value).lower()
+    if value in ("float16", "fp16", "half"):
+        return torch.float16
+    if value in ("bfloat16", "bf16"):
+        return torch.bfloat16
+    return torch.float32
+
 
 def resolve_task_types(task_types, default: str = "ChooseAttr") -> List[str]:
     """Normalize task-types config field to a non-empty list of strings."""
