@@ -1,6 +1,6 @@
 model:
   name: liuhaotian/llava-v1.5-7b
-  target_layer: 11
+  target_layer: 0
   d_model: 4096
   conv_mode: vicuna_v1
   model_base: null
@@ -19,9 +19,9 @@ reproducibility:
   deterministic: true
   benchmark: false
 experiment:
-  output_dir: output/sae_experiments/first_pass_layer11_attn_out_material
+  output_dir: output/sae_experiments/first_pass_layer0_attn_out_material
   output_base: output/sae_experiments
-  name: first_pass_layer11_attn_out_material
+  name: first_pass_layer0_attn_out_material
   use_timestamp: false
 dataset:
   task_types:

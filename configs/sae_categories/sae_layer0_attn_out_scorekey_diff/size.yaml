@@ -19,24 +19,25 @@ reproducibility:
   deterministic: true
   benchmark: false
 experiment:
-  output_dir: output/sae_experiments/first_pass_layer0_attn_out_state
+  output_dir: output/sae_experiments/first_pass_layer0_attn_out_diff_size
   output_base: output/sae_experiments
-  name: first_pass_layer0_attn_out_state
+  name: first_pass_layer0_attn_out_diff_size
   use_timestamp: false
 dataset:
   task_types:
   - ChooseAttr
   split: validation
-  refined_dataset: datasets/by_attribute_category/ChooseAttr_state.csv
+  refined_dataset: datasets/by_attribute_category/ChooseAttr_size.csv
   image_folder: datasets/images
 feature_identification:
   discrimination_threshold: 2.0
-  min_activation: 0.0
-  min_diff: 0.0
+  min_activation: 0.0005
+  min_diff: 0.0002
   top_k: 200
   aggregation: mean
-  selection_method: ratio
-  score_key: ratio
+  selection_method: abs_diff
+  discrimination_method: abs_diff
+  score_key: diff
   candidate_pool_k: 200
   position_type: attribute
   correctness_metric: option_logprob
@@ -44,8 +45,8 @@ feature_identification:
   batch_size: 256
   fallback:
     discrimination_threshold: 1.1
-    min_activation: 0.0
-    min_diff: 0.0
+    min_activation: 0.00025
+    min_diff: 0.0001
 ablation:
   n_random_features: 200
   n_random_sets: 15
