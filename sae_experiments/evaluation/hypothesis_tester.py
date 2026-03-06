@@ -60,21 +60,6 @@ class HypothesisTester:
             "test_type": "paired_t",
         }
 
-    def test_task_specificity(self, choose_attr_results: Dict, choose_rel_results: Dict) -> Dict[str, float]:
-        attr_drop = choose_attr_results.get("binding", {}).get("accuracy_drop", 0.0)
-        rel_drop = choose_rel_results.get("binding", {}).get("accuracy_drop", 0.0)
-        specificity_score = attr_drop - rel_drop
-        return {
-            "specificity_score": specificity_score,
-        }
-
-    def test_feature_interpretability(self, feature_catalog) -> Dict[str, float]:
-        categories = feature_catalog.categorize_features()
-        return {"num_categories": float(len(categories))}
-
-    def generate_hypothesis_report(self, ablation_results: Dict) -> Dict[str, float]:
-        return self.test_causal_necessity(ablation_results)
-
     @staticmethod
     def _extract_drops(results, metric: str):
         if metric == "gt_token_prob":

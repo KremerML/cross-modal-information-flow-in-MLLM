@@ -10,8 +10,6 @@ import warnings
 from typing import Any, Dict, List, Optional, Sequence
 
 import torch
-from llava.model.builder import load_pretrained_model
-from llava.mm_utils import get_model_name_from_path
 
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
@@ -21,13 +19,12 @@ from sae_experiments.config.sae_config import load_config, save_config
 from sae_experiments.data.attribute_dataset import AttributeVQADataset
 from sae_experiments.models.sparse_autoencoder import SparseAutoencoder
 from sae_experiments.models.sae_trainer import SAETrainer
-from sae_experiments.utils.checkpoint_utils import resolve_experiment_dir
 from sae_experiments.utils.config_utils import (
     resolve_primary_task_type,
     resolve_training_position_type,
 )
 from sae_experiments.utils.sae_validation import compute_activation_stats
-from sae_experiments.utils.random_utils import resolve_seed, set_global_seed
+from sae_experiments.utils.script_utils import setup_experiment, load_llava_components
 
 
 def _parse_bool(value: object) -> bool:
@@ -282,37 +279,12 @@ def main() -> None:
     config = load_config(args.config)
     model_cfg = config.get("model", {})
     data_cfg = config.get("dataset", {})
-    reproducibility_cfg = config.get("reproducibility", {})
-    training_cfg = config.get("training", {})
     holdout_cfg = config.get("holdout", {})
     feat_cfg = config.get("feature_identification", {})
-    seed = resolve_seed(
-        reproducibility_cfg.get("seed", training_cfg.get("seed")),
-        fallback_seed=42,
-    )
-    set_global_seed(
-        seed,
-        deterministic=bool(reproducibility_cfg.get("deterministic", True)),
-        benchmark=bool(reproducibility_cfg.get("benchmark", False)),
-    )
-    experiment_cfg = dict(config.get("experiment", {}))
-    if args.experiment_name:
-        experiment_cfg["name"] = args.experiment_name
-        experiment_cfg.pop("output_dir", None)
-    experiment_dir = resolve_experiment_dir(experiment_cfg, args.experiment_dir)
+    experiment_dir, seed = setup_experiment(args, config)
 
     checkpoint_path = args.checkpoint_path or os.path.join(experiment_dir, "sae_checkpoint.pt")
-
-    model_path = os.path.expanduser(model_cfg.get("name", ""))
-    model_name = get_model_name_from_path(model_path)
-    tokenizer, model, image_processor, _ = load_pretrained_model(
-        model_path,
-        model_cfg.get("model_base"),
-        model_name,
-        device_map="auto",
-        attn_implementation=None,
-    )
-    model.eval()
+    tokenizer, model, image_processor = load_llava_components(model_cfg)
 
     dataset = AttributeVQADataset(
         refined_dataset=data_cfg.get("refined_dataset", ""),
@@ -401,7 +373,7 @@ def main() -> None:
             "activation_samples": int(train_activations.shape[0]),
             "activation_samples_total": int(activations.shape[0]),
             "seed": seed,
-            "deterministic": bool(reproducibility_cfg.get("deterministic", True)),
+            "deterministic": bool(config.get("reproducibility", {}).get("deterministic", True)),
             "position_type": train_position_type,
             "holdout": holdout_split or {"enabled": False},
             "reconstruction_eval": reconstruction_eval,

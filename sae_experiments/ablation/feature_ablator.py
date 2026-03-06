@@ -12,7 +12,8 @@ except ImportError:
     IMAGE_TOKEN_INDEX = -200
 
 from sae_experiments.utils import token_utils
-from sae_experiments.utils.hook_utils import HookManager
+from sae_experiments.utils.hook_utils import HookManager, get_target_module
+from sae_experiments.utils.knockout_utils import estimate_image_token_count, sequence_logprob
 
 try:
     from methods import remove_wrapper_llava, set_block_attn_hooks_llava
@@ -116,7 +117,7 @@ class FeatureAblator:
         input_ids = input_ids.to(device=device)
         image_tensor = [img.to(device=device) for img in image_tensor]
 
-        layer = self._get_layer_module(self.layer_idx)
+        layer = get_target_module(self.model, self.layer_idx, self.activation_site)
         hook = layer.register_forward_hook(self.create_ablation_hook(feature_indices))
 
         inps = {
@@ -272,7 +273,7 @@ class FeatureAblator:
                 dataset,
                 line,
             )
-            layer = self._get_layer_module(self.layer_idx)
+            layer = get_target_module(self.model, self.layer_idx, self.activation_site)
             hook = None
             sample_diagnostics: List[Dict[str, float]] = []
             if apply_sae:
@@ -303,20 +304,22 @@ class FeatureAblator:
                 with torch.inference_mode():
                     ablated = self.model.generate(**inps)
                     if score_options:
-                        ablated_true_lp = self._sequence_logprob(
+                        ablated_true_lp = sequence_logprob(
+                            self.model,
+                            dataset.tokenizer,
                             input_ids,
                             image_tensor,
                             image_sizes,
                             true_option,
-                            dataset.tokenizer,
                             normalize=logprob_normalize,
                         )
-                        ablated_false_lp = self._sequence_logprob(
+                        ablated_false_lp = sequence_logprob(
+                            self.model,
+                            dataset.tokenizer,
                             input_ids,
                             image_tensor,
                             image_sizes,
                             false_option,
-                            dataset.tokenizer,
                             normalize=logprob_normalize,
                         )
                     else:
@@ -429,20 +432,22 @@ class FeatureAblator:
         if score_options:
             true_option = dataset.dataset_dict[line["q_id"]].get("true option", "").strip()
             false_option = dataset.dataset_dict[line["q_id"]].get("false option", "").strip()
-            baseline_true_lp = self._sequence_logprob(
+            baseline_true_lp = sequence_logprob(
+                self.model,
+                dataset.tokenizer,
                 input_ids,
                 image_tensor,
                 image_sizes,
                 true_option,
-                dataset.tokenizer,
                 normalize=logprob_normalize,
             )
-            baseline_false_lp = self._sequence_logprob(
+            baseline_false_lp = sequence_logprob(
+                self.model,
+                dataset.tokenizer,
                 input_ids,
                 image_tensor,
                 image_sizes,
                 false_option,
-                dataset.tokenizer,
                 normalize=logprob_normalize,
             )
         else:
@@ -531,47 +536,6 @@ class FeatureAblator:
             "mean_relative_perturbation": sum(rel_perturb) / len(rel_perturb) if rel_perturb else None,
         }
 
-    def _get_layer_module(self, layer_idx: int):
-        target_module = self._get_target_module(layer_idx)
-        return target_module
-
-    def _get_decoder_layer(self, layer_idx: int):
-        if hasattr(self.model, "model") and hasattr(self.model.model, "layers"):
-            return self.model.model.layers[layer_idx]
-        if hasattr(self.model, "layers"):
-            return self.model.layers[layer_idx]
-        if hasattr(self.model, "transformer") and hasattr(self.model.transformer, "h"):
-            return self.model.transformer.h[layer_idx]
-        raise ValueError("Unsupported model type for layer access")
-
-    def _get_target_module(self, layer_idx: int):
-        layer = self._get_decoder_layer(layer_idx)
-        site = str(self.activation_site).lower()
-        if site == "attn_out" and hasattr(layer, "self_attn"):
-            return layer.self_attn
-        if site == "mlp_out" and hasattr(layer, "mlp"):
-            return layer.mlp
-        return layer
-
-    def _estimate_image_token_count(self, input_ids, image_tensor, image_sizes) -> int:
-        if not hasattr(self.model, "prepare_inputs_labels_for_multimodal"):
-            return 0
-        try:
-            _, _, _, _, inputs_embeds, _ = self.model.prepare_inputs_labels_for_multimodal(
-                input_ids,
-                None,
-                None,
-                None,
-                None,
-                image_tensor,
-                ["image"],
-                image_sizes=image_sizes,
-            )
-            image_token_count = inputs_embeds.shape[1] - (input_ids.shape[-1] - 1)
-            return int(image_token_count)
-        except Exception:
-            return 0
-
     def _resolve_positions(
         self,
         position_type: str,
@@ -585,8 +549,8 @@ class FeatureAblator:
             return None
 
         question_text = dataset.dataset_dict[line["q_id"]].get("question", "")
-        image_token_count = self._estimate_image_token_count(
-            input_ids, image_tensor, image_sizes
+        image_token_count = estimate_image_token_count(
+            self.model, input_ids, image_tensor, image_sizes
         )
         question_range = token_utils.get_question_token_range(
             input_ids[0],
@@ -636,60 +600,3 @@ class FeatureAblator:
             return None
         return token_ids[0]
 
-    def _sequence_logprob(
-        self,
-        input_ids,
-        image_tensor,
-        image_sizes,
-        answer_text: str,
-        tokenizer,
-        normalize: bool = True,
-    ) -> Optional[float]:
-        if not answer_text or tokenizer is None:
-            return None
-        answer_ids = tokenizer.encode(f" {answer_text.strip()}", add_special_tokens=False)
-        if not answer_ids:
-            return None
-        device = input_ids.device
-        answer_tensor = torch.tensor([answer_ids], device=device, dtype=input_ids.dtype)
-        input_ids_full = torch.cat([input_ids, answer_tensor], dim=1)
-
-        with torch.inference_mode():
-            outputs = self.model(
-                input_ids=input_ids_full,
-                images=image_tensor,
-                image_sizes=image_sizes,
-                use_cache=False,
-            )
-
-        logits = outputs.logits
-        log_probs = torch.log_softmax(logits[0], dim=-1)
-        # Account for multimodal expansion (image tokens) when locating answer logits.
-        start = input_ids.shape[1]
-        if hasattr(self.model, "prepare_inputs_labels_for_multimodal"):
-            try:
-                _, _, _, _, inputs_embeds, _ = self.model.prepare_inputs_labels_for_multimodal(
-                    input_ids,
-                    None,
-                    None,
-                    None,
-                    None,
-                    image_tensor,
-                    ["image"],
-                    image_sizes=image_sizes,
-                )
-                image_dim = inputs_embeds.shape[1] - (input_ids.shape[-1] - 1)
-                start = input_ids.shape[1] + image_dim - 1
-            except Exception:
-                pass
-        token_logps = []
-        for i, tok_id in enumerate(answer_ids):
-            idx = start + i - 1
-            if idx < 0 or idx >= log_probs.shape[0]:
-                continue
-            token_logps.append(log_probs[idx, tok_id].item())
-        if not token_logps:
-            return None
-        if normalize:
-            return float(sum(token_logps) / len(token_logps))
-        return float(sum(token_logps))

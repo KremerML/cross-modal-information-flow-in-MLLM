@@ -6,10 +6,6 @@ import os
 from pathlib import Path
 import sys
 
-import torch
-from llava.model.builder import load_pretrained_model
-from llava.mm_utils import get_model_name_from_path
-
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))
@@ -18,31 +14,9 @@ from sae_experiments.ablation.ablation_experiments import AblationExperiment
 from sae_experiments.config.sae_config import load_config
 from sae_experiments.data.attribute_dataset import AttributeVQADataset
 from sae_experiments.feature_analysis.feature_catalog import FeatureCatalog
-from sae_experiments.models.sparse_autoencoder import SparseAutoencoder
 from sae_experiments.analysis.result_schema import validate_ablation_results
-from sae_experiments.utils.checkpoint_utils import resolve_experiment_dir
 from sae_experiments.utils.config_utils import resolve_primary_task_type, resolve_task_types
-from sae_experiments.utils.random_utils import resolve_seed, set_global_seed
-
-
-def _resolve_dtype(value: str) -> torch.dtype:
-    """Map a config dtype string to a torch dtype.
-
-    Args:
-        value (str): Text dtype token (for example ``float32`` or ``fp16``).
-
-    Returns:
-        torch.dtype: Resolved dtype for SAE loading/evaluation.
-
-    Raises:
-        None: Unknown values default to ``torch.float32``.
-    """
-    value = str(value).lower()
-    if value in ("float16", "fp16", "half"):
-        return torch.float16
-    if value in ("bfloat16", "bf16"):
-        return torch.bfloat16
-    return torch.float32
+from sae_experiments.utils.script_utils import setup_experiment, load_llava_components, load_sae
 
 
 def main() -> None:
@@ -73,33 +47,8 @@ def main() -> None:
     config = load_config(args.config)
     model_cfg = config.get("model", {})
     data_cfg = config.get("dataset", {})
-    reproducibility_cfg = config.get("reproducibility", {})
-    training_cfg = config.get("training", {})
-    seed = resolve_seed(
-        reproducibility_cfg.get("seed", training_cfg.get("seed")),
-        fallback_seed=42,
-    )
-    set_global_seed(
-        seed,
-        deterministic=bool(reproducibility_cfg.get("deterministic", True)),
-        benchmark=bool(reproducibility_cfg.get("benchmark", False)),
-    )
-    experiment_cfg = dict(config.get("experiment", {}))
-    if args.experiment_name:
-        experiment_cfg["name"] = args.experiment_name
-        experiment_cfg.pop("output_dir", None)
-    experiment_dir = resolve_experiment_dir(experiment_cfg, args.experiment_dir)
-
-    model_path = os.path.expanduser(model_cfg.get("name", ""))
-    model_name = get_model_name_from_path(model_path)
-    tokenizer, model, image_processor, _ = load_pretrained_model(
-        model_path,
-        model_cfg.get("model_base"),
-        model_name,
-        device_map="auto",
-        attn_implementation=None,
-    )
-    model.eval()
+    experiment_dir, seed = setup_experiment(args, config)
+    tokenizer, model, image_processor = load_llava_components(model_cfg)
 
     task_types = resolve_task_types(data_cfg.get("task_types"))
     task_type = resolve_primary_task_type(task_types)
@@ -114,17 +63,8 @@ def main() -> None:
         conv_mode=model_cfg.get("conv_mode", "vicuna_v1"),
     )
 
-    sae = SparseAutoencoder(
-        d_model=model_cfg.get("d_model", 4096),
-        n_features=config.get("sae", {}).get("n_features", 32768),
-        l1_coeff=config.get("sae", {}).get("l1_coeff", 1e-3),
-    )
     checkpoint_path = args.sae_checkpoint or os.path.join(experiment_dir, "sae_checkpoint.pt")
-    ckpt = torch.load(checkpoint_path, map_location="cpu")
-    sae.load_state_dict(ckpt.get("state", {}).get("sae_state", ckpt))
-    train_cfg = config.get("training", {})
-    sae.to(device=next(model.parameters()).device, dtype=_resolve_dtype(train_cfg.get("dtype", "float32")))
-    sae.eval()
+    sae = load_sae(config, model, checkpoint_path)
 
     catalog = FeatureCatalog()
     features_path = args.features or os.path.join(experiment_dir, "feature_catalog.json")
@@ -148,7 +88,7 @@ def main() -> None:
     )
     results["meta"] = {
         "seed": seed,
-        "deterministic": bool(reproducibility_cfg.get("deterministic", True)),
+        "deterministic": bool(config.get("reproducibility", {}).get("deterministic", True)),
         "activation_site": model_cfg.get("activation_site", "residual"),
         "task_type": task_type,
         "configured_task_types": task_types,

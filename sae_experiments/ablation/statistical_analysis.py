@@ -9,24 +9,8 @@ try:
 except ImportError:
     stats = None
 
-import matplotlib.pyplot as plt
-
-
-def compute_accuracy(predictions: Iterable[str], ground_truth: Iterable[str]) -> float:
-    preds = list(predictions)
-    gt = list(ground_truth)
-    if not preds:
-        return 0.0
-    correct = [p == g for p, g in zip(preds, gt)]
-    return sum(correct) / len(correct)
-
-
-def compute_probability_drop(baseline: Iterable[float], ablated: Iterable[float]) -> float:
-    base = np.array(list(baseline))
-    abl = np.array(list(ablated))
-    if base.size == 0:
-        return 0.0
-    return float(np.mean(base - abl))
+from sae_experiments.evaluation.metrics import accuracy_at_k as compute_accuracy
+from sae_experiments.evaluation.metrics import mean_probability_drop as compute_probability_drop
 
 
 def paired_t_test(baseline_probs: Iterable[float], ablated_probs: Iterable[float]) -> Tuple[float, float]:
@@ -65,19 +49,8 @@ def bootstrap_confidence_interval(data: Iterable[float], n_bootstrap: int = 1000
 
 
 def plot_ablation_comparison(results_dict: Dict[str, Dict], save_path: str) -> None:
-    labels = ["baseline", "binding", "random"]
-    values = [
-        results_dict.get("baseline", {}).get("baseline_accuracy", 0.0),
-        results_dict.get("binding", {}).get("ablated_accuracy", 0.0),
-        results_dict.get("random", {}).get("ablated_accuracy", 0.0),
-    ]
-    plt.figure(figsize=(6, 4))
-    plt.bar(labels, values)
-    plt.ylabel("Accuracy")
-    plt.title("Ablation comparison")
-    plt.tight_layout()
-    plt.savefig(save_path)
-    plt.close()
+    from sae_experiments.utils.visualization_utils import plot_ablation_comparison as _impl
+    _impl(results_dict, save_path)
 
 
 def generate_statistical_report(results: Dict, metric: str = "pred_token_prob") -> Dict[str, float]:
@@ -97,10 +70,11 @@ def generate_statistical_report(results: Dict, metric: str = "pred_token_prob") 
     }
 
     pred_baseline, pred_ablated = _select_metric_arrays(binding, "pred_token_prob")
+    _pred_t, _pred_p = paired_t_test(pred_baseline, pred_ablated)
     report.update(
         {
-            "pred_t_stat": paired_t_test(pred_baseline, pred_ablated)[0],
-            "pred_p_value": paired_t_test(pred_baseline, pred_ablated)[1],
+            "pred_t_stat": _pred_t,
+            "pred_p_value": _pred_p,
             "pred_effect_size": effect_size_cohens_d(pred_baseline, pred_ablated),
             "pred_mean_drop": compute_probability_drop(pred_baseline, pred_ablated),
         }

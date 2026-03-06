@@ -8,8 +8,6 @@ import sys
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import torch
-from llava.model.builder import load_pretrained_model
-from llava.mm_utils import get_model_name_from_path
 
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
@@ -22,9 +20,10 @@ from sae_experiments.feature_analysis.feature_identifier import FeatureIdentifie
 from sae_experiments.knockout.knockout_runner import run_knockout_sweep
 from sae_experiments.models.sae_trainer import SAETrainer
 from sae_experiments.models.sparse_autoencoder import SparseAutoencoder
-from sae_experiments.utils.checkpoint_utils import load_checkpoint, resolve_experiment_dir, save_checkpoint
-from sae_experiments.utils.config_utils import resolve_primary_task_type
+from sae_experiments.utils.checkpoint_utils import load_checkpoint, save_checkpoint
+from sae_experiments.utils.config_utils import resolve_primary_task_type, resolve_dtype
 from sae_experiments.utils.knockout_utils import build_block_config, estimate_inputs_embeds_shape, resolve_flow_ranges
+from sae_experiments.utils.script_utils import setup_experiment, load_llava_components
 from sae_experiments.utils.sae_validation import (
     compute_activation_stats,
     reconstruction_loss,
@@ -321,11 +320,7 @@ def main() -> None:
     feat_cfg = config.get("feature_identification", {})
     ablation_cfg = config.get("ablation", {})
 
-    experiment_cfg = dict(config.get("experiment", {}))
-    if args.experiment_name:
-        experiment_cfg["name"] = args.experiment_name
-        experiment_cfg.pop("output_dir", None)
-    experiment_dir = resolve_experiment_dir(experiment_cfg, args.experiment_dir)
+    experiment_dir, _ = setup_experiment(args, config)
 
     knockout_dir = os.path.join(experiment_dir, "knockout")
     sae_root = os.path.join(experiment_dir, "sae")
@@ -338,16 +333,9 @@ def main() -> None:
 
     save_config(config, os.path.join(experiment_dir, "config.yaml"))
 
-    model_path = os.path.expanduser(model_cfg.get("name", ""))
-    model_name = get_model_name_from_path(model_path)
-    tokenizer, model, image_processor, _ = load_pretrained_model(
-        model_path,
-        model_cfg.get("model_base"),
-        model_name,
-        device_map="auto",
-        attn_implementation=None,
-    )
-    model.eval()
+    from llava.mm_utils import get_model_name_from_path
+    model_name = get_model_name_from_path(os.path.expanduser(model_cfg.get("name", "")))
+    tokenizer, model, image_processor = load_llava_components(model_cfg)
 
     dataset = AttributeVQADataset(
         refined_dataset=data_cfg.get("refined_dataset", ""),
@@ -497,14 +485,10 @@ def main() -> None:
                 l1_coeff=config.get("sae", {}).get("l1_coeff", 1e-3),
             )
             sae.load_state_dict(sae_state["sae_state"])
-            dtype = config.get("training", {}).get("dtype", "float32")
-            if isinstance(dtype, str) and dtype.lower() in ("float16", "fp16", "half"):
-                dtype = torch.float16
-            elif isinstance(dtype, str) and dtype.lower() in ("bfloat16", "bf16"):
-                dtype = torch.bfloat16
-            else:
-                dtype = torch.float32
-            sae.to(device=next(model.parameters()).device, dtype=dtype)
+            sae.to(
+                device=next(model.parameters()).device,
+                dtype=resolve_dtype(config.get("training", {}).get("dtype", "float32")),
+            )
             sae.eval()
 
             with open(sae_info["feature_catalog"], "r", encoding="utf-8") as handle:

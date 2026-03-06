@@ -9,7 +9,8 @@ try:
 except ImportError:
     IMAGE_TOKEN_INDEX = -200
 
-from sae_experiments.utils.hook_utils import HookManager, create_activation_capture_hook
+from sae_experiments.utils.hook_utils import HookManager, create_activation_capture_hook, get_target_module
+from sae_experiments.utils.knockout_utils import estimate_image_token_count
 from sae_experiments.utils import token_utils
 
 
@@ -24,7 +25,7 @@ class ActivationCollector:
         self.storage: Dict[str, torch.Tensor] = {}
 
     def register_hooks(self) -> None:
-        layer = self._get_target_module(self.layer_idx)
+        layer = get_target_module(self.model, self.layer_idx, self.activation_site)
         self.hook_manager.register_forward_hook(
             layer, create_activation_capture_hook(self.storage, "acts")
         )
@@ -77,8 +78,8 @@ class ActivationCollector:
                 input_ids = input_ids.to(device)
                 image_tensor = [img.to(device) for img in image_tensor]
 
-                image_token_count = self._estimate_image_token_count(
-                    input_ids, image_tensor, image_sizes
+                image_token_count = estimate_image_token_count(
+                    self.model, input_ids, image_tensor, image_sizes
                 )
 
                 self.storage.pop("acts", None)
@@ -130,24 +131,6 @@ class ActivationCollector:
 
         return torch.cat(activations, dim=0), metadata
 
-    def _get_layer_module(self, layer_idx: int) -> torch.nn.Module:
-        if hasattr(self.model, "model") and hasattr(self.model.model, "layers"):
-            return self.model.model.layers[layer_idx]
-        if hasattr(self.model, "layers"):
-            return self.model.layers[layer_idx]
-        if hasattr(self.model, "transformer") and hasattr(self.model.transformer, "h"):
-            return self.model.transformer.h[layer_idx]
-        raise ValueError("Unsupported model type for layer access")
-
-    def _get_target_module(self, layer_idx: int) -> torch.nn.Module:
-        layer = self._get_layer_module(layer_idx)
-        site = str(self.activation_site).lower()
-        if site == "attn_out" and hasattr(layer, "self_attn"):
-            return layer.self_attn
-        if site == "mlp_out" and hasattr(layer, "mlp"):
-            return layer.mlp
-        return layer
-
     @staticmethod
     def _normalize_activation_tensor(acts):
         if acts is None:
@@ -162,25 +145,6 @@ class ActivationCollector:
         if acts.ndim != 3:
             return None
         return acts[0]
-
-    def _estimate_image_token_count(self, input_ids, image_tensor, image_sizes) -> int:
-        if not hasattr(self.model, "prepare_inputs_labels_for_multimodal"):
-            return 0
-        try:
-            _, _, _, _, inputs_embeds, _ = self.model.prepare_inputs_labels_for_multimodal(
-                input_ids,
-                None,
-                None,
-                None,
-                None,
-                image_tensor,
-                ["image"],
-                image_sizes=image_sizes,
-            )
-            image_token_count = inputs_embeds.shape[1] - (input_ids.shape[-1] - 1)
-            return int(image_token_count)
-        except Exception:
-            return 0
 
     def _select_positions(
         self,

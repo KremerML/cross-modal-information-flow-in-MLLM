@@ -14,14 +14,6 @@ import torch
 
 from sae_experiments.ablation.feature_ablator import FeatureAblator
 
-try:
-    from methods import trace_with_attn_block_llava
-except Exception:  # pragma: no cover - optional dependency for knockout baseline only
-    def trace_with_attn_block_llava(*args, **kwargs):
-        raise RuntimeError(
-            "Attention knockout baseline is unavailable because methods.py dependencies failed to import."
-        )
-
 
 class AblationExperiment:
     """Runs ablation studies for identified features."""
@@ -192,101 +184,10 @@ class AblationExperiment:
             },
         }
 
-    def test_task_specificity(
-        self,
-        binding_features: List[int],
-        choose_attr_data,
-        choose_rel_data,
-        feature_stats: Optional[Dict[int, dict]] = None,
-        show_progress: bool = False,
-        max_samples: Optional[int] = None,
-    ) -> Dict[str, dict]:
-        attr_results = self.run_three_condition_test(
-            choose_attr_data,
-            binding_features,
-            feature_stats=feature_stats,
-            show_progress=show_progress,
-            max_samples=max_samples,
-        )
-        rel_results = self.run_three_condition_test(
-            choose_rel_data,
-            binding_features,
-            feature_stats=feature_stats,
-            random_seed_offset=10_000,
-            show_progress=show_progress,
-            max_samples=max_samples,
-        )
-        return {
-            "choose_attr": attr_results,
-            "choose_rel": rel_results,
-        }
-
-    def feature_importance_ranking(self, feature_list: List[int], dataset) -> Dict[int, float]:
-        model_cfg = self.config.get("model", {})
-        ablation_cfg = self.config.get("ablation", {})
-        ablator = FeatureAblator(
-            self.model,
-            self.sae,
-            model_cfg.get("target_layer", 0),
-            activation_site=model_cfg.get("activation_site", "residual"),
-        )
-        ranking = {}
-        for feature_idx in feature_list:
-            results = ablator.batch_ablation_experiment(
-                dataset,
-                [feature_idx],
-                position_type=ablation_cfg.get("position_type", "all"),
-                mode=ablation_cfg.get("mode", "residual"),
-                delta_scale=float(ablation_cfg.get("delta_scale", 1.0)),
-                operation=str(ablation_cfg.get("operation", "zero")).lower(),
-                operation_scale=float(ablation_cfg.get("operation_scale", 1.0)),
-                logprob_normalize=bool(self.config.get("evaluation", {}).get("logprob_normalize", True)),
-            )
-            summary = ablator.compute_ablation_effect(results)
-            ranking[feature_idx] = summary.get("accuracy_drop", 0.0)
-        return ranking
-
     def save_results(self, results: Dict, path: str) -> None:
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w", encoding="utf-8") as handle:
             json.dump(results, handle, indent=2)
-
-    def run_attention_knockout_baseline(self, dataset, block_config: Dict[int, list]) -> Dict[str, float]:
-        """Optional baseline using the existing attention knockout implementation."""
-        data_loader = dataset.create_dataloader()
-        scores = []
-        try:
-            device = next(self.model.parameters()).device
-        except StopIteration:
-            device = "cuda" if torch.cuda.is_available() else "cpu"
-        for batch, line in zip(data_loader, dataset.questions):
-            input_ids, image_tensor, image_sizes, _, _ = batch
-            input_ids = input_ids.to(device=device)
-            image_tensor = [img.to(device=device) for img in image_tensor]
-            inps = {
-                "inputs": input_ids,
-                "images": image_tensor,
-                "image_sizes": image_sizes,
-                "do_sample": False,
-                "num_beams": 1,
-                "max_new_tokens": 1,
-                "use_cache": True,
-                "return_dict_in_generate": True,
-                "output_scores": True,
-                "pad_token_id": dataset.tokenizer.eos_token_id,
-            }
-            output = self.model.generate(**inps)
-            first_answer_token_id = output["sequences"][:, 0]
-            base_score = trace_with_attn_block_llava(
-                self.model,
-                inps,
-                block_config,
-                first_answer_token_id,
-                "AttentionKnockout",
-                self.model.config._name_or_path,
-            )
-            scores.append(base_score.item() if hasattr(base_score, "item") else float(base_score))
-        return {"mean_score": sum(scores) / max(1, len(scores))}
 
     def _sample_random_features(
         self,

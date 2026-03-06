@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader, TensorDataset
 
 from sae_experiments.data.activation_collector import ActivationCollector
 from sae_experiments.utils.checkpoint_utils import save_checkpoint, load_checkpoint
+from sae_experiments.utils.config_utils import resolve_dtype
 
 
 class SAETrainer:
@@ -66,7 +67,7 @@ class SAETrainer:
         epochs = self._coerce_int(epochs or train_cfg.get("epochs", 10))
 
         device = device or ("cuda" if torch.cuda.is_available() else "cpu")
-        dtype = self._resolve_dtype(train_cfg.get("dtype", "float32"))
+        dtype = resolve_dtype(train_cfg.get("dtype", "float32"))
         seed = self._coerce_int(train_cfg.get("seed", 42))
         self.sae.to(device=device, dtype=dtype)
         activations = activations.to(device=device, dtype=dtype)
@@ -132,19 +133,6 @@ class SAETrainer:
         if isinstance(value, str):
             return int(float(value))
         return int(value)
-
-    @staticmethod
-    def _resolve_dtype(value) -> torch.dtype:
-        if isinstance(value, torch.dtype):
-            return value
-        if isinstance(value, str):
-            value = value.lower()
-            if value in ("float16", "fp16", "half"):
-                return torch.float16
-            if value in ("bfloat16", "bf16"):
-                return torch.bfloat16
-            return torch.float32
-        return torch.float32
 
     def save_checkpoint(self, path: str, metadata: Optional[dict] = None) -> None:
         os.makedirs(os.path.dirname(path), exist_ok=True)

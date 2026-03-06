@@ -8,69 +8,10 @@ import os
 import torch
 from tqdm import tqdm
 
-from methods import remove_wrapper_llava, set_block_attn_hooks_llava
 from sae_experiments.ablation import statistical_analysis
 from sae_experiments.evaluation import metrics as eval_metrics
 from sae_experiments.utils import knockout_utils
-
-
-def _sequence_logprob(
-    model,
-    tokenizer,
-    input_ids: torch.Tensor,
-    image_tensor,
-    image_sizes,
-    answer_text: str,
-    normalize: bool = True,
-    block_config: Optional[Dict[int, List[Tuple[int, int]]]] = None,
-) -> Optional[float]:
-    if not answer_text:
-        return None
-    answer_ids = tokenizer.encode(f" {answer_text.strip()}", add_special_tokens=False)
-    if not answer_ids:
-        return None
-    device = input_ids.device
-    answer_tensor = torch.tensor([answer_ids], device=device, dtype=input_ids.dtype)
-    input_ids_full = torch.cat([input_ids, answer_tensor], dim=1)
-
-    hooks = None
-    if block_config:
-        hooks = set_block_attn_hooks_llava(model, block_config)
-
-    try:
-        with torch.inference_mode():
-            outputs = model(
-                input_ids=input_ids_full,
-                images=image_tensor,
-                image_sizes=image_sizes,
-                use_cache=False,
-            )
-    finally:
-        if hooks:
-            remove_wrapper_llava(model, hooks)
-
-    logits = outputs.logits
-    log_probs = torch.log_softmax(logits[0], dim=-1)
-    # Account for multimodal expansion: logits length is input_ids length + image token expansion - 1
-    # (matches InformationFlow blockdesc2range logic).
-    start = input_ids.shape[1]
-    inputs_embeds_shape = knockout_utils.estimate_inputs_embeds_shape(
-        model, input_ids, image_tensor, image_sizes
-    )
-    if inputs_embeds_shape is not None:
-        image_dim = inputs_embeds_shape[1] - (input_ids.shape[-1] - 1)
-        start = input_ids.shape[1] + image_dim - 1
-    token_logps = []
-    for i, tok_id in enumerate(answer_ids):
-        idx = start + i - 1
-        if idx < 0 or idx >= log_probs.shape[0]:
-            continue
-        token_logps.append(log_probs[idx, tok_id].item())
-    if not token_logps:
-        return None
-    if normalize:
-        return float(sum(token_logps) / len(token_logps))
-    return float(sum(token_logps))
+from sae_experiments.utils.knockout_utils import sequence_logprob as _sequence_logprob
 
 
 def _mean(values: Iterable[float]) -> float:
