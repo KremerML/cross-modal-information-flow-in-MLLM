@@ -5,6 +5,7 @@ import os
 
 import torch
 from torch import nn
+from torch.nn import functional as F
 from torch.utils.data import DataLoader, TensorDataset
 
 from sae_experiments.data.activation_collector import ActivationCollector
@@ -82,11 +83,13 @@ class SAETrainer:
             generator=generator,
         )
         optimizer = torch.optim.Adam(self.sae.parameters(), lr=learning_rate)
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
 
         history = {
             "loss": [],
             "recon_loss": [],
             "l1_loss": [],
+            "dead_feature_fraction": [],
             "seed": seed,
         }
 
@@ -104,20 +107,33 @@ class SAETrainer:
             epoch_loss = 0.0
             epoch_recon = 0.0
             epoch_l1 = 0.0
+            feature_activation_counts = torch.zeros(self.sae.n_features, device=device)
+
             for (batch,) in loader:
                 optimizer.zero_grad()
-                total, recon_loss, l1_loss = self.sae.get_loss(batch)
+                recon, feats = self.sae.forward(batch)
+                recon_loss = F.mse_loss(recon, batch)
+                l1_loss = feats.abs().mean()
+                total = recon_loss + self.sae.l1_coeff * l1_loss
                 total.backward()
                 optimizer.step()
+                self.sae.normalize_decoder()
+
+                with torch.no_grad():
+                    feature_activation_counts += (feats > 0).float().sum(dim=0)
 
                 epoch_loss += total.item()
                 epoch_recon += recon_loss.item()
                 epoch_l1 += l1_loss.item()
 
+            scheduler.step()
+
             denom = max(1, len(loader))
+            dead_fraction = (feature_activation_counts == 0).float().mean().item()
             history["loss"].append(epoch_loss / denom)
             history["recon_loss"].append(epoch_recon / denom)
             history["l1_loss"].append(epoch_l1 / denom)
+            history["dead_feature_fraction"].append(dead_fraction)
 
         self.sae.eval()
         return history
