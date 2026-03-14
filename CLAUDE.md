@@ -127,10 +127,12 @@ Features selected by comparing correct vs. incorrect samples at `attribute` toke
 Both options ("red", "blue") appear as text in the question. The model can partially solve the task via language priors + object name without relying on visual features. This reduces the causal leverage of visual-feature ablations and dilutes any effect.
 
 **6. SAE architecture lacks modern best practices.**
-- No decoder column normalization → features with larger decoder norms dominate at the expense of others
-- No encoder pre-bias (`b_pre`) → poor decomposition of off-center activation distributions
-- No auxiliary dead-feature prevention (AuxK, TopK, or jumprelu)
-- `mean(|z|)` L1 penalty: increasing n_features reduces effective sparsity pressure
+- ~~No decoder column normalization~~ → **fixed (Mar 2026)**: `normalize_decoder()` called after every optimiser step
+- ~~No encoder pre-bias (`b_pre`)~~ → **fixed (Mar 2026)**: `b_pre` added as learnable parameter; subtracted before encoding
+- ~~No dead-feature tracking~~ → **fixed (Mar 2026)**: `dead_feature_fraction` logged per epoch in training history
+- ~~Constant LR~~ → **fixed (Mar 2026)**: `CosineAnnealingLR` scheduler added to `SAETrainer`
+- No auxiliary dead-feature *prevention* (AuxK, TopK, or jumprelu) — still open
+- `mean(|z|)` L1 penalty: increasing n_features reduces effective sparsity pressure — still open
 
 ### Ablation mode clarification
 - **`residual` mode** (legacy): `out = acts + (decode(feats_without_selected) - decode(feats_all))` — subtracts selected features' contribution, preserves reconstruction error. Soft intervention.
@@ -177,17 +179,17 @@ Use containment scoring or logprob scoring. Exact match is only valid for discri
 
 ### Proposed methodological fixes (priority order)
 
-1. **Validate the SAE ceiling first.** Run full-latent ablation in `replace` mode and measure accuracy drop and `relative_norm` (delta_norm / acts_norm). If drop is <15%, fix the SAE before any feature analysis.
+1. ✅ **Validate the SAE ceiling first.** (Done — Mar 2026) Full-latent ablation in `replace` mode confirmed: 0.3% relative perturbation at `attribute` positions (both layers), ~100% at `all` positions with margin drops matching knockout. Ceiling confirms position mismatch is the primary issue.
 
-2. **Fix SAE training.** Train on a large diverse corpus (≥100k activation vectors from LLaVA Instruct or full GQA validation), not just ChooseAttr. Reduce n_features to 4096–8192 or scale data accordingly. Reduce l1_coeff to 1e-4 or 5e-5. Normalize decoder columns. Add encoder pre-bias.
+2. **Fix SAE training.** *(Partially done — Mar 2026)* Architecture fixes applied: `b_pre`, decoder normalisation, dead-feature tracking, cosine LR schedule, n_features reduced to 4096, l1_coeff reduced to 5e-4 in `configs/sae_layer0_attn_out_v2.yaml`. Still open: training on a large diverse corpus (≥100k vectors from LLaVA Instruct or full GQA val).
 
-3. **Ablate at image token positions, not attribute text positions.** Image tokens are the *source* of visual attribute information. Zeroing SAE features at image token positions prevents all subsequent layers from reading the attribute signal — which is what the knockout actually does.
+3. ✅ **Ablate at image token positions, not attribute text positions.** (Done — Mar 2026) `"image"` position type implemented in `ActivationCollector._select_positions()` and `FeatureAblator._resolve_positions()`. Set as default in `sae_layer0_attn_out_v2.yaml`.
 
 4. **Use activation difference as a supervision signal.** Compute activation difference at layer 11 attn_out (image token positions) between correct-answer forward passes and incorrect-answer forward passes. Features explaining this difference directly mediate attribute encoding.
 
 5. **Bridge knockout and SAE directly.** Run paired forward passes with/without the layer-0 knockout and collect activations at layer 11 with vs. without the block. The difference subspace tells you exactly which directions at layer 11 carry the Image→Question information.
 
-6. **Use `replace` mode** for all ablations instead of `residual`.
+6. ✅ **Use `replace` mode** for all ablations instead of `residual`. (Done — Mar 2026) All configs standardised.
 
 7. **Consider open-ended generation tasks** instead of forced-choice to eliminate the language-side bypass.
 
