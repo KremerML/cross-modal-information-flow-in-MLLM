@@ -133,8 +133,8 @@ Both options ("red", "blue") appear as text in the question. The model can parti
 - `mean(|z|)` L1 penalty: increasing n_features reduces effective sparsity pressure
 
 ### Ablation mode clarification
-- **`residual` mode** (most experiments): `out = acts + (decode(feats_without_selected) - decode(feats_all))` — subtracts selected features' contribution, preserves reconstruction error. Soft intervention.
-- **`replace` mode**: `out = decode(feats_without_selected)` — replaces full activation with SAE reconstruction minus selected features, discards reconstruction error. Harder, more interpretable intervention. Preferred for future experiments.
+- **`residual` mode** (legacy): `out = acts + (decode(feats_without_selected) - decode(feats_all))` — subtracts selected features' contribution, preserves reconstruction error. Soft intervention.
+- **`replace` mode** (current standard): `out = decode(feats_without_selected)` — replaces full activation with SAE reconstruction minus selected features, discards reconstruction error. Harder, more interpretable intervention. **All configs standardised to `replace` as of Mar 2026** (`grep -r "mode: residual" configs/` returns zero hits). `sae_grid_sweep.yaml` retains both as sweep values.
 
 ### Alternative Task Formats (Research — Mar 2026)
 
@@ -203,6 +203,7 @@ Use containment scoring or logprob scoring. Exact match is only valid for discri
 - `question` — all question tokens
 - `all` — all positions
 - `last` — final token only
+- `image` — the expanded visual patch token positions (`image_token_count` tokens starting at the image placeholder index). Implemented in `activation_collector.py` and `feature_ablator.py` (Mar 2026). Arithmetic: `[img_placeholder_idx, img_placeholder_idx + image_token_count)`, consistent with `knockout_utils.get_image_token_range`. Zero overlap with `question` range.
 
 ### Feature selection methods
 - `ratio` — correct_mean / incorrect_mean activation
