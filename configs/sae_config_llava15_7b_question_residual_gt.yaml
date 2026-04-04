@@ -31,7 +31,7 @@ ablation:
   n_random_features: 50
   n_bootstrap: 1000
   position_type: "question"
-  mode: "residual"
+  mode: "replace"
   delta_scale: 1.0
 evaluation:
   significance_level: 0.05

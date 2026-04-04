@@ -581,6 +581,14 @@ class FeatureAblator:
             positions = [pos for pos in positions if start <= pos <= end]
             return sorted(set(positions))
 
+        if position_type == "image":
+            ids_list = input_ids[0].tolist() if input_ids.dim() > 1 else input_ids.tolist()
+            try:
+                img_placeholder_idx = ids_list.index(IMAGE_TOKEN_INDEX)
+            except ValueError:
+                return []
+            return list(range(img_placeholder_idx, img_placeholder_idx + image_token_count))
+
         return question_range
 
     @staticmethod

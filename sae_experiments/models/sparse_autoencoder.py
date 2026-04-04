@@ -18,10 +18,11 @@ class SparseAutoencoder(nn.Module):
         self.encoder = nn.Linear(d_model, n_features)
         self.decoder = nn.Linear(n_features, d_model)
         self.activation = nn.ReLU()
+        self.b_pre = nn.Parameter(torch.zeros(d_model))
 
     def encode(self, x: torch.Tensor) -> torch.Tensor:
         x_flat, _ = self._flatten(x)
-        feats = self.activation(self.encoder(x_flat))
+        feats = self.activation(self.encoder(x_flat - self.b_pre))
         return feats
 
     def decode(self, z: torch.Tensor, target_shape=None) -> torch.Tensor:
@@ -30,9 +31,14 @@ class SparseAutoencoder(nn.Module):
             recon = recon.view(target_shape)
         return recon
 
+    def normalize_decoder(self) -> None:
+        """Normalise decoder columns to unit norm after each optimiser step."""
+        with torch.no_grad():
+            self.decoder.weight.data = F.normalize(self.decoder.weight.data, dim=0)
+
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         x_flat, original_shape = self._flatten(x)
-        feats = self.activation(self.encoder(x_flat))
+        feats = self.activation(self.encoder(x_flat - self.b_pre))
         recon = self.decoder(feats).view(original_shape)
         return recon, feats
 
