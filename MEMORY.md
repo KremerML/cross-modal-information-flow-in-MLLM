@@ -34,17 +34,21 @@ Consistent null result across 18 experiments — binding features show no signif
 - ChooseAttr forced-choice puts both options in question text — language-side bypass dilutes visual ablation effects
 - SAE lacks: decoder normalization, encoder pre-bias, dead-feature prevention; l1_coeff=1e-3 too large
 
-**Priority fixes:**
-1. Ablate at **image token positions**, not attribute token positions (most impactful fix based on ceiling data)
-2. Train SAE on ≥100k diverse activations; reduce l1_coeff to 1e-4; normalize decoder; smaller n_features
-3. Use knockout-difference activations as SAE training/supervision signal
-4. Use `replace` mode (not `residual`) for all ablations — already done
+**Priority fixes (updated Mar 2026):**
+1. ✅ Ablate at **image token positions** — `"image"` position type implemented in `ActivationCollector` and `FeatureAblator`
+2. ✅ `replace` mode standardised across all configs (9 files)
+3. ✅ SAE architecture fixes applied: `b_pre`, `normalize_decoder()`, dead-feature tracking, cosine LR; `sae_layer0_attn_out_v2.yaml` with n_features=4096, l1_coeff=5e-4
+4. **Open**: Train SAE on ≥100k diverse activations (dataset extension not yet done)
+5. **Open**: Knockout-guided feature ID (Plan E not yet started)
 
-## Codebase State (post-refactor, Mar 2026)
+## Codebase State (methodology-improvements branch, Mar 2026)
+- Branch: `methodology-improvements` (3 commits ahead of main)
 - Utility functions centralized: `resolve_dtype`, `get_target_module`, `estimate_image_token_count`, `sequence_logprob`, `get_question_token_range` all in `sae_experiments/utils/`
 - Setup helpers in `utils/script_utils.py`: `setup_experiment`, `load_llava_components`, `load_sae`
 - Dead methods removed from `ablation_experiments.py` and `hypothesis_tester.py`
 - Bug: after refactor, reference `config.get("reproducibility", {})` directly — not `reproducibility_cfg` local var
+- `"image"` position type: `sae_experiments/data/activation_collector.py`, `sae_experiments/ablation/feature_ablator.py`
+- SAE architecture: `sae_experiments/models/sparse_autoencoder.py` (b_pre, normalize_decoder), `sae_experiments/models/sae_trainer.py` (cosine LR, dead_feature_fraction tracking)
 
 ## Dataset Quality (analyzed Mar 2026)
 - **color** (602 rows): best category — clean, homogeneous. ~58% involve black/white options; 20.6% tiny objects (<1% image area).
@@ -59,11 +63,13 @@ Consistent null result across 18 experiments — binding features show no signif
 - Python env: `LLaVA-NeXT/.venv/bin/python`
 
 ## Active Plan
-Staged methodology improvement plan saved at `/home/ron/.claude/plans/optimized-discovering-moon.md`.
-- **Pre-requisite**: create branch `methodology-improvements` before any code/config changes
-- **Stage 1** (parallel): Plan A (ceiling + replace mode configs), Plan B (research open-ended tasks), Plan C (image position type)
-- **Stage 2** (parallel): Plan D (fix SAE architecture + training data), Plan E (knockout-guided feature ID design)
-- **Stage 3**: Plan F (integration experiment combining all fixes)
+Staged methodology improvement plan at `/home/ron/.claude/plans/optimized-discovering-moon.md`.
+- ✅ Pre-requisite: branch `methodology-improvements` created
+- ✅ Plan A: ceiling validated + all configs → `replace` mode
+- Plan B: open-ended task research — partially addressed in CLAUDE.md Alternative Task Formats section
+- ✅ Plan C: `"image"` position type implemented
+- ✅ Plan D (revised scope): SAE architecture fixes only (dataset extension is a separate future plan)
+- **Next**: Plan E (knockout-guided feature ID design)
 
 ## Important File Paths
 - Configs: `configs/sae_layer0_attn_out.yaml`, `configs/knockout_sae/knockout_llava15_7b_color.yaml`

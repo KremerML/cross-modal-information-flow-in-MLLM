@@ -16,7 +16,8 @@ from sae_experiments.data.attribute_dataset import AttributeVQADataset
 from sae_experiments.feature_analysis.feature_catalog import FeatureCatalog
 from sae_experiments.analysis.result_schema import validate_ablation_results
 from sae_experiments.utils.config_utils import resolve_primary_task_type, resolve_task_types
-from sae_experiments.utils.script_utils import setup_experiment, load_llava_components, load_sae
+from sae_experiments.data.paligemma_dataset import PaliGemmaChooseAttrDataset
+from sae_experiments.utils.script_utils import setup_experiment, load_paligemma_components, load_gemma_scope_sae
 
 
 def main() -> None:
@@ -36,7 +37,6 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, required=True)
     parser.add_argument("--features", type=str, default=None)
-    parser.add_argument("--sae_checkpoint", type=str, default=None)
     parser.add_argument("--output", type=str, default=None)
     parser.add_argument("--no_progress", action="store_true", help="Disable progress bars.")
     parser.add_argument("--max_samples", type=int, default=None)
@@ -48,23 +48,23 @@ def main() -> None:
     model_cfg = config.get("model", {})
     data_cfg = config.get("dataset", {})
     experiment_dir, seed = setup_experiment(args, config)
-    tokenizer, model, image_processor = load_llava_components(model_cfg)
+    processor, model = load_paligemma_components(model_cfg)
+    tokenizer = processor.tokenizer
 
-    task_types = resolve_task_types(data_cfg.get("task_types"))
-    task_type = resolve_primary_task_type(task_types)
+    import pandas as pd
+    refined_dataset = data_cfg.get("refined_dataset", "")
+    df = pd.read_csv(refined_dataset, dtype={"question_id": str}).fillna("")
+    dataset_dict = df.set_index("question_id").T.to_dict("dict")
+    questions = [{**detail, "q_id": qu_id} for qu_id, detail in dataset_dict.items()]
 
-    dataset = AttributeVQADataset(
-        refined_dataset=data_cfg.get("refined_dataset", ""),
+    dataset = PaliGemmaChooseAttrDataset(
+        questions=questions,
+        dataset_dict=dataset_dict,
         image_folder=data_cfg.get("image_folder", ""),
-        tokenizer=tokenizer,
-        image_processor=image_processor,
-        model_config=model.config,
-        task_type=task_type,
-        conv_mode=model_cfg.get("conv_mode", "vicuna_v1"),
+        processor=processor,
     )
 
-    checkpoint_path = args.sae_checkpoint or os.path.join(experiment_dir, "sae_checkpoint.pt")
-    sae = load_sae(config, model, checkpoint_path)
+    sae = load_gemma_scope_sae(config, model)
 
     catalog = FeatureCatalog()
     features_path = args.features or os.path.join(experiment_dir, "feature_catalog.json")

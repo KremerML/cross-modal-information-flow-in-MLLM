@@ -16,7 +16,8 @@ from sae_experiments.feature_analysis.feature_catalog import FeatureCatalog
 from sae_experiments.feature_analysis.feature_identifier import FeatureIdentifier
 from sae_experiments.feature_analysis.feature_visualizer import FeatureVisualizer
 from sae_experiments.utils.config_utils import resolve_primary_task_type
-from sae_experiments.utils.script_utils import setup_experiment, load_llava_components, load_sae
+from sae_experiments.data.paligemma_dataset import PaliGemmaChooseAttrDataset
+from sae_experiments.utils.script_utils import setup_experiment, load_paligemma_components, load_gemma_scope_sae
 
 
 def main() -> None:
@@ -35,7 +36,6 @@ def main() -> None:
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, required=True)
-    parser.add_argument("--sae_checkpoint", type=str, default=None)
     parser.add_argument("--max_samples", type=int, default=None)
     parser.add_argument("--experiment_dir", type=str, default=None)
     parser.add_argument("--experiment_name", type=str, default=None)
@@ -47,20 +47,23 @@ def main() -> None:
     data_cfg = config.get("dataset", {})
     feat_cfg = config.get("feature_identification", {})
     experiment_dir, seed = setup_experiment(args, config)
-    tokenizer, model, image_processor = load_llava_components(model_cfg)
+    processor, model = load_paligemma_components(model_cfg)
+    tokenizer = processor.tokenizer
 
-    dataset = AttributeVQADataset(
-        refined_dataset=data_cfg.get("refined_dataset", ""),
+    import pandas as pd
+    refined_dataset = data_cfg.get("refined_dataset", "")
+    df = pd.read_csv(refined_dataset, dtype={"question_id": str}).fillna("")
+    dataset_dict = df.set_index("question_id").T.to_dict("dict")
+    questions = [{**detail, "q_id": qu_id} for qu_id, detail in dataset_dict.items()]
+
+    dataset = PaliGemmaChooseAttrDataset(
+        questions=questions,
+        dataset_dict=dataset_dict,
         image_folder=data_cfg.get("image_folder", ""),
-        tokenizer=tokenizer,
-        image_processor=image_processor,
-        model_config=model.config,
-        task_type=resolve_primary_task_type(data_cfg.get("task_types")),
-        conv_mode=model_cfg.get("conv_mode", "vicuna_v1"),
+        processor=processor,
     )
 
-    checkpoint_path = args.sae_checkpoint or os.path.join(experiment_dir, "sae_checkpoint.pt")
-    sae = load_sae(config, model, checkpoint_path)
+    sae = load_gemma_scope_sae(config, model)
 
     identifier = FeatureIdentifier(
         sae,

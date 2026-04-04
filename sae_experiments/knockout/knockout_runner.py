@@ -1,4 +1,4 @@
-"""Per-layer attention knockout runner for multimodal flows."""
+"""Per-layer attention knockout runner — PaliGemma 2 edition."""
 
 from typing import Dict, Iterable, List, Optional, Tuple
 
@@ -35,7 +35,15 @@ def run_knockout_sweep(
     normalize_logprob: bool = True,
     progress_desc: str = "Knockout sweep",
 ) -> Tuple[List[Dict], List[Dict]]:
-    num_layers = model.config.num_hidden_layers
+    # PaliGemma 2: num_hidden_layers lives in the language model sub-config
+    lang_cfg = getattr(getattr(model, "language_model", None), "config", None)
+    if lang_cfg is not None and hasattr(lang_cfg, "num_hidden_layers"):
+        num_layers = lang_cfg.num_hidden_layers
+    else:
+        num_layers = len(model.language_model.model.layers)
+
+    image_token_count = knockout_utils.get_image_token_count(model)
+
     results: List[Dict] = []
     summaries: List[Dict] = []
 
@@ -50,9 +58,11 @@ def run_knockout_sweep(
         if max_samples is not None and idx >= max_samples:
             break
 
-        input_ids, image_tensor, image_sizes, _, _ = batch
-        input_ids = input_ids.to(device=next(model.parameters()).device)
-        image_tensor = [img.to(device=next(model.parameters()).device) for img in image_tensor]
+        # PaliGemma batch: (input_ids, pixel_values, question_text, row_dict)
+        input_ids, pixel_values, question_text_batch, _ = batch
+        device = next(model.parameters()).device
+        input_ids = input_ids.to(device=device)
+        pixel_values = pixel_values.to(device=device)
 
         question_id = line["q_id"]
         detail = dataset_dict[question_id]
@@ -63,29 +73,12 @@ def run_knockout_sweep(
             progress.update(num_layers * max(1, len(flows)))
             continue
 
-        inputs_embeds_shape = knockout_utils.estimate_inputs_embeds_shape(
-            model, input_ids, image_tensor, image_sizes
-        )
-        if inputs_embeds_shape is None:
-            progress.update(num_layers * max(1, len(flows)))
-            continue
-
         base_true_lp = _sequence_logprob(
-            model,
-            tokenizer,
-            input_ids,
-            image_tensor,
-            image_sizes,
-            true_option,
+            model, tokenizer, input_ids, pixel_values, true_option,
             normalize=normalize_logprob,
         )
         base_false_lp = _sequence_logprob(
-            model,
-            tokenizer,
-            input_ids,
-            image_tensor,
-            image_sizes,
-            false_option,
+            model, tokenizer, input_ids, pixel_values, false_option,
             normalize=normalize_logprob,
         )
         if base_true_lp is None or base_false_lp is None:
@@ -100,7 +93,7 @@ def run_knockout_sweep(
             source_range, target_range = knockout_utils.resolve_flow_ranges(
                 flow,
                 input_ids,
-                inputs_embeds_shape,
+                image_token_count,
                 question_text,
                 tokenizer,
                 model_name,
@@ -115,22 +108,12 @@ def run_knockout_sweep(
                     layer, num_layers, window, src_tgt_pairs
                 )
                 new_true_lp = _sequence_logprob(
-                    model,
-                    tokenizer,
-                    input_ids,
-                    image_tensor,
-                    image_sizes,
-                    true_option,
+                    model, tokenizer, input_ids, pixel_values, true_option,
                     normalize=normalize_logprob,
                     block_config=block_config,
                 )
                 new_false_lp = _sequence_logprob(
-                    model,
-                    tokenizer,
-                    input_ids,
-                    image_tensor,
-                    image_sizes,
-                    false_option,
+                    model, tokenizer, input_ids, pixel_values, false_option,
                     normalize=normalize_logprob,
                     block_config=block_config,
                 )

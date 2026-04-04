@@ -32,40 +32,55 @@ def setup_experiment(args, config):
     return experiment_dir, seed
 
 
-def load_llava_components(model_cfg):
-    """Load LLaVA model, tokenizer, image_processor. Return (tokenizer, model, image_processor)."""
-    from llava.model.builder import load_pretrained_model
-    from llava.mm_utils import get_model_name_from_path
+def load_paligemma_components(model_cfg):
+    """Load PaliGemma 2 processor and model. Return (processor, model).
+
+    The returned ``processor`` acts as both tokenizer and image processor.
+    Use ``processor.tokenizer`` to access the tokenizer directly.
+    """
+    from transformers import AutoProcessor, PaliGemmaForConditionalGeneration
 
     model_path = os.path.expanduser(model_cfg.get("name", ""))
-    model_name = get_model_name_from_path(model_path)
-    tokenizer, model, image_processor, _ = load_pretrained_model(
+    processor = AutoProcessor.from_pretrained(model_path)
+    model = PaliGemmaForConditionalGeneration.from_pretrained(
         model_path,
-        model_cfg.get("model_base"),
-        model_name,
         device_map="auto",
-        attn_implementation=None,
+        torch_dtype=resolve_dtype(model_cfg.get("dtype", "bfloat16")),
     )
     model.eval()
-    return tokenizer, model, image_processor
+    return processor, model
 
 
-def load_sae(config, model, checkpoint_path):
-    """Build SparseAutoencoder, load checkpoint, move to device/dtype. Return sae."""
-    from sae_experiments.models.sparse_autoencoder import SparseAutoencoder
+def load_gemma_scope_sae(config, model):
+    """Load a Gemma Scope JumpReLU SAE from HuggingFace. Return sae.
 
-    model_cfg = config.get("model", {})
-    sae = SparseAutoencoder(
-        d_model=model_cfg.get("d_model", 4096),
-        n_features=config.get("sae", {}).get("n_features", 32768),
-        l1_coeff=config.get("sae", {}).get("l1_coeff", 1e-3),
+    Config keys used (under ``sae``):
+        gemma_scope_repo : HuggingFace repo id (default: ``google/gemma-scope-2b-pt-att``)
+        target_layer     : transformer layer index (required)
+        width            : feature width string (default: ``"16k"``)
+        dtype            : float dtype string (default: ``"float32"``)
+    """
+    from sae_experiments.models.gemma_scope_sae import GemmaScopeJumpReLUSAE
+
+    sae_cfg = config.get("sae", {})
+    repo_id = sae_cfg.get("gemma_scope_repo", "google/gemma-scope-2b-pt-att")
+    layer_idx = sae_cfg.get("target_layer")
+    if layer_idx is None:
+        raise ValueError("sae.target_layer must be set in config to load a Gemma Scope SAE")
+    width = sae_cfg.get("width", "16k")
+    dtype_str = sae_cfg.get("dtype", config.get("training", {}).get("dtype", "float32"))
+    dtype = resolve_dtype(dtype_str)
+
+    try:
+        device = next(model.parameters()).device
+    except StopIteration:
+        device = torch.device("cpu")
+
+    sae = GemmaScopeJumpReLUSAE.from_hf(
+        layer_idx=int(layer_idx),
+        width=width,
+        repo_id=repo_id,
+        device=str(device),
+        dtype=dtype,
     )
-    ckpt = torch.load(checkpoint_path, map_location="cpu")
-    sae.load_state_dict(ckpt.get("state", {}).get("sae_state", ckpt))
-    train_cfg = config.get("training", {})
-    sae.to(
-        device=next(model.parameters()).device,
-        dtype=resolve_dtype(train_cfg.get("dtype", "float32")),
-    )
-    sae.eval()
     return sae

@@ -1,0 +1,43 @@
+# Template config for SAE feature identification and ablation experiments.
+# Copy and set sae.target_layer to the layer(s) identified by the knockout sweep.
+
+model:
+  name: "google/paligemma2-3b-pt-224"
+  activation_site: "attn_out"
+  d_model: 2304
+  image_token_count: 256
+  dtype: "bfloat16"
+
+sae:
+  gemma_scope_repo: "google/gemma-scope-2b-pt-att"
+  width: "16k"
+  target_layer: null        # set to the target layer index (e.g. 0, 11)
+  dtype: "float32"
+
+feature_identification:
+  discrimination_threshold: 2.0
+  position_type: "image"    # ablate at image token positions (the source of visual signal)
+  selection_method: "abs_diff"
+  n_features: 50
+
+ablation:
+  position_type: "image"
+  mode: "replace"
+  n_random_control_features: 50
+
+dataset:
+  refined_dataset: "datasets/GQA_val_correct_question_with_choose_ChooseAttr.csv"
+  image_folder: "datasets/images"
+  task_types:
+    - "ChooseAttr"
+  category_csv: "datasets/by_attribute_category/ChooseAttr_color.csv"
+
+experiment:
+  output_base: "output/sae_experiments"
+  name: "paligemma2_3b_layerN_attn_out_color"   # rename per layer
+  use_timestamp: true
+
+reproducibility:
+  seed: 42
+  deterministic: true
+  benchmark: false

@@ -1,0 +1,33 @@
+model:
+  name: "google/paligemma2-3b-pt-224"
+  activation_site: "attn_out"
+  d_model: 2304
+  image_token_count: 256    # fixed for 224-px model (16x16 patches over 224px image)
+  dtype: "bfloat16"
+
+knockout:
+  flows:
+    - "Image->Question"
+    - "Image->Last"
+  top_k_layers: 5
+  filter_correct: true
+  normalize_logprob: true
+  batch_size: 1
+  num_workers: 2
+  window: 1
+
+dataset:
+  refined_dataset: "datasets/GQA_val_correct_question_with_choose_ChooseAttr.csv"
+  image_folder: "datasets/images"
+  task_types:
+    - "ChooseAttr"
+
+experiment:
+  output_base: "output/knockout_paligemma"
+  name: "knockout_paligemma2_3b_color"
+  use_timestamp: true
+
+reproducibility:
+  seed: 42
+  deterministic: true
+  benchmark: false

@@ -42,7 +42,10 @@ def create_activation_capture_hook(storage_dict: Dict, key: str):
 
 def get_target_module(model, layer_idx: int, activation_site: str):
     """Navigate to the target submodule for a given layer and activation site."""
-    if hasattr(model, "model") and hasattr(model.model, "layers"):
+    if hasattr(model, "language_model") and hasattr(model.language_model, "model"):
+        # PaliGemma 2: model.language_model.model.layers[i]
+        layer = model.language_model.model.layers[layer_idx]
+    elif hasattr(model, "model") and hasattr(model.model, "layers"):
         layer = model.model.layers[layer_idx]
     elif hasattr(model, "layers"):
         layer = model.layers[layer_idx]

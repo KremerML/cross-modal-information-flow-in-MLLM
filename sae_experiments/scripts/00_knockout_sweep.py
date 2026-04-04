@@ -1,4 +1,4 @@
-"""Run per-layer attention knockout sweeps for specified flows."""
+"""Run per-layer attention knockout sweeps for specified flows — PaliGemma 2 edition."""
 
 import argparse
 import json
@@ -7,35 +7,20 @@ from pathlib import Path
 import sys
 
 import pandas as pd
-import torch
-from llava.model.builder import load_pretrained_model
-from llava.mm_utils import get_model_name_from_path
 
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))
 
-from InformationFlow import create_data_loader
 from sae_experiments.config.sae_config import load_config, save_config
+from sae_experiments.data.paligemma_dataset import create_paligemma_data_loader
 from sae_experiments.knockout.knockout_runner import run_knockout_sweep
 from sae_experiments.utils.checkpoint_utils import resolve_experiment_dir
 from sae_experiments.utils.config_utils import resolve_primary_task_type
+from sae_experiments.utils.script_utils import load_paligemma_components
 
 
 def main() -> None:
-    """Run a configurable layerwise attention knockout sweep.
-
-    Args:
-        None: Arguments are provided via CLI flags parsed in this function.
-
-    Returns:
-        None: Writes knockout result artifacts to disk.
-
-    Raises:
-        FileNotFoundError: If the configured dataset path cannot be read.
-        ValueError: If required configuration values are invalid.
-        RuntimeError: If model loading or sweep execution fails.
-    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, required=True)
     parser.add_argument("--experiment_dir", type=str, default=None)
@@ -60,33 +45,22 @@ def main() -> None:
 
     save_config(config, os.path.join(experiment_dir, "config.yaml"))
 
-    model_path = os.path.expanduser(model_cfg.get("name", ""))
-    model_name = get_model_name_from_path(model_path)
-    tokenizer, model, image_processor, _ = load_pretrained_model(
-        model_path,
-        model_cfg.get("model_base"),
-        model_name,
-        device_map="auto",
-        attn_implementation=None,
-    )
-    model.eval()
+    processor, model = load_paligemma_components(model_cfg)
+    tokenizer = processor.tokenizer
+    model_name = model_cfg.get("name", "paligemma2")
 
     refined_dataset = data_cfg.get("refined_dataset", "")
     df = pd.read_csv(refined_dataset, dtype={"question_id": str}).fillna("")
     dataset_dict = df.set_index("question_id").T.to_dict("dict")
     questions = [{**detail, "q_id": qu_id} for qu_id, detail in dataset_dict.items()]
 
-    task_name = resolve_primary_task_type(data_cfg.get("task_types"), default="ChooseAttr")
-    data_loader = create_data_loader(
-        questions,
-        data_cfg.get("image_folder", ""),
-        knockout_cfg.get("batch_size", 1),
-        knockout_cfg.get("num_workers", 2),
-        tokenizer,
-        image_processor,
-        model.config,
-        task_name,
-        model_cfg.get("conv_mode", "vicuna_v1"),
+    data_loader = create_paligemma_data_loader(
+        questions=questions,
+        dataset_dict=dataset_dict,
+        image_folder=data_cfg.get("image_folder", ""),
+        processor=processor,
+        batch_size=knockout_cfg.get("batch_size", 1),
+        num_workers=knockout_cfg.get("num_workers", 2),
     )
 
     flows = knockout_cfg.get("flows", ["Image->Question", "Image->Last"])
@@ -122,7 +96,6 @@ def main() -> None:
 
     print(f"Saved knockout results to {results_path}")
     print(f"Saved knockout summary to {summary_path}")
-    print(f"Task type: {task_name}")
     print(f"Experiment directory: {experiment_dir}")
 
 

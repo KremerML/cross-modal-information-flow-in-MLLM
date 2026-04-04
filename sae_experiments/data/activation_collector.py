@@ -1,16 +1,11 @@
-"""Collects hidden activations from target model layers."""
+"""Collects hidden activations from target model layers — PaliGemma 2 edition."""
 
 from typing import Any, Dict, List, Optional, Tuple
 
 import torch
 
-try:
-    from llava.constants import IMAGE_TOKEN_INDEX
-except ImportError:
-    IMAGE_TOKEN_INDEX = -200
-
 from sae_experiments.utils.hook_utils import HookManager, create_activation_capture_hook, get_target_module
-from sae_experiments.utils.knockout_utils import estimate_image_token_count
+from sae_experiments.utils.knockout_utils import get_image_token_count
 from sae_experiments.utils import token_utils
 
 
@@ -56,6 +51,8 @@ class ActivationCollector:
             except StopIteration:
                 device = "cuda" if torch.cuda.is_available() else "cpu"
 
+        image_token_count = get_image_token_count(self.model)
+
         self.register_hooks()
         activations: List[torch.Tensor] = []
         metadata: List[Dict[str, Any]] = []
@@ -67,27 +64,21 @@ class ActivationCollector:
                 total = min(total, max_samples)
             if show_progress:
                 from tqdm import tqdm
-
                 iterator = tqdm(iterator, total=total, desc="Collecting activations")
 
             for idx, (batch, line) in enumerate(iterator):
                 if max_samples is not None and idx >= max_samples:
                     break
 
-                input_ids, image_tensor, image_sizes, prompts, _ = batch
+                input_ids, pixel_values, question_text, _ = batch
                 input_ids = input_ids.to(device)
-                image_tensor = [img.to(device) for img in image_tensor]
-
-                image_token_count = estimate_image_token_count(
-                    self.model, input_ids, image_tensor, image_sizes
-                )
+                pixel_values = pixel_values.to(device)
 
                 self.storage.pop("acts", None)
                 with torch.no_grad():
                     _ = self.model(
                         input_ids=input_ids,
-                        images=image_tensor,
-                        image_sizes=image_sizes,
+                        pixel_values=pixel_values,
                         use_cache=False,
                     )
 
@@ -98,12 +89,13 @@ class ActivationCollector:
                 if acts is None:
                     continue
 
-                question_text = dataset_dict[line["q_id"]]["question"]
+                q_id = line["q_id"] if isinstance(line, dict) else line
+                q_text = dataset_dict[q_id]["question"] if isinstance(dataset_dict, dict) else question_text
                 positions = self._select_positions(
                     position_type,
                     input_ids,
                     image_token_count,
-                    question_text,
+                    q_text,
                     tokenizer,
                     line,
                 )
@@ -113,11 +105,11 @@ class ActivationCollector:
                 activations.append(acts[positions])
                 metadata.append(
                     {
-                        "question_id": line["q_id"],
-                        "question": question_text,
-                        "answer": dataset_dict[line["q_id"]].get("answer", ""),
+                        "question_id": q_id,
+                        "question": q_text,
+                        "answer": dataset_dict[q_id].get("answer", "") if isinstance(dataset_dict, dict) else "",
                         "positions": positions,
-                        "attribute_tokens": line.get("attribute_tokens", []),
+                        "attribute_tokens": line.get("attribute_tokens", []) if isinstance(line, dict) else [],
                         "start_idx": offset,
                         "count": len(positions),
                     }
@@ -139,7 +131,6 @@ class ActivationCollector:
             acts = acts[0]
         if acts is None:
             return None
-        # Most model hooks return [batch, seq, hidden]. Some wrappers can add batch dims.
         while acts.ndim > 3 and acts.shape[0] == 1:
             acts = acts[0]
         if acts.ndim != 3:
@@ -153,29 +144,36 @@ class ActivationCollector:
         image_token_count: int,
         question_text: str,
         tokenizer,
-        line: Dict[str, Any],
+        line: Any,
     ) -> List[int]:
-        if position_type == "all":
-            return list(range(input_ids.shape[-1]))
+        seq_len = input_ids.shape[-1]
 
-        question_range = token_utils.get_question_token_range(
-            input_ids[0],
-            image_token_count,
-            question_text=question_text,
-            tokenizer=tokenizer,
-            image_token_index=IMAGE_TOKEN_INDEX,
-        )
+        if position_type == "all":
+            return list(range(seq_len))
+
+        if position_type == "image":
+            # PaliGemma: image tokens are always at positions 0..image_token_count-1
+            return list(range(0, min(image_token_count, seq_len)))
 
         if position_type == "last":
-            ntoks = input_ids.shape[-1] + image_token_count - 1
-            return [max(0, ntoks - 1)]
+            return [seq_len - 1]
+
+        # question, attribute: need question token range
+        question_range = token_utils.get_question_token_range(
+            input_ids[0] if input_ids.dim() > 1 else input_ids,
+            image_token_count=1,          # offset=0: positions already in full-sequence space
+            question_text=question_text,
+            tokenizer=tokenizer,
+            image_token_index=None,       # no LLaVA-style placeholder
+        )
 
         if position_type == "question":
             return question_range
 
         if position_type == "attribute":
             attr_positions = []
-            for attr in line.get("attribute_tokens", []):
+            line_dict = line if isinstance(line, dict) else {}
+            for attr in line_dict.get("attribute_tokens", []):
                 attr_positions.extend(attr.get("positions", []))
             if not question_range:
                 return []
@@ -184,13 +182,5 @@ class ActivationCollector:
             positions = [start + pos for pos in attr_positions]
             positions = [pos for pos in positions if start <= pos <= end]
             return sorted(set(positions))
-
-        if position_type == "image":
-            ids_list = input_ids[0].tolist() if input_ids.dim() > 1 else input_ids.tolist()
-            try:
-                img_placeholder_idx = ids_list.index(IMAGE_TOKEN_INDEX)
-            except ValueError:
-                return []
-            return list(range(img_placeholder_idx, img_placeholder_idx + image_token_count))
 
         return question_range

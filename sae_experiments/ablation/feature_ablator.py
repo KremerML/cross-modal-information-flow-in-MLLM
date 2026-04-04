@@ -1,4 +1,4 @@
-"""Feature ablation utilities."""
+"""Feature ablation utilities — PaliGemma 2 edition."""
 
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -6,25 +6,13 @@ import torch
 
 from tqdm import tqdm
 
-try:
-    from llava.constants import IMAGE_TOKEN_INDEX
-except ImportError:
-    IMAGE_TOKEN_INDEX = -200
-
 from sae_experiments.utils import token_utils
 from sae_experiments.utils.hook_utils import HookManager, get_target_module
-from sae_experiments.utils.knockout_utils import estimate_image_token_count, sequence_logprob
-
-try:
-    from methods import remove_wrapper_llava, set_block_attn_hooks_llava
-except Exception:  # pragma: no cover - fallback for lightweight test environments
-    def set_block_attn_hooks_llava(model, block_config):
-        raise RuntimeError(
-            "Attention blocking hooks are unavailable because methods.py dependencies failed to import."
-        )
-
-    def remove_wrapper_llava(model, hooks):
-        return None
+from sae_experiments.utils.knockout_utils import get_image_token_count, sequence_logprob
+from sae_experiments.utils.paligemma_hooks import (
+    set_block_attn_hooks_paligemma,
+    remove_wrapper_paligemma,
+)
 
 
 class FeatureAblator:
@@ -109,21 +97,20 @@ class FeatureAblator:
         return hook
 
     def run_with_ablation(self, sample: Tuple, feature_indices: List[int], tokenizer) -> Tuple[str, float]:
-        input_ids, image_tensor, image_sizes, _, _ = sample
+        input_ids, pixel_values, _, _ = sample
         try:
             device = next(self.model.parameters()).device
         except StopIteration:
             device = "cuda" if torch.cuda.is_available() else "cpu"
         input_ids = input_ids.to(device=device)
-        image_tensor = [img.to(device=device) for img in image_tensor]
+        pixel_values = pixel_values.to(device=device)
 
         layer = get_target_module(self.model, self.layer_idx, self.activation_site)
         hook = layer.register_forward_hook(self.create_ablation_hook(feature_indices))
 
         inps = {
-            "inputs": input_ids,
-            "images": image_tensor,
-            "image_sizes": image_sizes,
+            "input_ids": input_ids,
+            "pixel_values": pixel_values,
             "do_sample": False,
             "num_beams": 1,
             "max_new_tokens": 1,
@@ -170,13 +157,12 @@ class FeatureAblator:
         for idx, (batch, line) in enumerate(iterator):
             if max_samples is not None and idx >= max_samples:
                 break
-            input_ids, image_tensor, image_sizes, _, _ = batch
+            input_ids, pixel_values, _, _ = batch
             input_ids = input_ids.to(device=device)
-            image_tensor = [img.to(device=device) for img in image_tensor]
+            pixel_values = pixel_values.to(device=device)
             baseline_record = self._compute_baseline_record(
                 input_ids=input_ids,
-                image_tensor=image_tensor,
-                image_sizes=image_sizes,
+                pixel_values=pixel_values,
                 dataset=dataset,
                 line=line,
                 logprob_normalize=logprob_normalize,
@@ -210,23 +196,25 @@ class FeatureAblator:
         except StopIteration:
             device = "cuda" if torch.cuda.is_available() else "cpu"
 
+        image_token_count = get_image_token_count(self.model)
+
         iterator = zip(data_loader, dataset.questions)
         if show_progress:
             total = len(dataset.questions)
             if max_samples is not None:
                 total = min(total, max_samples)
             iterator = tqdm(iterator, total=total, desc="Ablation")
+
         for idx, (batch, line) in enumerate(iterator):
             if max_samples is not None and idx >= max_samples:
                 break
-            input_ids, image_tensor, image_sizes, _, _ = batch
+            input_ids, pixel_values, _, _ = batch
             input_ids = input_ids.to(device=device)
-            image_tensor = [img.to(device=device) for img in image_tensor]
+            pixel_values = pixel_values.to(device=device)
 
             inps = {
-                "inputs": input_ids,
-                "images": image_tensor,
-                "image_sizes": image_sizes,
+                "input_ids": input_ids,
+                "pixel_values": pixel_values,
                 "do_sample": False,
                 "num_beams": 1,
                 "max_new_tokens": 1,
@@ -244,8 +232,7 @@ class FeatureAblator:
             if baseline_record is None:
                 baseline_record = self._compute_baseline_record(
                     input_ids=input_ids,
-                    image_tensor=image_tensor,
-                    image_sizes=image_sizes,
+                    pixel_values=pixel_values,
                     dataset=dataset,
                     line=line,
                     logprob_normalize=logprob_normalize,
@@ -268,8 +255,7 @@ class FeatureAblator:
             positions = self._resolve_positions(
                 position_type,
                 input_ids,
-                image_tensor,
-                image_sizes,
+                image_token_count,
                 dataset,
                 line,
             )
@@ -293,13 +279,12 @@ class FeatureAblator:
             if attn_block_resolver is not None:
                 resolved_block_config = attn_block_resolver(
                     input_ids,
-                    image_tensor,
-                    image_sizes,
+                    pixel_values,
                     dataset,
                     line,
                 )
             if resolved_block_config:
-                attn_hooks = set_block_attn_hooks_llava(self.model, resolved_block_config)
+                attn_hooks = set_block_attn_hooks_paligemma(self.model, resolved_block_config)
             try:
                 with torch.inference_mode():
                     ablated = self.model.generate(**inps)
@@ -308,8 +293,7 @@ class FeatureAblator:
                             self.model,
                             dataset.tokenizer,
                             input_ids,
-                            image_tensor,
-                            image_sizes,
+                            pixel_values,
                             true_option,
                             normalize=logprob_normalize,
                         )
@@ -317,8 +301,7 @@ class FeatureAblator:
                             self.model,
                             dataset.tokenizer,
                             input_ids,
-                            image_tensor,
-                            image_sizes,
+                            pixel_values,
                             false_option,
                             normalize=logprob_normalize,
                         )
@@ -329,7 +312,7 @@ class FeatureAblator:
                 if hook:
                     hook.remove()
                 if attn_hooks:
-                    remove_wrapper_llava(self.model, attn_hooks)
+                    remove_wrapper_paligemma(self.model, attn_hooks)
 
             ablated_pred = dataset.tokenizer.batch_decode(
                 ablated["sequences"], skip_special_tokens=True
@@ -368,18 +351,15 @@ class FeatureAblator:
                     "ablated_margin": ablated_margin,
                     "perturb_mean_delta_norm": (
                         sum(d["delta_norm"] for d in sample_diagnostics) / len(sample_diagnostics)
-                        if sample_diagnostics
-                        else None
+                        if sample_diagnostics else None
                     ),
                     "perturb_mean_acts_norm": (
                         sum(d["acts_norm"] for d in sample_diagnostics) / len(sample_diagnostics)
-                        if sample_diagnostics
-                        else None
+                        if sample_diagnostics else None
                     ),
                     "perturb_relative_norm": (
                         sum(d["relative_norm"] for d in sample_diagnostics) / len(sample_diagnostics)
-                        if sample_diagnostics
-                        else None
+                        if sample_diagnostics else None
                     ),
                     "perturb_calls": len(sample_diagnostics),
                     "perturb_mode": mode,
@@ -393,17 +373,15 @@ class FeatureAblator:
     def _compute_baseline_record(
         self,
         input_ids,
-        image_tensor,
-        image_sizes,
+        pixel_values,
         dataset,
         line: Dict[str, Any],
         logprob_normalize: bool = True,
         score_options: bool = True,
     ) -> Dict[str, Any]:
         inps = {
-            "inputs": input_ids,
-            "images": image_tensor,
-            "image_sizes": image_sizes,
+            "input_ids": input_ids,
+            "pixel_values": pixel_values,
             "do_sample": False,
             "num_beams": 1,
             "max_new_tokens": 1,
@@ -436,8 +414,7 @@ class FeatureAblator:
                 self.model,
                 dataset.tokenizer,
                 input_ids,
-                image_tensor,
-                image_sizes,
+                pixel_values,
                 true_option,
                 normalize=logprob_normalize,
             )
@@ -445,8 +422,7 @@ class FeatureAblator:
                 self.model,
                 dataset.tokenizer,
                 input_ids,
-                image_tensor,
-                image_sizes,
+                pixel_values,
                 false_option,
                 normalize=logprob_normalize,
             )
@@ -540,34 +516,34 @@ class FeatureAblator:
         self,
         position_type: str,
         input_ids,
-        image_tensor,
-        image_sizes,
+        image_token_count: int,
         dataset,
         line,
     ) -> Optional[List[int]]:
         if position_type in (None, "all"):
             return None
 
+        seq_len = input_ids.shape[-1]
+
+        if position_type == "image":
+            return list(range(0, min(image_token_count, seq_len)))
+
+        if position_type == "last":
+            return [seq_len - 1]
+
         question_text = dataset.dataset_dict[line["q_id"]].get("question", "")
-        image_token_count = estimate_image_token_count(
-            self.model, input_ids, image_tensor, image_sizes
-        )
         question_range = token_utils.get_question_token_range(
-            input_ids[0],
-            image_token_count,
+            input_ids[0] if input_ids.dim() > 1 else input_ids,
+            image_token_count=1,
             question_text=question_text,
             tokenizer=dataset.tokenizer,
-            image_token_index=IMAGE_TOKEN_INDEX,
+            image_token_index=None,
         )
         if not question_range:
             return []
 
         if position_type == "question":
             return question_range
-
-        if position_type == "last":
-            ntoks = input_ids.shape[-1] + image_token_count - 1
-            return [max(0, ntoks - 1)]
 
         if position_type == "attribute":
             attr_positions = []
@@ -580,14 +556,6 @@ class FeatureAblator:
             positions = [start + pos for pos in attr_positions]
             positions = [pos for pos in positions if start <= pos <= end]
             return sorted(set(positions))
-
-        if position_type == "image":
-            ids_list = input_ids[0].tolist() if input_ids.dim() > 1 else input_ids.tolist()
-            try:
-                img_placeholder_idx = ids_list.index(IMAGE_TOKEN_INDEX)
-            except ValueError:
-                return []
-            return list(range(img_placeholder_idx, img_placeholder_idx + image_token_count))
 
         return question_range
 
@@ -607,4 +575,3 @@ class FeatureAblator:
         if not token_ids:
             return None
         return token_ids[0]
-
