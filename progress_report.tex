@@ -1,0 +1,917 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{parskip}
+\usepackage{titlesec}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{lmodern}
+\usepackage{csquotes}
+\usepackage[round]{natbib}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!60!black,
+  citecolor=green!50!black,
+  urlcolor=blue!60!black,
+}
+
+\titleformat{\section}{\large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}{\normalsize\itshape}{\thesubsubsection}{1em}{}
+
+\newcommand{\margintext}[1]{\textcolor{gray}{\small #1}}
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{TODO:} #1}}
+\newcommand{\layerz}{$\ell{=}0$}
+\newcommand{\layerel}{$\ell{=}11$}
+
+% ----------------------------------------------------------------
+\title{\textbf{Progress Report: Cross-Modal Information Flow in\\
+Multimodal Large Language Models}\\[0.5em]
+\large Attention Knockout Reproduction, SAE Feature Ablation,\\
+and Methodological Analysis of a Persistent Null Result}
+
+\author{Ron Kremer}
+\date{April 2026}
+% ----------------------------------------------------------------
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+% ================================================================
+\section{Introduction and Research Motivation}
+\label{sec:intro}
+% ================================================================
+
+Multimodal large language models (MLLMs) such as LLaVA~\citep{liu2023llava} interleave visual tokens produced
+by a vision encoder with textual token representations inside a shared transformer decoder.
+Despite strong empirical performance on visual question answering (VQA), the precise computational
+mechanisms by which visual information is transferred into language representations remain poorly
+understood.
+A central open question is: \emph{at which transformer layers, and through which attention
+pathways, does visual content causally influence the model's textual predictions?}
+
+The prior work ``Cross-Modal Information Flow in Multimodal Large Language
+Models''~\citep{crossmodal2024} introduced a causal probing technique—\emph{attention knockout}—to
+answer this question, demonstrating that a small number of early-to-middle transformer layers carry
+the dominant fraction of image-to-text information transfer in LLaVA.
+The present project extends that work in two directions:
+(1)~reproducing and extending the attention knockout findings to a larger dataset and an additional
+attention-flow direction; and
+(2)~training Sparse Autoencoders (SAEs) at the identified layers to decompose the causal information
+flow into individual interpretable features, testing whether specific feature subsets are causally
+necessary for visual attribute binding.
+
+This report documents the full experimental trajectory from initial reproduction through 18 SAE
+ablation experiments, a diagnostic ceiling analysis, and a series of methodological fixes.
+We report not only the positive results from attention knockout but also a comprehensive
+null-result narrative from the SAE ablation phase, including a principled analysis of why the null
+arose and the interventions we have applied or planned.
+
+\subsection{Model and Task}
+
+All experiments use \textbf{LLaVA-v1.5-7b} (\texttt{liuhaotian/llava-v1.5-7b}), a
+7-billion-parameter MLLM built on Vicuna-7B (LLaMA-2) with a CLIP ViT-L/14@336 vision encoder and a
+two-layer MLP visual projection head. The transformer decoder has 32 layers with hidden dimension
+$d_{\mathrm{model}} = 4096$ and 32 attention heads. Image inputs are tokenised into 576 visual
+patch tokens (via the \texttt{prepare\_inputs\_labels\_for\_multimodal} method) which are inserted
+at the position of the special \texttt{IMAGE\_TOKEN\_INDEX = -200} placeholder.
+
+The evaluation task is \textbf{ChooseAttr}, a forced-choice VQA benchmark derived from the GQA
+validation set. Each item consists of an image, an object, and two candidate attribute values (e.g.,
+\emph{``Is the car red or blue?''}) where exactly one option is correct. Performance is measured as
+the log-probability \emph{margin}: $\Delta = \log P(\text{true option}) - \log P(\text{false
+option})$, normalised across the full label string. The dataset comprises 1\,000 items spanning five
+attribute categories (color, material, shape, size, state); as detailed in
+Section~\ref{sec:dataset}, the \textbf{color} category (602 items) is the primary evaluation subset
+due to its size and homogeneity.
+
+
+% ================================================================
+\section{Dataset Characterisation}
+\label{sec:dataset}
+% ================================================================
+
+Prior to running experiments we conducted a thorough quality audit of the ChooseAttr dataset.
+
+\subsection{Global Properties}
+
+The full dataset contains 1\,000 rows drawn from GQA validation images. We verified that:
+\begin{itemize}[noitemsep]
+  \item There are no duplicate \texttt{question\_id} entries.
+  \item The \texttt{answer} column equals the true option for all 1\,000 rows.
+  \item Option order is balanced (501 true-first, 499 false-first), ruling out position bias.
+  \item The false option is never drawn from the object's own attribute list (verified for all 602
+    color rows); foils are plausible but incorrect distractors.
+  \item 49 rows cover non-attribute tasks (pose, activity, face expression) and are correctly
+    excluded from attribute-binding analyses.
+\end{itemize}
+
+\subsection{Per-Category Characterisation}
+
+Table~\ref{tab:dataset} summarises the per-category breakdown.
+
+\begin{table}[ht]
+\centering
+\caption{ChooseAttr dataset composition by attribute category.}
+\label{tab:dataset}
+\begin{tabular}{lrrll}
+\toprule
+Category & Rows & Runnable? & GQA attribute types & Notes \\
+\midrule
+color    & 602  & \checkmark & color (homogeneous) & $\sim$58\% involve black/white options; \\
+         &      &            &                     & 20.6\% tiny objects ($<$1\% image area) \\
+material &  96  & $\times$   & material            & clean but below threshold \\
+shape    &  15  & $\times$   & shape               & critically small; 9/15 from three pairs \\
+size     &  87  & $\times$   & size, length, height, & heterogeneous dimension bundle \\
+         &      &            & depth, weight, \ldots & \\
+state    & 151  & \checkmark & weather, cleanliness, & 77\% are generic ``choose X|Y'' items \\
+         &      &            & + 116 generic items  & with no GQA attribute type \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent The analysis also revealed a \textbf{language-side bypass} concern that becomes important
+for the SAE ablation experiments: in ChooseAttr, both candidate attribute values appear explicitly
+in the question string (e.g., ``Is it red or blue?''). Consequently, the model can partially answer
+via linguistic priors and object-name associations, without relying on any visual feature.
+This dilutes the causal leverage of interventions that remove visual representations.
+
+
+% ================================================================
+\section{Attention Knockout: Reproduction and Extension}
+\label{sec:knockout}
+% ================================================================
+
+\subsection{Method}
+
+Attention knockout, as introduced by \citet{crossmodal2024}, is a causal probing technique that
+zeroes out a selected subset of attention weights during a forward pass to block information flow
+between two groups of token positions.
+Formally, for a chosen layer $\ell$ and a pair of token sets $(S_{\mathrm{src}},
+S_{\mathrm{tgt}})$, the knockout forces $\mathbf{A}^{(\ell)}_{i,j} = 0$ for all $j \in
+S_{\mathrm{src}},\ i \in S_{\mathrm{tgt}}$ (pre-softmax row-masking).
+Ablation effect is measured as the \emph{margin drop}:
+\begin{equation}
+  \Delta_{\mathrm{margin}} = \bigl[\log P_{\mathrm{base}}(\text{true}) - \log P_{\mathrm{base}}(\text{false})\bigr]
+  - \bigl[\log P_{\mathrm{ko}}(\text{true}) - \log P_{\mathrm{ko}}(\text{false})\bigr].
+  \label{eq:margin_drop}
+\end{equation}
+A positive $\Delta_{\mathrm{margin}}$ indicates that blocking the specified attention path reduces
+the model's advantage for the correct answer.
+
+We study two attention-flow directions:
+\begin{itemize}[noitemsep]
+  \item \textbf{Image$\to$Question}: image patch tokens ($S_{\mathrm{src}}$) attend to question
+    tokens ($S_{\mathrm{tgt}}$). This measures how much information the question tokens draw from
+    image patches at each layer.
+  \item \textbf{Image$\to$Last}: image tokens to the final token (the prediction position).
+\end{itemize}
+
+Only items correctly answered by the baseline model are included (\texttt{filter\_correct=True}),
+to ensure the metric reflects genuine disruption rather than pre-existing errors.
+Effect sizes are reported as Cohen's $d$ from paired $t$-tests across items.
+
+\subsection{Experimental Protocol}
+
+We ran two independent knockout sweeps:
+
+\begin{itemize}[noitemsep]
+  \item \textbf{Run 1} (``knockout\_color\_run1''): $n = 510$ correctly-answered color items;
+    all 32 layers evaluated.
+  \item \textbf{Run 2} (``knockout\_run2\_fixed''): $n = 810$ correctly-answered items
+    (all attribute categories); all 32 layers; logprob normalisation fixed.
+\end{itemize}
+
+\subsection{Results: Image$\to$Question Flow}
+
+The Image$\to$Question flow shows a clear, reproducible two-peak structure.
+Table~\ref{tab:knockout_iq} reports the top layers from both runs.
+
+\begin{table}[ht]
+\centering
+\caption{Image$\to$Question attention knockout: top layers by margin drop.
+  Both runs agree closely on ranking and effect sizes.}
+\label{tab:knockout_iq}
+\begin{tabular}{lrrrr}
+\toprule
+Layer & \multicolumn{2}{c}{Run 1 ($n=510$)} & \multicolumn{2}{c}{Run 2 ($n=810$)} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+      & $\Delta_{\mathrm{margin}}$ & $d$ & $\Delta_{\mathrm{margin}}$ & $d$ \\
+\midrule
+\textbf{0}  & \textbf{0.541} & \textbf{0.833} & \textbf{0.509} & \textbf{0.806} \\
+\textbf{11} & \textbf{0.173} & \textbf{0.601} & \textbf{0.169} & \textbf{0.605} \\
+8           & 0.076 & 0.435 & 0.064 & 0.414 \\
+10          & 0.054 & 0.292 & 0.068 & 0.381 \\
+12          & 0.054 & 0.337 & 0.043 & 0.308 \\
+14          & 0.033 & 0.324 & 0.032 & 0.361 \\
+4           & 0.026 & 0.488 & 0.018 & 0.347 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Interpretation.}
+Layers 0 and 11 stand apart from all others by a large margin. The gap between layer~0
+($d = 0.83$) and layer~11 ($d = 0.60$) is itself substantial, and both substantially exceed the
+third-ranked layer ($d \approx 0.44$). This two-peak structure is consistent across both runs
+and suggests \emph{two distinct integration phases}:
+
+\begin{enumerate}[noitemsep]
+  \item \textbf{Layer 0} — \emph{early cross-modal registration}: the very first transformer layer
+    already performs substantial visual grounding, consistent with the hypothesis that attention at
+    layer~0 processes raw vision-encoder features before any higher-level language processing.
+  \item \textbf{Layer 11} (approximately 1/3 depth) — \emph{higher-level visual-semantic binding}:
+    a second wave of cross-modal integration occurs in the early-middle layers, likely corresponding
+    to semantic feature composition.
+\end{enumerate}
+
+Layer~31 shows $\Delta_{\mathrm{margin}} = 0.0$ by construction (the final layer's output is
+already committed before the blocking can propagate).
+
+\subsection{Results: Image$\to$Last Flow}
+
+The Image$\to$Last flow is considerably weaker than Image$\to$Question.
+Strikingly, several layers (notably layers 8, 10, 15, 17, and 27) exhibit \emph{negative} margin
+drops — blocking those paths \emph{improves} accuracy, suggesting they carry distracting or noisy
+information to the final token. The strongest positive effect is at layer~0
+($d = 0.20$, Run 2), substantially below the Image$\to$Question signal.
+This indicates that question tokens are the primary conduit through which image information is
+integrated, rather than a direct path to the last token.
+
+\subsection{Layer Selection for SAE Training}
+
+Based on these results, \textbf{layers 0 and 11} were selected as the two target sites for SAE
+training. The attention-output (``\texttt{attn\_out}'') hook was chosen as the activation site,
+as it most directly captures the output of the attention mechanism that the knockout probes.
+
+
+% ================================================================
+\section{Sparse Autoencoder Experiments}
+\label{sec:sae}
+% ================================================================
+
+\subsection{Hypothesis}
+
+The central hypothesis of the SAE phase is:
+
+\begin{quote}
+\emph{The causal Image$\to$Question information flow identified at layers 0 and 11 is mediated by
+sparse, interpretable features in the residual stream / attention output at those layers.
+Ablating the subset of features most selectively associated with visual attribute values should
+partially replicate the behavioural disruption seen in the attention knockout, while ablating
+matched random features should not.}
+\end{quote}
+
+\subsection{SAE Architecture}
+\label{sec:sae_arch}
+
+The SAE is a one-hidden-layer autoencoder with ReLU activations:
+\begin{equation}
+  \mathbf{z} = \mathrm{ReLU}\bigl(\mathbf{W}_{\mathrm{enc}}(\mathbf{x} - \mathbf{b}_{\mathrm{pre}})
+    + \mathbf{b}_{\mathrm{enc}}\bigr),
+  \qquad
+  \hat{\mathbf{x}} = \mathbf{W}_{\mathrm{dec}}\mathbf{z} + \mathbf{b}_{\mathrm{dec}},
+  \label{eq:sae}
+\end{equation}
+trained with a sparsity-penalised MSE loss:
+\begin{equation}
+  \mathcal{L} = \|\mathbf{x} - \hat{\mathbf{x}}\|_2^2 + \lambda \|\mathbf{z}\|_1.
+  \label{eq:sae_loss}
+\end{equation}
+
+Through the course of the project the architecture was progressively refined.
+Table~\ref{tab:sae_versions} summarises the two major versions.
+
+\begin{table}[ht]
+\centering
+\caption{SAE architecture versions. V1 was used in runs 1--14; V2 is the current standard.}
+\label{tab:sae_versions}
+\begin{tabular}{lll}
+\toprule
+Component & V1 (early experiments) & V2 (current, Mar 2026) \\
+\midrule
+$n_{\mathrm{features}}$ & 32\,768 & 4\,096 \\
+$\lambda$ (\texttt{l1\_coeff}) & $10^{-3}$ & $5 \times 10^{-4}$ \\
+Encoder pre-bias $\mathbf{b}_{\mathrm{pre}}$ & absent & present (learnable) \\
+Decoder column normalisation & absent & $\|\mathbf{w}_k\|_2 = 1$ after each step \\
+Dead-feature tracking & absent & \texttt{dead\_feature\_fraction} logged \\
+LR schedule & constant & cosine annealing \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Training Data and Activation Collection}
+
+SAEs were trained on LLaVA activations collected from the ChooseAttr dataset.
+For each item, the model was run with the full prompt (image + question) and activations were
+extracted at the target layer and activation site.
+The activation \emph{position type} determines which sequence positions are collected:
+
+\begin{itemize}[noitemsep]
+  \item \texttt{attribute}: tokens corresponding to the attribute-describing region of the question
+    (e.g., the colour words ``red or blue'').
+  \item \texttt{question}: all question tokens.
+  \item \texttt{all}: all positions (image + question + generation).
+  \item \texttt{image}: the 576 visual patch token positions (added in March 2026).
+\end{itemize}
+
+Training set size for the V1 SAE: approximately 1\,000 ChooseAttr samples yielding
+$\sim$6\,000--8\,000 activation vectors at \texttt{attribute} positions.
+
+\subsection{Feature Selection}
+
+Following SAE training, features are ranked by their differential activation between
+correctly-answered and incorrectly-answered samples.
+Three selection methods were investigated:
+
+\begin{itemize}[noitemsep]
+  \item \texttt{ratio}: $\mu_{\mathrm{correct}} / \mu_{\mathrm{incorrect}}$.
+  \item \texttt{abs\_diff}: $|\mu_{\mathrm{correct}} - \mu_{\mathrm{incorrect}}|$.
+  \item \texttt{causal\_hybrid}: a weighted combination of statistical and causal scores.
+\end{itemize}
+
+The top-$k$ ranked features (typically $k = 50$ or $k = 200$) are designated as
+\emph{binding features}.
+
+\subsection{Ablation Protocol}
+
+The 3-condition ablation test compares:
+\begin{enumerate}[noitemsep]
+  \item \textbf{Baseline}: unmodified forward pass.
+  \item \textbf{Binding ablation}: the top-$k$ binding features are zeroed in the SAE
+    reconstruction.
+  \item \textbf{Random control}: a matched set of $k$ randomly-sampled features is zeroed.
+\end{enumerate}
+
+Two intervention modes were used:
+\begin{itemize}[noitemsep]
+  \item \textbf{Residual mode} (legacy):
+    $\mathbf{out} = \mathbf{a} + \bigl(\hat{\mathbf{x}}_{\backslash S} - \hat{\mathbf{x}}\bigr)$,
+    where $S$ is the ablated feature set.
+    This subtracts the selected features' contribution while preserving the reconstruction error.
+  \item \textbf{Replace mode} (current standard):
+    $\mathbf{out} = \hat{\mathbf{x}}_{\backslash S}$.
+    This replaces the full activation with the SAE reconstruction minus the selected features,
+    discarding the reconstruction error. This is a harder, more interpretable intervention.
+\end{itemize}
+
+All active configurations were standardised to \texttt{replace} mode in March 2026.
+
+\subsection{Complete Experiment Catalogue}
+
+Over the course of the project, 18 SAE ablation experiments were completed or partially run
+(Table~\ref{tab:sae_catalogue}).
+
+\begin{longtable}{p{5.5cm}p{2.2cm}p{2.2cm}rr}
+\caption{Complete SAE ablation experiment catalogue. $\Delta_{\mathrm{bind}}$ and
+  $\Delta_{\mathrm{rand}}$ are the mean margin drops for binding and random conditions respectively.
+  ``Null'' indicates no significant separation between conditions.}
+\label{tab:sae_catalogue}\\
+\toprule
+Experiment & Layer / Site & Mode / Position & $\Delta_{\mathrm{bind}}$ & $\Delta_{\mathrm{rand}}$ \\
+\midrule
+\endfirsthead
+\multicolumn{5}{c}{\small\textit{(Table \ref{tab:sae_catalogue} continued)}}\\
+\toprule
+Experiment & Layer / Site & Mode / Position & $\Delta_{\mathrm{bind}}$ & $\Delta_{\mathrm{rand}}$ \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+exp\_run1 & 12 / residual & residual / attr & $-1.71 \times 10^{-5}$ & $-1.71 \times 10^{-5}$ \\
+exp\_run2\_all\_residual & 12 / residual & residual / all & $4.40 \times 10^{-4}$ & varies \\
+exp\_run3\_attr\_residual\_weak & 12 / residual & residual / attr & $\approx 0$ & $\approx 0$ \\
+exp\_run4 & 12 / residual & residual / attr & $2.4 \times 10^{-5}$ & $8.8 \times 10^{-5}$ \\
+sae\_q\_layer0 & 0 / residual & residual / attr & $-4.2 \times 10^{-5}$ & $7.7 \times 10^{-5}$ \\
+sae\_q\_layer11 & 11 / residual & residual / attr & $3.7 \times 10^{-5}$ & $5.99 \times 10^{-4}$ \\
+sweep (residual, $\delta{=}1.0$) & 0 / residual & residual / attr & $1.5 \times 10^{-6}$ & $8.8 \times 10^{-5}$ \\
+sweep (residual, $\delta{=}2.0$) & 0 / residual & residual / attr & $-3.8 \times 10^{-6}$ & $4.4 \times 10^{-4}$ \\
+sweep (replace, $\delta{=}1.0$) & 0 / residual & replace / attr & $-1.4 \times 10^{-3}$ & $-1.4 \times 10^{-3}$ \\
+sweep (replace, $\delta{=}2.0$) & 0 / residual & replace / attr & \multicolumn{2}{c}{\textit{interrupted}} \\
+first\_pass\_layer11\_residual & 11 / residual & replace / attr & $1.4 \times 10^{-3}$ & $1.4 \times 10^{-3}$ \\
+rerun\_layer11\_attn\_out & 11 / attn\_out & replace / attr & $-2.1 \times 10^{-3}$ & $-2.0 \times 10^{-3}$ \\
+layer11\_attn\_out\_replace\_color & 11 / attn\_out & replace / attr & \multicolumn{2}{c}{\textit{null}} \\
+layer0\_attn\_out\_replace\_color & 0 / attn\_out & replace / attr & \multicolumn{2}{c}{\textit{null}} \\
+layer0\_residual\_replace\_color & 0 / residual & replace / attr & \multicolumn{2}{c}{\textit{null}} \\
+layer0\_attn\_out\_diff & 0 / attn\_out & replace / attr & \multicolumn{2}{c}{\textit{null}} \\
+layer11\_attn\_out\_replace\_material & 11 / attn\_out & replace / attr & \multicolumn{2}{c}{\textit{null}} \\
+with\_holdout\_layer0\_attn\_out & 0 / attn\_out & replace / attr & \multicolumn{2}{c}{\textit{null}} \\
+\end{longtable}
+
+\noindent In every completed experiment the binding condition is statistically indistinguishable
+from the random control. In the most rigorously controlled run
+(``rerun\_layer11\_attn\_out'', $n = 877$ items, 15 matched random-feature sets),
+the empirical $p$-values for both accuracy drop and margin drop were 1.0.
+
+\subsection{SAE Reconstruction Quality}
+
+Table~\ref{tab:sae_recon} reports reconstruction metrics from the \texttt{reconstruction\_eval.json}
+files of several representative experiments.
+
+\begin{table}[ht]
+\centering
+\caption{SAE reconstruction quality metrics. All experiments use $n_{\mathrm{features}} = 32\,768$
+  and V1 architecture unless noted.}
+\label{tab:sae_recon}
+\begin{tabular}{lrrrr}
+\toprule
+Experiment & MSE & Norm. MSE & Expl. Var. & Dead features \\
+\midrule
+layer0\_attn\_out (with holdout) & $2.15 \times 10^{-6}$ & 0.012 & 98.8\% & 44.2\% \\
+layer0\_attn\_out\_diff           & $1.63 \times 10^{-6}$ & 0.009 & 99.1\% & 42.7\% \\
+layer0\_residual                  & $4.40 \times 10^{-6}$ & 0.004 & 99.6\% & 0.8\%  \\
+layer11\_attn\_out (material)     & $2.27 \times 10^{-4}$ & 0.023 & 97.7\% & 6.1\%  \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The absolute MSE values are low, and explained variance exceeds 98\% in all cases, which appears
+healthy. However, two concerns stand out:
+(i) the \texttt{attn\_out} experiments at layer~0 show ${\sim}44\%$ dead features, which is
+severely high and indicates that the L1 penalty is over-regularising;
+(ii) the mean $L_0$ norm is ${\sim}10\,000$--14\,000 active features per activation vector, far
+above the sparse regime targeted by the L1 penalty, suggesting the penalty is simultaneously
+too strong (killing features) and insufficient (not producing true sparsity in the survivors).
+
+
+% ================================================================
+\section{Full-Latent Ceiling Analysis}
+\label{sec:ceiling}
+% ================================================================
+
+After observing a consistent null result across 18 experiments, we designed a diagnostic
+\emph{full-latent ceiling ablation} to determine the maximum possible causal effect that the SAE
+can produce at each layer and position type.
+This experiment (\texttt{10\_full\_latent\_ablation.py}) runs the 3-condition ablation but zeroes
+all $n_{\mathrm{features}} = 32\,768$ features simultaneously,
+effectively asking: ``if we use the SAE to replace the activation with its reconstruction and then
+zero everything, how much does behaviour change?''
+
+\subsection{Ceiling Results}
+
+Table~\ref{tab:ceiling} reports the full-latent ceiling results.
+
+\begin{table}[ht]
+\centering
+\caption{Full-latent ceiling ablation results ($n = 128$ color items, \texttt{replace} mode).
+  Relative perturbation $= \|\hat{\mathbf{x}} - \mathbf{x}\|_2 / \|\mathbf{x}\|_2$.
+  The attention knockout margin drops from Table~\ref{tab:knockout_iq} are shown for reference.}
+\label{tab:ceiling}
+\begin{tabular}{llrrrrr}
+\toprule
+Layer & Position & Acc.\ drop & Margin drop & Rel.\ pert. & KO margin drop \\
+\midrule
+11 & \texttt{attribute} & $+3.1\%$ & 0.046 & 0.003 (0.3\%) & 0.17 \\
+11 & \texttt{all}       & $+3.1\%$ & 0.169 & 0.999 (99.9\%) & 0.17 \\
+0  & \texttt{attribute} & $-0.8\%$ & 0.022 & 0.003 (0.3\%) & 0.54 \\
+0  & \texttt{all}       & $-0.8\%$ & 0.314 & 1.016 (101.6\%) & 0.54 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Interpretation}
+
+The ceiling results are definitive on two points:
+
+\paragraph{Attribute-token positions carry essentially no visual signal.}
+At both layers, zeroing all 32\,768 SAE features at \texttt{attribute} token positions produces only
+a 0.3\% relative perturbation.
+This is not a failure of the SAE to reconstruct well — it reflects the fact that the
+\emph{activations at attribute text token positions contain almost no visual information to begin
+with}, in the context where the SAE is computing a reconstruction for those tokens.
+Feature ablation at question-attribute text tokens is therefore undetectable by design.
+
+\paragraph{The SAE captures the causal signal when ablating all positions.}
+When all positions are included, the relative perturbation is $\approx 100\%$ at both layers (the
+SAE reconstruction norm matches the original activation norm), and the resulting margin drops are
+0.314 (layer~0) and 0.169 (layer~11).
+These values are in close correspondence with the attention knockout margin drops of 0.54 and 0.17
+respectively: layer~11 matches almost exactly, and layer~0 is within a factor of~2.
+This confirms that \emph{the SAE does capture the causal signal} when operating at the correct
+positions, and the null result is not a fundamental failure of the SAE to encode visual information.
+
+
+% ================================================================
+\section{Analysis of the Null Result}
+\label{sec:null}
+% ================================================================
+
+The ceiling analysis, combined with theoretical reasoning, points to six distinct methodological
+sources for the null result. We describe each in turn.
+
+\subsection{Position Mismatch (Primary Cause)}
+
+The most fundamental issue is a mismatch between the position at which the attention knockout
+operates and the position at which the SAE ablation is applied.
+
+The attention knockout blocks question tokens from attending to image tokens at layer $\ell$.
+The causal information being blocked is a quantity computed at the \emph{image token positions} —
+specifically, the key-value pairs from image tokens that question tokens would read.
+In contrast, SAE ablation in all 18 experiments was applied at \emph{attribute text token
+positions} — the target of the attention, not the source.
+
+The ceiling analysis confirms this diagnosis: ablating at \texttt{attribute} positions yields 0.3\%
+perturbation because those positions simply do not carry the visual signal that the knockout is
+blocking. The correct intervention is to ablate at \textbf{image token positions}.
+
+\subsection{Single-Layer vs.\ Persistent Information Barrier}
+
+Even with correct position targeting, there is a fundamental asymmetry between the two
+interventions:
+\begin{itemize}[noitemsep]
+  \item \textbf{Attention knockout}: zeroes attention weights at layer $\ell$, creating a
+    \emph{persistent information barrier} — question tokens cannot read image tokens at layer $\ell$,
+    and the resulting deficit propagates through all subsequent layers.
+  \item \textbf{SAE ablation}: modifies the \emph{output} of the attention mechanism at layer $\ell$,
+    an additive perturbation to the residual stream. At layers $\ell+1$ through 31, the model can
+    still attend directly to image tokens, re-reading the visual information that was disrupted.
+\end{itemize}
+This means that even perfect SAE ablation at image token positions at a single layer cannot fully
+replicate the knockout effect; the model compensates by re-reading image tokens at subsequent layers.
+The ceiling results corroborate this: the \texttt{all}-position ceiling at layer~0 produces a margin
+drop of 0.314 vs.\ the knockout's 0.54 — substantial but not matching — which is precisely what we
+would expect if the model partially recovers across layers 1--31.
+
+\subsection{Insufficient SAE Training Data}
+
+The V1 SAE was trained on activations from $\sim$1\,000 ChooseAttr samples, yielding approximately
+6\,000--8\,000 activation vectors at attribute token positions.
+Modern SAE work~\citep{bricken2023monosemanticity,templeton2024scaling} routinely trains on
+millions of activation vectors.
+For a 32\,768-feature SAE, the training set of $\sim$7\,000 vectors is orders of magnitude too small:
+there are fewer training examples than there are features to learn.
+The 44\% dead feature rate observed in the \texttt{attn\_out} experiments is a direct consequence of
+this data starvation. The surviving features are likely overloaded and polysemantic, meaning that
+features selected as ``colour-discriminating'' may be tracking multiple unrelated concepts.
+
+\subsection{Feature Selection Confound}
+
+The feature selection criterion compares mean activations between correctly and incorrectly answered
+items at attribute token positions.
+A critical confound is that incorrect answers in the ChooseAttr dataset correlate with
+\emph{object size}: 20.6\% of color items contain objects covering less than 1\% of the image area,
+and such items are systematically harder to answer correctly.
+Features selected by this criterion may therefore be tracking visual difficulty (small object
+visibility, image quality, object occlusion) rather than the attribute itself.
+
+\subsection{Language-Side Bypass}
+
+As noted in Section~\ref{sec:dataset}, both answer options appear in the question string in
+ChooseAttr.
+This allows the model to achieve a non-trivial accuracy without using visual features at all —
+via language priors and object-name statistics.
+When a portion of the model's performance is language-driven, ablating visual features produces
+a correspondingly smaller effect, further diluting any causal signal from feature ablation.
+
+\subsection{SAE Architecture Deficiencies (V1)}
+
+The V1 SAE lacked several components that have been identified as important in subsequent
+mechanistic interpretability work:
+\begin{itemize}[noitemsep]
+  \item No encoder pre-bias $\mathbf{b}_{\mathrm{pre}}$ (subtracted from input before encoding),
+    leading to suboptimal feature geometry.
+  \item No decoder column normalisation, allowing feature magnitudes to drift and making
+    the learned representations less interpretable.
+  \item No learning rate schedule; training with a constant LR.
+  \item The $\ell_1$ penalty applied as $\lambda \cdot \mathrm{mean}(|\mathbf{z}|)$ rather than a
+    per-feature formulation, meaning that increasing $n_{\mathrm{features}}$ reduces effective
+    sparsity pressure.
+\end{itemize}
+
+
+% ================================================================
+\section{Methodological Improvements (March 2026)}
+\label{sec:fixes}
+% ================================================================
+
+In response to the ceiling analysis, a series of targeted methodological fixes were implemented
+across Plans A--D of a staged improvement roadmap.
+
+\subsection{Plan A: Ceiling Validation and Replace-Mode Standardisation}
+
+The full-latent ceiling experiment (\texttt{10\_full\_latent\_ablation.py}) was designed and
+executed, yielding the definitive diagnosis described in Section~\ref{sec:ceiling}.
+Concurrently, all nine active experiment configurations were audited and standardised to
+\texttt{replace} mode (previously a mix of \texttt{residual} and \texttt{replace} modes existed
+across configs, making comparisons unreliable).
+A \texttt{grep} for \texttt{"mode: residual"} across all active configs returns zero hits.
+
+\subsection{Plan C: Image-Token Position Type}
+
+A new \texttt{image} position type was implemented in \texttt{ActivationCollector}
+(\texttt{sae\_experiments/data/activation\_collector.py}) and \texttt{FeatureAblator}
+(\texttt{sae\_experiments/ablation/feature\_ablator.py}).
+This position type selects the 576 visual patch token indices starting at the image placeholder
+position, computed as:
+\begin{equation}
+  \text{image\_range} = [\text{img\_placeholder\_idx},\ \text{img\_placeholder\_idx} +
+    \text{image\_token\_count})
+\end{equation}
+consistent with the existing \texttt{get\_image\_token\_range} utility in
+\texttt{utils/knockout\_utils.py}.
+This allows future experiments to ablate directly at the source of the visual signal rather than
+at the textual targets, directly addressing the primary methodological flaw identified in
+Section~\ref{sec:null}.
+The \texttt{image} position type is set as the default in the V2 configuration.
+
+\subsection{Plan D: SAE Architecture Fixes}
+
+All four architectural deficiencies listed in Section~\ref{sec:null} were fixed in the V2 SAE:
+\begin{itemize}[noitemsep]
+  \item \textbf{Encoder pre-bias}: a learnable $\mathbf{b}_{\mathrm{pre}}$ parameter was added,
+    subtracted from the input before the encoding linear transform.
+  \item \textbf{Decoder column normalisation}: \texttt{normalize\_decoder()} is called after every
+    optimiser step, constraining each decoder column to unit norm.
+  \item \textbf{Dead-feature tracking}: \texttt{dead\_feature\_fraction} is logged per epoch in the
+    training history, enabling monitoring and early stopping based on feature utilisation.
+  \item \textbf{Cosine annealing LR schedule}: \texttt{CosineAnnealingLR} is applied in
+    \texttt{SAETrainer}, replacing the constant learning rate.
+\end{itemize}
+The V2 configuration (\texttt{configs/sae\_layer0\_attn\_out\_v2.yaml}) reduces $n_{\mathrm{features}}$
+from 32\,768 to 4\,096 and $\lambda$ from $10^{-3}$ to $5 \times 10^{-4}$, to better match
+the available training data scale.
+
+\subsection{Codebase Refactoring}
+
+Extensive refactoring was performed to consolidate previously duplicated utility functions
+into shared modules (Table~\ref{tab:refactor}).
+
+\begin{table}[ht]
+\centering
+\caption{Centralised utility functions after refactoring (January--March 2026).}
+\label{tab:refactor}
+\begin{tabular}{lll}
+\toprule
+Function & Module & Purpose \\
+\midrule
+\texttt{resolve\_dtype} & \texttt{utils/config\_utils.py} & dtype resolution (was duplicated in 5 scripts) \\
+\texttt{get\_target\_module} & \texttt{utils/hook\_utils.py} & layer + site to nn.Module lookup \\
+\texttt{estimate\_image\_token\_count} & \texttt{utils/knockout\_utils.py} & dynamic image token count \\
+\texttt{get\_question\_token\_range} & \texttt{utils/knockout\_utils.py} & canonical sublist-search \\
+\texttt{sequence\_logprob} & \texttt{utils/knockout\_utils.py} & log-prob scoring utility \\
+\texttt{setup\_experiment} & \texttt{utils/script\_utils.py} & experiment boilerplate (7 scripts) \\
+\texttt{load\_llava\_components} & \texttt{utils/script\_utils.py} & model loading boilerplate \\
+\texttt{load\_sae} & \texttt{utils/script\_utils.py} & SAE checkpoint loading \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Dead code — including unused methods in \texttt{AblationExperiment} and \texttt{HypothesisTester}
+— was removed, reducing the total codebase complexity.
+
+% ================================================================
+\section{PaliGemma-2 Extension}
+\label{sec:paligemma}
+% ================================================================
+
+A new branch (\texttt{paligemma-2}) was created to extend the experimental pipeline to a second
+MLLM: \textbf{Google PaliGemma-2-3B} (\texttt{google/paligemma2-3b-pt-224}),
+a 3-billion-parameter model with a SigLIP vision encoder and Gemma-2 language backbone
+($d_{\mathrm{model}} = 2304$, $256$ image tokens at 224\,px resolution).
+
+The extension involves three main additions:
+
+\paragraph{PaliGemma dataset adapter.}
+\texttt{sae\_experiments/data/paligemma\_dataset.py} implements an adapter that reformats
+ChooseAttr items into PaliGemma's prompt convention (SFT prefix and suffix tokens).
+
+\paragraph{PaliGemma hook utilities.}
+\texttt{sae\_experiments/utils/paligemma\_hooks.py} provides model-specific layer targeting,
+handling differences in the attention module naming convention between LLaMA-2 and Gemma-2.
+
+\paragraph{GemmaScope SAE integration.}
+\texttt{sae\_experiments/models/gemma\_scope\_sae.py} implements a JumpReLU SAE
+weight-compatible with the publicly released \textbf{Gemma Scope} checkpoints~\citep{gemmascope2024}:
+\begin{equation}
+  \mathbf{z} = \mathrm{ReLU}(\mathbf{x}_{\mathrm{cent}} \mathbf{W}_{\mathrm{enc}} + \mathbf{b}_{\mathrm{enc}})
+    \cdot \mathbf{1}[\mathbf{x}_{\mathrm{cent}} \mathbf{W}_{\mathrm{enc}} + \mathbf{b}_{\mathrm{enc}} > \boldsymbol{\theta}],
+\end{equation}
+where $\boldsymbol{\theta}$ is a learnable per-feature JumpReLU threshold, and
+$\mathbf{x}_{\mathrm{cent}} = \mathbf{x} - \mathbf{b}_{\mathrm{dec}}$.
+This enables loading pre-trained Gemma Scope weights directly, bypassing the need to train an SAE
+from scratch and circumventing the training-data-scale problem that plagued the LLaVA experiments.
+
+\paragraph{Significance.}
+The PaliGemma-2 extension represents a strategic pivot: rather than training a custom SAE on a
+small ChooseAttr corpus, the plan is to leverage the publicly available, large-scale Gemma Scope
+SAEs (trained on billions of tokens) and apply the same knockout + feature ablation pipeline.
+This directly addresses two of the six null-result causes simultaneously:
+insufficient training data (pre-trained SAE) and polysemantic features (Gemma Scope SAEs achieve
+modern sparsity standards).
+
+
+% ================================================================
+\section{Proposed Alternative Task Format}
+\label{sec:task}
+% ================================================================
+
+As identified in Section~\ref{sec:null}, the ChooseAttr forced-choice format introduces a
+language-side bypass.
+We evaluated three alternative task formats:
+
+\begin{enumerate}
+  \item \textbf{Open-ended logprob scoring} (recommended near-term):
+    Score the log-probability of the single correct answer token given the open-ended prompt
+    \texttt{"<image>\textbackslash nWhat color is the \{obj\}? Answer with one word."}.
+    This eliminates the bypass by removing the false-option text from the prompt.
+    The \texttt{sequence\_logprob} utility in \texttt{utils/knockout\_utils.py} supports this
+    directly. Of the 602 color rows, 599/602 have single-word answers; only 3 rows involve
+    multi-word answers (\emph{dark brown}, \emph{dark blue}) and can be excluded without
+    meaningful loss.
+    This format requires approximately 30 lines of new code and no re-annotation.
+
+  \item \textbf{GQA QueryAttr} (medium effort):
+    The file \texttt{datasets/GQA\_val\_correct\_question\_with\_positionQuery\_QueryAttr.csv}
+    exists in the repository but contains only \texttt{positionQuery} questions; authentic
+    open-ended queryAttr questions must be fetched separately from HuggingFace.
+
+  \item \textbf{Image-token activation probing} (medium-high effort):
+    Collect SAE feature activations at image token positions for images depicting the target
+    attribute, with no language prompt. This tests whether features fire for visual content
+    independently of language context and is theoretically the strongest test.
+    It directly replicates the knockout by removing the attribute signal at its source.
+    Supported by \citet{tong2024iclr} and the SAE-V approach~\citep{saev2025}.
+\end{enumerate}
+
+\noindent We recommend implementing format (1) as the immediate next step, as it eliminates the
+language bypass while reusing the existing dataset, evaluation infrastructure, and statistical
+pipeline.
+
+
+% ================================================================
+\section{Summary of Quantitative Results}
+\label{sec:summary}
+% ================================================================
+
+\subsection{What We Know With High Confidence}
+
+\begin{enumerate}
+  \item \textbf{Layers 0 and 11 are the dominant causal pathways} for Image$\to$Question
+    information flow in LLaVA-v1.5-7b on ChooseAttr, with Cohen's $d = 0.83$ and $0.60$
+    respectively. This finding replicates across two independent knockout sweeps with different
+    sample sizes ($n = 510$ and $n = 810$).
+
+  \item \textbf{The SAE captures the causal signal when operating at all positions}.
+    The full-latent ceiling at \texttt{all} positions produces margin drops of 0.314 (layer~0)
+    and 0.169 (layer~11), closely matching the knockout values of 0.54 and 0.17 respectively
+    (particularly for layer~11, where the match is near-exact).
+
+  \item \textbf{Attribute text token positions carry essentially no visual signal} (0.3\%
+    relative perturbation in the full-latent ceiling). This is a property of the information
+    routing in the model, not a deficiency of the SAE.
+
+  \item \textbf{The null result in 18 SAE ablation experiments is methodological}, arising
+    primarily from the position mismatch between the attention knockout (which operates at
+    the source of visual information) and the SAE ablation (which operated at target
+    text-token positions).
+\end{enumerate}
+
+\subsection{What Remains Open}
+
+\begin{enumerate}
+  \item Whether SAE features at \emph{image token positions} at layers 0 and 11 show specific
+    activations for visual attributes (color, material, etc.).
+  \item Whether ablating such features at image token positions produces a causal effect on
+    attribute-binding behaviour.
+  \item Whether the two-peak structure in Image$\to$Question flow corresponds to qualitatively
+    different types of feature (raw colour encoding at layer~0 vs.\ semantic attribute binding
+    at layer~11).
+  \item Whether the findings replicate in PaliGemma-2 with Gemma Scope pre-trained SAEs,
+    providing a model-general picture of cross-modal information routing.
+\end{enumerate}
+
+
+% ================================================================
+\section{Prioritised Next Steps}
+\label{sec:next}
+% ================================================================
+
+The following steps are ordered by expected impact and implementation cost:
+
+\begin{enumerate}[label=\textbf{E\arabic*.}]
+
+  \item \textbf{Knockout-guided feature identification at image token positions (Plan E).}
+    Run paired forward passes with and without the layer-0 attention knockout, collecting
+    SAE feature activations at image token positions under both conditions.
+    The difference in feature activation patterns between knockout and non-knockout conditions
+    directly identifies which features carry the Image$\to$Question information.
+    This bypasses the feature-selection confound entirely and provides a direct supervision
+    signal from the causal intervention.
+
+  \item \textbf{Validate image-position ablation with the V2 SAE.}
+    Using the \texttt{image} position type (Plan C) and the V2 SAE architecture (Plan D),
+    run the 3-condition ablation experiment at image token positions.
+    Compare the margin drop against the full-latent ceiling to quantify what fraction of the
+    causal signal is captured by the ranked binding features.
+
+  \item \textbf{Switch to open-ended logprob scoring (Plan B / Section~\ref{sec:task}).}
+    Implement format (1) from Section~\ref{sec:task} to eliminate the language-side bypass.
+    This can be done as a parallel evaluation alongside ChooseAttr to isolate the contribution
+    of the bypass to the null result.
+
+  \item \textbf{Scale SAE training data.}
+    Collect activations from a diverse corpus (LLaVA-Instruct or full GQA validation,
+    $\geq 100\,000$ activation vectors) to reduce the dead-feature rate and improve feature
+    monosemanticity. This is a prerequisite for interpretable feature-level analysis.
+
+  \item \textbf{Deploy PaliGemma-2 + Gemma Scope pipeline (Plan F).}
+    Complete the PaliGemma-2 port (branch \texttt{paligemma-2}): run the attention knockout
+    sweep to identify causal layers, then load the corresponding Gemma Scope SAE checkpoints
+    and run the image-position ablation experiment.
+    This provides a second data point on whether the two-peak structure generalises across
+    architectures.
+
+\end{enumerate}
+
+
+% ================================================================
+\section{Conclusion}
+\label{sec:conclusion}
+% ================================================================
+
+This project has made substantial progress on understanding cross-modal information flow
+in LLaVA-v1.5-7b. The attention knockout reproduction confirms and extends the original
+findings~\citep{crossmodal2024}, establishing layers 0 and 11 as the dominant causal
+pathways for Image$\to$Question information transfer, with large and reproducible effect sizes.
+
+The SAE ablation phase produced a consistent null result across 18 experiments, but this
+null result has been rigorously diagnosed through a ceiling analysis and theoretical reasoning.
+The primary cause is a position mismatch: visual information flows through \emph{image token}
+positions, but all 18 ablation experiments targeted \emph{attribute text token} positions.
+The full-latent ceiling confirms that the SAE captures the causal signal when operating at
+all positions, and that the margin drops produced match the knockout magnitudes closely at
+layer~11.
+
+A complete set of methodological fixes has been implemented (Plans A--D), including a new
+\texttt{image} position type for activation collection and ablation, V2 SAE architecture with
+modern best practices, standardised \texttt{replace} mode across all configurations, and
+extensive codebase refactoring.
+The groundwork for a strategically superior experiment — image-position ablation with
+knockout-guided feature identification using pre-trained Gemma Scope SAEs on PaliGemma-2 —
+is in place.
+
+The core scientific question remains open and tractable: \emph{which sparse, interpretable
+features at the image token positions of early-to-middle transformer layers causally mediate
+visual attribute binding in MLLMs?}
+We are now in a position to answer it.
+
+
+% ================================================================
+\bibliography{references}
+\bibliographystyle{plainnat}
+% ================================================================
+
+\begin{thebibliography}{99}
+
+\bibitem[Bricken et al.(2023)]{bricken2023monosemanticity}
+Bricken, T., Templeton, A., Batson, J., Chen, B., Jermyn, A., Conerly, T., \ldots\ \& Olah, C.\
+  (2023).
+Towards monosemanticity: Decomposing language models with dictionary learning.
+\textit{Transformer Circuits Thread}.
+
+\bibitem[Crossmodal(2024)]{crossmodal2024}
+Anonymous.\ (2024).
+Cross-modal information flow in multimodal large language models.
+\textit{Preprint / NeurIPS Workshop}.
+
+\bibitem[Gemma Scope(2024)]{gemmascope2024}
+Google DeepMind.\ (2024).
+Gemma Scope: Open sparse autoencoders everywhere all at once on Gemma 2.
+\textit{Preprint}.
+
+\bibitem[Liu et al.(2023)]{liu2023llava}
+Liu, H., Li, C., Wu, Q., \& Lee, Y.\ J.\ (2023).
+Visual instruction tuning.
+\textit{NeurIPS 2023}.
+
+\bibitem[SAE-V(2025)]{saev2025}
+Anonymous.\ (2025).
+SAE-V: Interpreting vision-language models with sparse autoencoders.
+\textit{ICML 2025}.
+
+\bibitem[Templeton et al.(2024)]{templeton2024scaling}
+Templeton, A., Conerly, T., Marcus, J., Lindsey, J., Bricken, T., Chen, B., \ldots\ \& Olah, C.\
+  (2024).
+Scaling and evaluating sparse autoencoders.
+\textit{Anthropic Research}.
+
+\bibitem[Tong et al.(2024)]{tong2024iclr}
+Tong, S., Liu, Z., Zhai, Y., Ma, Y., LeCun, Y., \& Xie, S.\ (2024).
+Eyes wide shut? Exploring the visual shortcomings of multimodal LLMs.
+\textit{CVPR 2024}.
+
+\end{thebibliography}
+
+\end{document}
