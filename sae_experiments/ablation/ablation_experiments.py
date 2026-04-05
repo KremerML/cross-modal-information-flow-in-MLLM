@@ -71,7 +71,7 @@ class AblationExperiment:
 
         n_random = int(ablation_cfg.get("n_random_features", len(binding_features)))
         n_random_sets = int(ablation_cfg.get("n_random_sets", random_cfg.get("n_random_sets", 1)))
-        n_random_sets = max(1, n_random_sets)
+        n_random_sets = max(0, n_random_sets)
         random_sampling = str(ablation_cfg.get("random_sampling", random_cfg.get("sampling", "uniform"))).lower()
         matched_metric = str(random_cfg.get("matched_metric", "correct_mean"))
         seed = int(

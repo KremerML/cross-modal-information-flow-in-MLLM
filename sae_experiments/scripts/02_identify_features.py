@@ -62,16 +62,25 @@ def main() -> None:
     checkpoint_path = args.sae_checkpoint or os.path.join(experiment_dir, "sae_checkpoint.pt")
     sae = load_sae(config, model, checkpoint_path)
 
+    position_type = feat_cfg.get("position_type", "attribute")
+    target_layer = model_cfg.get("target_layer", 12)
+    activation_site = model_cfg.get("activation_site", "residual")
+    top_k = feat_cfg.get("top_k", 50)
+    selection_method = str(feat_cfg.get("selection_method", "ratio")).lower()
+    print(f"[02] layer={target_layer}, site={activation_site}, position_type={position_type}, "
+          f"top_k={top_k}, selection={selection_method}, "
+          f"dataset={data_cfg.get('refined_dataset','')}, n_items={len(dataset.questions)}")
+
     identifier = FeatureIdentifier(
         sae,
         model,
         dataset,
-        model_cfg.get("target_layer", 12),
-        activation_site=model_cfg.get("activation_site", "residual"),
+        target_layer,
+        activation_site=activation_site,
     )
     show_progress = not args.no_progress
     identifier.compute_feature_activations(
-        position_type=feat_cfg.get("position_type", "attribute"),
+        position_type=position_type,
         max_samples=args.max_samples,
         include_predictions=True,
         correctness_metric=feat_cfg.get("correctness_metric", "string_match"),
@@ -80,8 +89,12 @@ def main() -> None:
         show_progress=show_progress,
     )
 
-    top_k = feat_cfg.get("top_k", 50)
-    selection_method = str(feat_cfg.get("selection_method", "ratio")).lower()
+    n_correct = sum(1 for m in identifier.metadata if m.get("is_correct", False))
+    n_total = len(identifier.metadata)
+    print(f"[02] activation collection done: {n_total} items, "
+          f"{n_correct} correct ({100*n_correct/max(1,n_total):.1f}%), "
+          f"{len(identifier.feature_acts)} feature activation rows")
+
     discrimination_method = str(
         feat_cfg.get("discrimination_method", selection_method)
     ).strip().lower()
@@ -100,6 +113,8 @@ def main() -> None:
         min_diff=feat_cfg.get("min_diff", 0.0),
         selection_method=discrimination_method,
     )
+    print(f"[02] primary threshold: {len(features)} features passed "
+          f"(threshold={feat_cfg.get('discrimination_threshold', 2.0)}, method={discrimination_method})")
     if not features:
         fallback = feat_cfg.get("fallback", {})
         fallback_threshold = fallback.get("discrimination_threshold", 1.1)
@@ -112,10 +127,11 @@ def main() -> None:
             selection_method=discrimination_method,
         )
         if features:
-            print(
-                "No features found with primary thresholds; using fallback thresholds:",
-                f"threshold={fallback_threshold}, min_activation={fallback_min_activation}, min_diff={fallback_min_diff}",
-            )
+            print(f"[02] fallback threshold: {len(features)} features passed "
+                  f"(threshold={fallback_threshold})")
+        else:
+            print("[02] WARNING: zero features found even with fallback thresholds — "
+                  "catalog will be empty. Check position_type and SAE quality.")
 
     if selection_method == "causal_hybrid":
         causal_scores_path = feat_cfg.get("causal_scores_path")
@@ -132,12 +148,18 @@ def main() -> None:
         elif causal_scores_path:
             print(f"[warning] causal_scores_path not found: {causal_scores_path}. Falling back to activation ranking.")
     if not top_features:
-        top_features = identifier.get_top_k_features(
-            top_k,
-            score_key=feat_cfg.get("score_key", "ratio"),
-        )
+        score_key = feat_cfg.get("score_key", "ratio")
+        top_features = identifier.get_top_k_features(top_k, score_key=score_key)
     if not top_features:
         top_features = features[:top_k]
+
+    if top_features:
+        score_key = feat_cfg.get("score_key", "ratio")
+        scores = [identifier.feature_stats.get(f, {}).get(score_key, 0.0) for f in top_features]
+        print(f"[02] top-{len(top_features)} features by '{score_key}': "
+              f"max={max(scores):.4f}, min={min(scores):.4f}, mean={sum(scores)/len(scores):.4f}")
+    else:
+        print("[02] WARNING: top_features is empty — no catalog will be written.")
 
     catalog = FeatureCatalog()
     for feature_idx in top_features:
