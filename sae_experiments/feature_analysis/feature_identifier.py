@@ -53,9 +53,10 @@ class FeatureIdentifier:
         sae_param = next(self.sae.parameters())
         device = sae_param.device
         dtype = sae_param.dtype
-        activations = activations.to(device=device, dtype=dtype)
+        # Keep activations in CPU RAM; move mini-batches to device inside the loop.
+        activations = activations.to(dtype=dtype)
         if batch_size is None:
-            batch_size = activations.shape[0]
+            batch_size = 2048
         feats_list = []
         starts = range(0, activations.shape[0], batch_size)
         if show_progress:
@@ -65,7 +66,7 @@ class FeatureIdentifier:
             starts = tqdm(starts, total=total_batches, desc="Encoding SAE")
         with torch.no_grad():
             for start in starts:
-                batch = activations[start : start + batch_size]
+                batch = activations[start : start + batch_size].to(device=device)
                 feats_list.append(self.sae.encode(batch).cpu())
         feats = torch.cat(feats_list, dim=0).numpy()
 

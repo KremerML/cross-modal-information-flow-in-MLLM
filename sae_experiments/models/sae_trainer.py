@@ -70,8 +70,22 @@ class SAETrainer:
         device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         dtype = resolve_dtype(train_cfg.get("dtype", "float32"))
         seed = self._coerce_int(train_cfg.get("seed", 42))
+
+        n_rows, d = activations.shape
+        act_mb = activations.element_size() * activations.nelement() / 1024 ** 2
+        print(f"[SAETrainer] activations: {n_rows:,} rows × {d} dims, "
+              f"device={activations.device}, dtype={activations.dtype}, size={act_mb:.0f} MB")
+        if torch.cuda.is_available():
+            free, total = torch.cuda.mem_get_info()
+            print(f"[SAETrainer] GPU memory before training: "
+                  f"{free/1024**3:.2f} GB free / {total/1024**3:.2f} GB total")
+
         self.sae.to(device=device, dtype=dtype)
-        activations = activations.to(device=device, dtype=dtype)
+        print(f"[SAETrainer] SAE model on {device}, training dtype={dtype}")
+        # Keep activations in CPU RAM; only move mini-batches to GPU inside the loop.
+        activations = activations.to(dtype=dtype)
+        print(f"[SAETrainer] activations kept on CPU (dtype cast to {dtype}); "
+              f"mini-batches will be moved to {device} per step")
 
         dataset = TensorDataset(activations)
         generator = torch.Generator(device="cpu")
@@ -110,6 +124,7 @@ class SAETrainer:
             feature_activation_counts = torch.zeros(self.sae.n_features, device=device)
 
             for (batch,) in loader:
+                batch = batch.to(device)
                 optimizer.zero_grad()
                 recon, feats = self.sae.forward(batch)
                 recon_loss = F.mse_loss(recon, batch)

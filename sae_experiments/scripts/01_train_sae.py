@@ -281,6 +281,7 @@ def main() -> None:
     data_cfg = config.get("dataset", {})
     holdout_cfg = config.get("holdout", {})
     feat_cfg = config.get("feature_identification", {})
+    training_cfg = config.get("training", {})
     experiment_dir, seed = setup_experiment(args, config)
 
     checkpoint_path = args.checkpoint_path or os.path.join(experiment_dir, "sae_checkpoint.pt")
@@ -351,6 +352,8 @@ def main() -> None:
             "test_question_ids": split["test_question_ids"],
         }
 
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
     history = trainer.train(train_activations, show_progress=args.show_progress)
     activation_stats = compute_activation_stats(train_activations)
     eval_batch_size = int(holdout_cfg.get("eval_batch_size", 512))

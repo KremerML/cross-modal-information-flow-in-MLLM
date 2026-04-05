@@ -110,7 +110,7 @@ class ActivationCollector:
                 if not positions:
                     continue
 
-                activations.append(acts[positions])
+                activations.append(acts[positions].cpu())
                 metadata.append(
                     {
                         "question_id": line["q_id"],
@@ -156,7 +156,10 @@ class ActivationCollector:
         line: Dict[str, Any],
     ) -> List[int]:
         if position_type == "all":
-            return list(range(input_ids.shape[-1]))
+            # Use expanded sequence length: the image placeholder (1 token) is replaced
+            # by image_token_count tokens, so expanded_len = original_len - 1 + image_token_count.
+            expanded_len = input_ids.shape[-1] - 1 + image_token_count
+            return list(range(expanded_len))
 
         question_range = token_utils.get_question_token_range(
             input_ids[0],
