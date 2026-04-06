@@ -116,6 +116,8 @@ def main() -> None:
     filter_correct = knockout_cfg.get("filter_correct", True)
     normalize_logprob = knockout_cfg.get("normalize_logprob", True)
 
+    checkpoint_path = os.path.join(knockout_dir, "checkpoint.jsonl")
+
     results, summaries = run_knockout_sweep(
         model=model,
         tokenizer=tokenizer,
@@ -129,6 +131,7 @@ def main() -> None:
         filter_correct=filter_correct,
         normalize_logprob=normalize_logprob,
         progress_desc="Knockout sweep",
+        checkpoint_path=checkpoint_path,
     )
 
     results_path = os.path.join(knockout_dir, "knockout_results.json")
@@ -138,9 +141,9 @@ def main() -> None:
     with open(summary_path, "w", encoding="utf-8") as handle:
         json.dump(summaries, handle, indent=2)
 
-    print(f"Saved knockout results to {results_path}")
-    print(f"Saved knockout summary to {summary_path}")
-    print(f"Task type: {task_name}")
+    print(f"Saved knockout results ({len(results)} rows) to {results_path}")
+    print(f"Saved knockout summary ({len(summaries)} entries) to {summary_path}")
+    print(f"Checkpoint: {checkpoint_path}")
     print(f"Experiment directory: {experiment_dir}")
 
 
