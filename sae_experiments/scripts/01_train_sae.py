@@ -287,15 +287,27 @@ def main() -> None:
     checkpoint_path = args.checkpoint_path or os.path.join(experiment_dir, "sae_checkpoint.pt")
     tokenizer, model, image_processor = load_llava_components(model_cfg)
 
-    dataset = AttributeVQADataset(
-        refined_dataset=data_cfg.get("refined_dataset", ""),
-        image_folder=data_cfg.get("image_folder", ""),
-        tokenizer=tokenizer,
-        image_processor=image_processor,
-        model_config=model.config,
-        task_type=resolve_primary_task_type(data_cfg.get("task_types")),
-        conv_mode=model_cfg.get("conv_mode", "vicuna_v1"),
-    )
+    dataset_format = data_cfg.get("format", "csv")
+    if dataset_format == "clevr_lite":
+        from sae_experiments.data.clevr_lite_dataset import CLEVRLiteVQADataset
+        dataset = CLEVRLiteVQADataset(
+            data_dir=data_cfg.get("data_dir", "datasets/clevr_lite"),
+            split=data_cfg.get("split", "train"),
+            tokenizer=tokenizer,
+            image_processor=image_processor,
+            model_config=model.config,
+            conv_mode=model_cfg.get("conv_mode", "vicuna_v1"),
+        )
+    else:
+        dataset = AttributeVQADataset(
+            refined_dataset=data_cfg.get("refined_dataset", ""),
+            image_folder=data_cfg.get("image_folder", ""),
+            tokenizer=tokenizer,
+            image_processor=image_processor,
+            model_config=model.config,
+            task_type=resolve_primary_task_type(data_cfg.get("task_types")),
+            conv_mode=model_cfg.get("conv_mode", "vicuna_v1"),
+        )
 
     sae = SparseAutoencoder(
         d_model=model_cfg.get("d_model", 4096),

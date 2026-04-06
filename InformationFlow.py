@@ -60,7 +60,9 @@ class CustomDataset(Dataset):
         line = self.questions[index]
         question = line["question"]
         question = question + " \nAnswer the question using a single word or phrase."
-        image_file = str(line["img_id"]) + ".jpg" if ".jpg" not in str(line["img_id"]) else str(line["img_id"])
+        _img_id_str = str(line["img_id"])
+        _known_exts = ('.jpg', '.jpeg', '.png', '.webp', '.bmp')
+        image_file = _img_id_str if any(_img_id_str.lower().endswith(e) for e in _known_exts) else _img_id_str + ".jpg"
 
 
         qs = DEFAULT_IMAGE_TOKEN + "\n" + question  #

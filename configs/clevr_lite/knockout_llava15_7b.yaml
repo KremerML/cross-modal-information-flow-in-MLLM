@@ -1,0 +1,27 @@
+model:
+  name: "liuhaotian/llava-v1.5-7b"
+  target_layer: 12
+  d_model: 4096
+  conv_mode: "vicuna_v1"
+  model_base: null
+
+dataset:
+  format: "clevr_lite"
+  data_dir: "datasets/clevr_lite"
+  split: "val"
+  task_types: ["CLEVRLite"]
+
+experiment:
+  output_base: "output/knockout_clevr_lite"
+  name: "knockout_clevr_lite_run1"
+  use_timestamp: true
+
+knockout:
+  flows: ["Image->Question", "Image->Last"]
+  window: 1
+  filter_correct: true
+  normalize_logprob: true
+  max_samples: null
+  batch_size: 1
+  num_workers: 0
+  output_subdir: "knockout"

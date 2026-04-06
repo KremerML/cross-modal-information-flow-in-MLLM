@@ -71,23 +71,41 @@ def main() -> None:
     )
     model.eval()
 
-    refined_dataset = data_cfg.get("refined_dataset", "")
-    df = pd.read_csv(refined_dataset, dtype={"question_id": str}).fillna("")
-    dataset_dict = df.set_index("question_id").T.to_dict("dict")
-    questions = [{**detail, "q_id": qu_id} for qu_id, detail in dataset_dict.items()]
+    dataset_format = data_cfg.get("format", "csv")
+    if dataset_format == "clevr_lite":
+        from sae_experiments.data.clevr_lite_dataset import CLEVRLiteVQADataset
+        dataset_obj = CLEVRLiteVQADataset(
+            data_dir=data_cfg.get("data_dir", "datasets/clevr_lite"),
+            split=data_cfg.get("split", "val"),
+            tokenizer=tokenizer,
+            image_processor=image_processor,
+            model_config=model.config,
+            conv_mode=model_cfg.get("conv_mode", "vicuna_v1"),
+        )
+        dataset_dict = dataset_obj.dataset_dict
+        questions = dataset_obj.questions
+        data_loader = dataset_obj.create_dataloader(
+            batch_size=knockout_cfg.get("batch_size", 1),
+            num_workers=knockout_cfg.get("num_workers", 0),
+        )
+    else:
+        refined_dataset = data_cfg.get("refined_dataset", "")
+        df = pd.read_csv(refined_dataset, dtype={"question_id": str}).fillna("")
+        dataset_dict = df.set_index("question_id").T.to_dict("dict")
+        questions = [{**detail, "q_id": qu_id} for qu_id, detail in dataset_dict.items()]
 
-    task_name = resolve_primary_task_type(data_cfg.get("task_types"), default="ChooseAttr")
-    data_loader = create_data_loader(
-        questions,
-        data_cfg.get("image_folder", ""),
-        knockout_cfg.get("batch_size", 1),
-        knockout_cfg.get("num_workers", 2),
-        tokenizer,
-        image_processor,
-        model.config,
-        task_name,
-        model_cfg.get("conv_mode", "vicuna_v1"),
-    )
+        task_name = resolve_primary_task_type(data_cfg.get("task_types"), default="ChooseAttr")
+        data_loader = create_data_loader(
+            questions,
+            data_cfg.get("image_folder", ""),
+            knockout_cfg.get("batch_size", 1),
+            knockout_cfg.get("num_workers", 2),
+            tokenizer,
+            image_processor,
+            model.config,
+            task_name,
+            model_cfg.get("conv_mode", "vicuna_v1"),
+        )
 
     flows = knockout_cfg.get("flows", ["Image->Question", "Image->Last"])
     if args.flows:
