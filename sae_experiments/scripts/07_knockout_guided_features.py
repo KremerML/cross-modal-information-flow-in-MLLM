@@ -115,14 +115,18 @@ def main() -> None:
 
     target_module = get_target_module(model, collection_layer, model_cfg.get("activation_site", "attn_out"))
     model_name = model_cfg.get("name", "")
+    _collector = ActivationCollector(model, collection_layer, activation_site=model_cfg.get("activation_site", "attn_out"))
 
     data_loader = dataset.create_dataloader()
     questions = dataset.questions
 
-    # Per-sample: store feature-level difference at image positions on CPU.
-    # Shape after loop: [n_samples, n_img_tokens, n_sae_features] — aggregated to [n_sae_features].
-    all_normal_acts = []  # list of [n_img_tokens, d_model] CPU tensors
-    all_ko_acts = []      # list of [n_img_tokens, d_model] CPU tensors
+    position_type = feat_cfg.get("position_type", "image")
+    print(f"[07] position_type={position_type}")
+
+    # Per-sample: store feature-level difference at selected positions on CPU.
+    # Shape after loop: [n_samples * n_positions, d_model] — aggregated to [n_sae_features].
+    all_normal_acts = []
+    all_ko_acts = []
     skipped = 0
 
     iterator = zip(data_loader, questions)
@@ -148,8 +152,17 @@ def main() -> None:
             skipped += 1
             continue
 
-        image_positions = get_image_token_range(input_ids, inputs_embeds_shape)
-        if not image_positions:
+        image_token_count = inputs_embeds_shape[1] - (input_ids.shape[-1] - 1)
+        question_text = dataset.dataset_dict[line["q_id"]]["question"]
+        positions = _collector._select_positions(
+            position_type,
+            input_ids,
+            image_token_count,
+            question_text,
+            tokenizer,
+            line,
+        )
+        if not positions:
             skipped += 1
             continue
 
@@ -166,10 +179,9 @@ def main() -> None:
         if acts is None:
             skipped += 1
             continue
-        normal_img = acts[image_positions].cpu()  # [n_img_tokens, d_model]
+        normal_img = acts[positions].cpu()
 
         # ── Knockout forward pass ────────────────────────────────────────
-        question_text = dataset.dataset_dict[line["q_id"]]["question"]
         source_range, target_range = resolve_flow_ranges(
             "Image->Question",
             input_ids,
@@ -201,7 +213,7 @@ def main() -> None:
         if acts_ko is None:
             skipped += 1
             continue
-        ko_img = acts_ko[image_positions].cpu()  # [n_img_tokens, d_model]
+        ko_img = acts_ko[positions].cpu()
 
         all_normal_acts.append(normal_img)
         all_ko_acts.append(ko_img)
