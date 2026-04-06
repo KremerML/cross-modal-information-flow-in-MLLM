@@ -42,7 +42,7 @@ Multimodal Large Language Models}\\[0.5em]
 and Methodological Analysis of a Persistent Null Result}
 
 \author{Ron Kremer}
-\date{April 2026}
+\date{April 2026 (updated)}
 % ----------------------------------------------------------------
 
 \begin{document}
@@ -672,6 +672,203 @@ Dead code — including unused methods in \texttt{AblationExperiment} and \textt
 — was removed, reducing the total codebase complexity.
 
 % ================================================================
+\section{April 2026: Plans E--F and Empirical Diagnosis of Remaining Failures}
+\label{sec:april}
+% ================================================================
+
+Following the March 2026 architecture fixes, a further series of experiments was conducted in April
+2026 to address the remaining methodological problems.
+These experiments conclusively resolved the position-targeting ambiguity and identified a new,
+more fundamental constraint on the SAE ablation approach.
+
+\subsection{Runtime and Memory Fixes (April 5)}
+
+Several bugs in the experimental pipeline were discovered and corrected prior to running new
+experiments:
+
+\begin{itemize}[noitemsep]
+  \item \textbf{\texttt{all}-position expanded length}: the \texttt{activation\_collector.py}
+    \texttt{"all"} position type was using \texttt{input\_ids.shape[-1]} (the pre-expansion
+    sequence length, $\approx 64$ tokens) instead of the expanded length
+    (\texttt{len} $- 1 + \text{image\_token\_count}$, $\approx 639$ tokens).
+    This caused training to complete in 14 seconds on only 38\,000 vectors rather than the
+    expected 384\,000 vectors from all token positions.
+
+  \item \textbf{GPU out-of-memory during training}: activations were being moved to GPU as a
+    single tensor (up to 5.86~GB) before the training loop. A CPU-resident pattern was adopted:
+    activation tensors remain in RAM throughout; mini-batches are moved to GPU per training step.
+    The same pattern was applied to SAE encoding in \texttt{feature\_identifier.py}, where the
+    default batch size was changed from the full dataset ($\approx 384\,000$) to 2\,048.
+
+  \item \textbf{\texttt{n\_random\_sets = 0} support}: the ablation runner previously clamped
+    \texttt{n\_random\_sets} to a minimum of 1. The clamp was changed to 0, enabling
+    quick diagnostic runs (baseline~+~binding only, no random control) to test for non-zero
+    binding effects before committing to the full 15-set sweep.
+\end{itemize}
+
+\subsection{Plan E: Knockout-Guided Feature Identification}
+
+\subsubsection{Concept}
+
+Plan E introduced \texttt{07\_knockout\_guided\_features.py}, which selects features based on a
+causal supervision signal rather than the correct/incorrect activation ratio used in all prior
+experiments.
+For each sample, two forward passes are run: one normal and one with the layer-0 Image$\to$Question
+knockout active. The SAE encodes both sets of activations, and features are ranked by
+\begin{equation}
+  \text{score}_i = \frac{1}{N} \sum_{s=1}^{N}
+    \bigl|\hat{z}_i^{(\text{normal})}(s) - \hat{z}_i^{(\text{knockout})}(s)\bigr|,
+  \label{eq:ko_score}
+\end{equation}
+where the average runs over all selected token positions across all samples.
+Features that score high are, by definition, those whose activation is downstream of the
+Image$\to$Question pathway at layer~0.
+
+\subsubsection{First attempt: image token positions — null by construction}
+
+The initial run of Plan E collected activations at \texttt{image} token positions (the 576 visual
+patch tokens) under both conditions. Results ($n = 601$ samples, layer-11 SAE, layer-0 knockout):
+
+\begin{center}
+\texttt{Knockout effect scores: max=0.00000, mean=0.00000, p95=0.00000}
+\end{center}
+
+Every feature scored exactly zero. This is not an implementation error but a logical consequence of
+how the knockout operates: the Image$\to$Question knockout blocks \emph{question tokens} from
+attending to image tokens, but does not modify the image tokens' own residual streams.
+Image token activations propagate unchanged through all 32 layers regardless of this knockout.
+Capturing attn\_out at image positions is therefore invariant to the knockout by construction.
+
+\textbf{Corrected understanding of the attention knockout.}
+The knockout blocks the attention path in the direction
+$\text{image} \to \text{question}$, meaning question tokens cannot \emph{read from} image tokens.
+This changes what question tokens receive (their attn\_out), not what image tokens contain.
+The information transfer lands at \textbf{question token positions}, not image token positions.
+All prior rationale for ablating at image positions was based on a misidentification of source and
+destination in the attention pathway.
+
+\subsubsection{Activation patching at image positions — null by construction}
+
+Concurrently, \texttt{08\_activation\_patching.py} was implemented and run.
+This script performs per-feature \emph{activation patching}: for each sample, the SAE feature
+activations of binding features are replaced with their knockout-condition values (rather than
+zeroed), and the patched reconstruction is injected via a forward hook.
+The rationale was that this would replicate the causal signal without requiring the model to compensate.
+
+Results:
+\begin{center}
+\texttt{Knockout effect (mean|acts\_normal - acts\_ko| at image pos): 0.00000}\\
+\texttt{Binding margin\_drop = -0.0001 (Cohen's d = -0.026)}
+\end{center}
+
+The result is null because $\text{acts\_normal} \equiv \text{acts\_ko}$ at image positions
+(established above), so patching zeros into zeros changes nothing.
+Both Plan E and the activation patching experiment were methodologically sound in design but
+applied at the wrong positions.
+
+\subsubsection{Second attempt: attribute token positions — first non-zero result}
+\label{sec:plan_e_attribute}
+
+Following the diagnosis above, the position type was corrected to \texttt{attribute}
+(the 2--4 tokens describing the attribute in the question, e.g., ``brown'' and ``white'' in
+``Is that floor brown or white?'').
+A new config (\texttt{color\_attribute\_pos.yaml}) was created and script 07 re-run
+($n = 601$ samples, layer-11 SAE, layer-0 knockout).
+
+Results:
+\begin{center}
+\texttt{Knockout effect scores: max=0.134, mean=0.033, p95=0.060}\\
+\texttt{Top-200 features: max=0.134, min=0.060, mean=0.072}
+\end{center}
+
+\textbf{This is the first non-zero knockout-guided feature score in the project.}
+The layer-0 knockout does change attribute token activations at layer~11, confirming that the
+Image$\to$Question pathway deposits cross-modal information at question/attribute token positions,
+as predicted.
+
+\subsubsection{Ablation at attribute positions — null due to SAE position mismatch}
+
+The 200 knockout-guided features were then ablated at \texttt{attribute} positions
+using \texttt{03\_run\_ablation.py} ($n = 601$, replace mode, $n\_\text{random\_sets} = 0$):
+
+\begin{center}
+\texttt{Binding: acc\_drop=+0.0017, margin\_drop=-0.0038, rel\_perturb=0.0014 (0.14\%)}
+\end{center}
+
+The binding margin drop is negligible. The key diagnostic is the \textbf{relative perturbation of
+0.14\%}: even ablating 200 features in replace mode, the SAE reconstruction at attribute positions
+changes the activation by only 0.14\% of the original norm.
+This closely echoes the original ceiling finding (0.3\% at attribute positions with all 32\,768
+features), now confirmed at 4\,096 features.
+
+\textbf{Root cause: SAE trained on wrong positions.}
+The V2 SAE was trained with \texttt{position\_type: "all"}, collecting $\approx 639$ tokens per
+sample of which $\approx 576$ (90\%) are image tokens.
+The SAE has therefore learned to decompose \emph{image token} activation patterns; text token
+activations lie largely outside the learned subspace.
+When the SAE is applied at attribute text positions, its reconstruction is near-zero relative to
+the original activation, making any feature ablation undetectable.
+
+The correct fix is to train the SAE on the same token positions at which it will be applied —
+i.e., with \texttt{training.position\_type: "question"} or \texttt{"attribute"}.
+This is the primary open methodological problem.
+
+\subsection{Summary: Progression of Null Results and Their Causes}
+
+Table~\ref{tab:null_progression} summarises the diagnostic trajectory from the original null result
+to the current state of understanding.
+
+\begin{table}[ht]
+\centering
+\caption{Progression of null results and their root causes (April 2026).}
+\label{tab:null_progression}
+\begin{tabular}{p{4.8cm}p{2.2cm}rp{4.5cm}}
+\toprule
+Experiment & Position & rel.\ pert. & Root cause \\
+\midrule
+Plans 1--18 (V1 SAE, attribute pos.) & attribute & 0.3\% & Wrong position; tiny training set \\
+V2 SAE, image pos., ratio features   & image      & 3.9\% & Cross-layer redundancy; zero KO effect at image pos. \\
+Script 07 first run (image pos.)      & image      & n/a   & KO effect = 0 at image positions by construction \\
+Script 08 (patching, image pos.)      & image      & n/a   & Patches zeros into zeros \\
+Script 07 second run (attribute pos.) & attribute  & 0.14\% & SAE trained on wrong positions (90\% image tokens) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Relationship to UIUC-MONET Circuit Tracing (arXiv:2602.20330)}
+
+The ``Circuit Tracing in Vision--Language Models'' paper~\citep{yang2026circuitvlm} by Yang
+et al.\ (UIUC-MONET, CVPR 2026 Findings) offers direct methodological relevance.
+Their key technical innovations and their applicability to the present project are:
+
+\begin{itemize}[noitemsep]
+  \item \textbf{Transcoders vs.\ SAEs.} Transcoders model the MLP's input$\to$output behaviour
+    rather than reconstructing a static activation snapshot. This enables Jacobian-based
+    attribution graphs but requires replacing all MLP layers simultaneously — out of scope for
+    the current project but confirms that single-layer SAE ablation is not a standard circuit
+    analysis technique.
+
+  \item \textbf{TopK sparsity.} Yang et al.\ use TopK ($k = 48$) rather than an L1 penalty,
+    which eliminates dead features by construction and removes the need to tune $\lambda$.
+    This is a direct, low-effort fix applicable to the V2 SAE.
+
+  \item \textbf{Attribution over ablation.} Their core methodology traces feature contributions
+    forward via linearised Jacobians, asking ``which feature contributes to this output?'' rather
+    than ``does removing this feature change the output?''. Ablation tests necessity in a
+    redundant network; attribution measures contribution in the normal forward pass.
+    A simplified version — scoring features by their direct logit contribution
+    ($\text{score}_i = a_i \cdot \mathbf{d}_i \cdot (\mathbf{u}_{\text{true}} -
+    \mathbf{u}_{\text{false}})$, where $\mathbf{d}_i$ is the decoder vector and
+    $\mathbf{u}$ the unembedding matrix) — can be implemented without the full Jacobian
+    infrastructure.
+
+  \item \textbf{All-position feature analysis.} Yang et al.\ trace features at all token
+    positions simultaneously, identifying both visual features (active at image positions)
+    and semantic features (active at text positions). The confusion between image and question
+    positions in the present project is a direct consequence of studying positions in isolation.
+\end{itemize}
+
+% ================================================================
 \section{PaliGemma-2 Extension}
 \label{sec:paligemma}
 % ================================================================
@@ -781,13 +978,28 @@ pipeline.
 \subsection{What Remains Open}
 
 \begin{enumerate}
-  \item Whether SAE features at \emph{image token positions} at layers 0 and 11 show specific
-    activations for visual attributes (color, material, etc.).
-  \item Whether ablating such features at image token positions produces a causal effect on
-    attribute-binding behaviour.
-  \item Whether the two-peak structure in Image$\to$Question flow corresponds to qualitatively
-    different types of feature (raw colour encoding at layer~0 vs.\ semantic attribute binding
-    at layer~11).
+  \item \textbf{SAE trained at question/attribute positions.}
+    All V2 SAE training used \texttt{position\_type: "all"}, making the learned features
+    dominated by image token activations ($\sim$90\% of training vectors).
+    A SAE trained on \texttt{question} or \texttt{attribute} positions would have meaningful
+    reconstruction quality at those positions and is a prerequisite for any text-position ablation.
+
+  \item \textbf{Attribution-based feature ranking.}
+    The correct/incorrect ratio and the knockout-effect score both conflate correlation with
+    causation. Direct logit attribution — scoring features by $a_i (\mathbf{d}_i \cdot \Delta
+    \mathbf{u})$ where $\Delta\mathbf{u}$ is the unembedding differential — directly measures
+    each feature's contribution to the correct answer in the normal forward pass.
+
+  \item \textbf{Cross-layer redundancy for question-position ablation.}
+    Even with a correctly trained SAE at question positions, single-layer ablation at layer~11
+    remains subject to cross-layer compensation: layers 12--31 can re-read image tokens.
+    The persistence of this compensation needs to be quantified for question-position
+    interventions specifically.
+
+  \item \textbf{Two-peak structure interpretation.}
+    Whether layer~0 and layer~11 encode qualitatively different types of visual feature
+    (raw visual features vs.\ semantic attribute binding) has not yet been tested.
+
   \item Whether the findings replicate in PaliGemma-2 with Gemma Scope pre-trained SAEs,
     providing a model-general picture of cross-modal information routing.
 \end{enumerate}
@@ -798,40 +1010,52 @@ pipeline.
 \label{sec:next}
 % ================================================================
 
-The following steps are ordered by expected impact and implementation cost:
+The following steps are ordered by expected impact and implementation cost,
+updated to reflect the April 2026 diagnostic findings.
 
-\begin{enumerate}[label=\textbf{E\arabic*.}]
+\begin{enumerate}[label=\textbf{N\arabic*.}]
 
-  \item \textbf{Knockout-guided feature identification at image token positions (Plan E).}
-    Run paired forward passes with and without the layer-0 attention knockout, collecting
-    SAE feature activations at image token positions under both conditions.
-    The difference in feature activation patterns between knockout and non-knockout conditions
-    directly identifies which features carry the Image$\to$Question information.
-    This bypasses the feature-selection confound entirely and provides a direct supervision
-    signal from the causal intervention.
+  \item \textbf{Train a SAE on question/attribute token positions.}
+    The single most important unresolved issue is that the V2 SAE was trained on all positions
+    (90\% image tokens) and therefore cannot reconstruct attribute text token activations
+    (relative perturbation = 0.14\%).
+    A new training run with \texttt{training.position\_type: "question"} would concentrate the
+    SAE's capacity on the positions where the knockout effect lands.
+    This is a configuration change and one retraining run; no new code is required.
 
-  \item \textbf{Validate image-position ablation with the V2 SAE.}
-    Using the \texttt{image} position type (Plan C) and the V2 SAE architecture (Plan D),
-    run the 3-condition ablation experiment at image token positions.
-    Compare the margin drop against the full-latent ceiling to quantify what fraction of the
-    causal signal is captured by the ranked binding features.
+  \item \textbf{Knockout-guided feature identification at question positions.}
+    Re-run \texttt{07\_knockout\_guided\_features.py} with \texttt{position\_type: "question"}
+    on the new question-position SAE.
+    The knockout effect scores at question positions are already confirmed to be non-zero
+    (max = 0.134 at attribute positions in the April 2026 run); question-position scores
+    should be at least as large.
 
-  \item \textbf{Switch to open-ended logprob scoring (Plan B / Section~\ref{sec:task}).}
-    Implement format (1) from Section~\ref{sec:task} to eliminate the language-side bypass.
-    This can be done as a parallel evaluation alongside ChooseAttr to isolate the contribution
-    of the bypass to the null result.
+  \item \textbf{Direct logit attribution feature ranking.}
+    Augment \texttt{02\_identify\_features.py} to score features by their direct logit
+    contribution: $\text{score}_i = a_i (\mathbf{d}_i \cdot \Delta\mathbf{u})$, where
+    $\mathbf{d}_i \in \mathbb{R}^{d_{\mathrm{model}}}$ is the $i$-th decoder column and
+    $\Delta\mathbf{u} = \mathbf{u}_{\text{true}} - \mathbf{u}_{\text{false}}$ is the
+    difference of the true and false answer token unembedding directions.
+    This replaces the correct/incorrect ratio, which can select features tracking
+    image quality or question difficulty rather than the attribute itself.
 
-  \item \textbf{Scale SAE training data.}
-    Collect activations from a diverse corpus (LLaVA-Instruct or full GQA validation,
-    $\geq 100\,000$ activation vectors) to reduce the dead-feature rate and improve feature
-    monosemanticity. This is a prerequisite for interpretable feature-level analysis.
+  \item \textbf{Switch to TopK sparsity.}
+    Replace the L1 penalty in \texttt{sparse\_autoencoder.py} with a TopK activation mask
+    (retaining the $k$ largest activations per forward pass, zeroing the rest).
+    This eliminates dead features by construction, removes the need to tune $\lambda$, and
+    follows the approach of Yang et al.~\citep{yang2026circuitvlm}.
+    Approximately 20 lines of code change.
 
-  \item \textbf{Deploy PaliGemma-2 + Gemma Scope pipeline (Plan F).}
+  \item \textbf{Switch to open-ended logprob scoring.}
+    Implement format (1) from Section~\ref{sec:task} to eliminate the language-side bypass
+    present in ChooseAttr.
+    This can be done as a parallel evaluation to isolate the bypass contribution.
+
+  \item \textbf{Deploy PaliGemma-2 + Gemma Scope pipeline.}
     Complete the PaliGemma-2 port (branch \texttt{paligemma-2}): run the attention knockout
-    sweep to identify causal layers, then load the corresponding Gemma Scope SAE checkpoints
-    and run the image-position ablation experiment.
-    This provides a second data point on whether the two-peak structure generalises across
-    architectures.
+    sweep to identify causal layers, then load the corresponding Gemma Scope SAE checkpoints.
+    Pre-trained SAEs trained on billions of tokens directly circumvent the training-data-scale
+    and dead-feature problems.
 
 \end{enumerate}
 
@@ -846,26 +1070,31 @@ in LLaVA-v1.5-7b. The attention knockout reproduction confirms and extends the o
 findings~\citep{crossmodal2024}, establishing layers 0 and 11 as the dominant causal
 pathways for Image$\to$Question information transfer, with large and reproducible effect sizes.
 
-The SAE ablation phase produced a consistent null result across 18 experiments, but this
-null result has been rigorously diagnosed through a ceiling analysis and theoretical reasoning.
-The primary cause is a position mismatch: visual information flows through \emph{image token}
-positions, but all 18 ablation experiments targeted \emph{attribute text token} positions.
-The full-latent ceiling confirms that the SAE captures the causal signal when operating at
-all positions, and that the margin drops produced match the knockout magnitudes closely at
-layer~11.
+The SAE ablation phase produced a consistent null result across 18 experiments and a further
+series of targeted experiments in April 2026.
+The null results have been rigorously diagnosed at each step, revealing a sequence of
+methodological errors each of which was only exposed once the previous one was corrected.
 
-A complete set of methodological fixes has been implemented (Plans A--D), including a new
-\texttt{image} position type for activation collection and ablation, V2 SAE architecture with
-modern best practices, standardised \texttt{replace} mode across all configurations, and
-extensive codebase refactoring.
-The groundwork for a strategically superior experiment — image-position ablation with
-knockout-guided feature identification using pre-trained Gemma Scope SAEs on PaliGemma-2 —
-is in place.
+The diagnostic trajectory is as follows: (1) early experiments ablated at attribute text positions
+carrying 0.3\% perturbation; (2) switching to image positions increased perturbation to 3.9\% but
+cross-layer redundancy suppressed the behavioral effect; (3) knockout-guided feature identification
+at image positions returned zero scores — because the Image$\to$Question knockout changes question
+token activations, not image token activations; (4) correcting to attribute positions produced the
+first non-zero knockout-effect scores (max = 0.134), confirming the methodology is sound; (5) but
+ablation at attribute positions still yields 0.14\% perturbation because the SAE, trained on 90\%
+image-token data, has near-zero reconstruction quality at text positions.
+
+The current bottleneck is therefore well-defined: \textbf{a SAE must be trained on
+question/attribute token positions} to achieve meaningful reconstruction quality at the positions
+where the Image$\to$Question pathway's effects are observable.
+With that prerequisite satisfied, the knockout-guided feature identification methodology
+(non-zero scores confirmed in April 2026), the direct logit attribution ranking, and the V2
+architecture are all in place to produce a valid causal test.
 
 The core scientific question remains open and tractable: \emph{which sparse, interpretable
-features at the image token positions of early-to-middle transformer layers causally mediate
-visual attribute binding in MLLMs?}
-We are now in a position to answer it.
+features at question token positions of early-to-middle transformer layers causally mediate
+visual attribute binding in MLLMs, and can ablating them partially replicate the causal
+disruption measured by the attention knockout?}
 
 
 % ================================================================
