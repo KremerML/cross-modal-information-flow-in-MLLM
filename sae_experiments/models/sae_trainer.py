@@ -36,6 +36,7 @@ class SAETrainer:
         position_type: str = "question",
         tokenizer=None,
         max_samples: Optional[int] = None,
+        show_progress: bool = False,
     ) -> Tuple[torch.Tensor, list]:
         if self.llava_model is None:
             raise ValueError("llava_model is required for activation collection")
@@ -49,6 +50,7 @@ class SAETrainer:
             position_type=position_type,
             tokenizer=tokenizer,
             max_samples=max_samples,
+            show_progress=show_progress,
         )
         return activations, metadata
 
@@ -82,10 +84,11 @@ class SAETrainer:
 
         self.sae.to(device=device, dtype=dtype)
         print(f"[SAETrainer] SAE model on {device}, training dtype={dtype}")
-        # Keep activations in CPU RAM; only move mini-batches to GPU inside the loop.
-        activations = activations.to(dtype=dtype)
-        print(f"[SAETrainer] activations kept on CPU (dtype cast to {dtype}); "
-              f"mini-batches will be moved to {device} per step")
+        # Keep activations in CPU RAM in their stored dtype (may be float16).
+        # Each mini-batch is cast to the training dtype when moved to the device,
+        # avoiding a full 2× RAM spike from an all-at-once upcast.
+        print(f"[SAETrainer] activations kept on CPU in {activations.dtype}; "
+              f"mini-batches cast to {dtype} on {device} per step")
 
         dataset = TensorDataset(activations)
         generator = torch.Generator(device="cpu")
@@ -108,23 +111,24 @@ class SAETrainer:
         }
 
         self.sae.train()
+        pbar = None
         epoch_iter = range(epochs)
         if show_progress:
             try:
                 from tqdm import tqdm
-
-                epoch_iter = tqdm(epoch_iter, desc=progress_desc)
+                pbar = tqdm(epoch_iter, desc=progress_desc)
+                epoch_iter = pbar
             except ImportError:
-                epoch_iter = range(epochs)
+                pass
 
-        for _ in epoch_iter:
+        for epoch_idx in epoch_iter:
             epoch_loss = 0.0
             epoch_recon = 0.0
             epoch_l1 = 0.0
             feature_activation_counts = torch.zeros(self.sae.n_features, device=device)
 
             for (batch,) in loader:
-                batch = batch.to(device)
+                batch = batch.to(device=device, dtype=dtype)
                 optimizer.zero_grad()
                 recon, feats = self.sae.forward(batch)
                 recon_loss = F.mse_loss(recon, batch)
@@ -145,10 +149,29 @@ class SAETrainer:
 
             denom = max(1, len(loader))
             dead_fraction = (feature_activation_counts == 0).float().mean().item()
-            history["loss"].append(epoch_loss / denom)
-            history["recon_loss"].append(epoch_recon / denom)
-            history["l1_loss"].append(epoch_l1 / denom)
+            avg_loss = epoch_loss / denom
+            avg_recon = epoch_recon / denom
+            avg_l1 = epoch_l1 / denom
+            history["loss"].append(avg_loss)
+            history["recon_loss"].append(avg_recon)
+            history["l1_loss"].append(avg_l1)
             history["dead_feature_fraction"].append(dead_fraction)
+
+            current_lr = scheduler.get_last_lr()[0]
+            stats = {
+                "loss": f"{avg_loss:.2e}",
+                "recon": f"{avg_recon:.2e}",
+                "l1": f"{avg_l1:.2e}",
+                "dead": f"{dead_fraction:.2%}",
+                "lr": f"{current_lr:.1e}",
+            }
+            if pbar is not None:
+                pbar.set_postfix(stats)
+            else:
+                print(
+                    f"[epoch {epoch_idx + 1:>{len(str(epochs))}}/{epochs}] "
+                    + "  ".join(f"{k}={v}" for k, v in stats.items())
+                )
 
         self.sae.eval()
         return history

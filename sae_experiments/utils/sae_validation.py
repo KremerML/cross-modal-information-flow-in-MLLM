@@ -6,15 +6,36 @@ import numpy as np
 import torch
 
 
-def compute_activation_stats(activations: torch.Tensor, bins: int = 100) -> Dict[str, object]:
+def compute_activation_stats(
+    activations: torch.Tensor,
+    bins: int = 100,
+    chunk_size: int = 50_000,
+    hist_sample_rows: int = 100_000,
+) -> Dict[str, object]:
     if activations.numel() == 0:
         return {"mean": 0.0, "std": 0.0, "hist_counts": [], "hist_bins": []}
-    values = activations.detach().float().view(-1).cpu().numpy()
-    mean = float(values.mean())
-    std = float(values.std())
-    hist_counts, hist_bins = np.histogram(values, bins=bins, density=True)
+    n_rows = activations.shape[0]
+    # Compute mean and variance incrementally to avoid a full float32 materialisation.
+    total_sum = 0.0
+    total_sum_sq = 0.0
+    total_n = 0
+    for start in range(0, n_rows, chunk_size):
+        chunk = activations[start : start + chunk_size].detach().float().cpu()
+        total_sum += chunk.sum().item()
+        total_sum_sq += (chunk * chunk).sum().item()
+        total_n += chunk.numel()
+    mean = total_sum / total_n
+    variance = max(0.0, total_sum_sq / total_n - mean * mean)
+    std = float(variance ** 0.5)
+    # Build histogram on a random sample of rows to bound memory usage.
+    if n_rows > hist_sample_rows:
+        idx = torch.randperm(n_rows)[:hist_sample_rows]
+        sample = activations[idx].detach().float().view(-1).cpu().numpy()
+    else:
+        sample = activations.detach().float().view(-1).cpu().numpy()
+    hist_counts, hist_bins = np.histogram(sample, bins=bins, density=True)
     return {
-        "mean": mean,
+        "mean": float(mean),
         "std": std,
         "hist_counts": hist_counts.tolist(),
         "hist_bins": hist_bins.tolist(),

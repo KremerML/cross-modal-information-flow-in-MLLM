@@ -274,6 +274,9 @@ def main() -> None:
     parser.add_argument("--show_progress", type=_parse_bool, default=True)
     parser.add_argument("--experiment_dir", type=str, default=None)
     parser.add_argument("--experiment_name", type=str, default=None)
+    parser.add_argument("--activations_path", type=str, default=None,
+                        help="Directory of pre-collected activations (output of "
+                             "collect_activations_multilayer.py). Skips forward pass.")
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -285,29 +288,13 @@ def main() -> None:
     experiment_dir, seed = setup_experiment(args, config)
 
     checkpoint_path = args.checkpoint_path or os.path.join(experiment_dir, "sae_checkpoint.pt")
-    tokenizer, model, image_processor = load_llava_components(model_cfg)
-
-    dataset_format = data_cfg.get("format", "csv")
-    if dataset_format == "clevr_lite":
-        from sae_experiments.data.clevr_lite_dataset import CLEVRLiteVQADataset
-        dataset = CLEVRLiteVQADataset(
-            data_dir=data_cfg.get("data_dir", "datasets/clevr_lite"),
-            split=data_cfg.get("split", "train"),
-            tokenizer=tokenizer,
-            image_processor=image_processor,
-            model_config=model.config,
-            conv_mode=model_cfg.get("conv_mode", "vicuna_v1"),
-        )
-    else:
-        dataset = AttributeVQADataset(
-            refined_dataset=data_cfg.get("refined_dataset", ""),
-            image_folder=data_cfg.get("image_folder", ""),
-            tokenizer=tokenizer,
-            image_processor=image_processor,
-            model_config=model.config,
-            task_type=resolve_primary_task_type(data_cfg.get("task_types")),
-            conv_mode=model_cfg.get("conv_mode", "vicuna_v1"),
-        )
+    target_layer = args.target_layer if args.target_layer is not None else model_cfg.get("target_layer", 12)
+    train_position_type = resolve_training_position_type(
+        args.position_type,
+        training_cfg,
+        feat_cfg,
+        default="question",
+    )
 
     sae = SparseAutoencoder(
         d_model=model_cfg.get("d_model", 4096),
@@ -315,27 +302,66 @@ def main() -> None:
         l1_coeff=config.get("sae", {}).get("l1_coeff", 1e-3),
     )
 
-    target_layer = args.target_layer if args.target_layer is not None else model_cfg.get("target_layer", 12)
-    trainer = SAETrainer(
-        sae=sae,
-        config=config,
-        target_layer=target_layer,
-        activation_site=model_cfg.get("activation_site", "residual"),
-        llava_model=model,
-    )
-
-    train_position_type = resolve_training_position_type(
-        args.position_type,
-        training_cfg,
-        feat_cfg,
-        default="question",
-    )
-    activations, metadata = trainer.collect_activations(
-        dataset,
-        position_type=train_position_type,
-        tokenizer=tokenizer,
-        max_samples=args.max_samples,
-    )
+    if args.activations_path:
+        # Pre-collected activations: skip model and dataset loading entirely.
+        layer_dir = os.path.join(args.activations_path, f"layer_{target_layer}")
+        acts_file = os.path.join(layer_dir, "activations.pt")
+        meta_file = os.path.join(layer_dir, "metadata.json")
+        if not os.path.exists(acts_file):
+            raise FileNotFoundError(f"Pre-collected activations not found: {acts_file}")
+        print(f"[01_train_sae] Loading activations from {acts_file}")
+        activations = torch.load(acts_file, weights_only=True, map_location="cpu")
+        with open(meta_file) as _f:
+            metadata = json.load(_f)
+        if args.max_samples is not None and activations.shape[0] > args.max_samples:
+            activations = activations[: args.max_samples]
+            metadata = metadata[: args.max_samples]
+            print(f"[01_train_sae] Subsampled to {activations.shape[0]:,} rows (--max_samples)")
+        print(f"[01_train_sae] Loaded {activations.shape[0]:,} rows × {activations.shape[1]} dims")
+        trainer = SAETrainer(
+            sae=sae,
+            config=config,
+            target_layer=target_layer,
+            activation_site=model_cfg.get("activation_site", "residual"),
+            llava_model=None,
+        )
+    else:
+        tokenizer, model, image_processor = load_llava_components(model_cfg)
+        dataset_format = data_cfg.get("format", "csv")
+        if dataset_format == "clevr_lite":
+            from sae_experiments.data.clevr_lite_dataset import CLEVRLiteVQADataset
+            dataset = CLEVRLiteVQADataset(
+                data_dir=data_cfg.get("data_dir", "datasets/clevr_lite"),
+                split=data_cfg.get("split", "train"),
+                tokenizer=tokenizer,
+                image_processor=image_processor,
+                model_config=model.config,
+                conv_mode=model_cfg.get("conv_mode", "vicuna_v1"),
+            )
+        else:
+            dataset = AttributeVQADataset(
+                refined_dataset=data_cfg.get("refined_dataset", ""),
+                image_folder=data_cfg.get("image_folder", ""),
+                tokenizer=tokenizer,
+                image_processor=image_processor,
+                model_config=model.config,
+                task_type=resolve_primary_task_type(data_cfg.get("task_types")),
+                conv_mode=model_cfg.get("conv_mode", "vicuna_v1"),
+            )
+        trainer = SAETrainer(
+            sae=sae,
+            config=config,
+            target_layer=target_layer,
+            activation_site=model_cfg.get("activation_site", "residual"),
+            llava_model=model,
+        )
+        activations, metadata = trainer.collect_activations(
+            dataset,
+            position_type=train_position_type,
+            tokenizer=tokenizer,
+            max_samples=args.max_samples,
+            show_progress=args.show_progress,
+        )
 
     holdout_enabled = bool(holdout_cfg.get("enabled", False))
     train_activations = activations

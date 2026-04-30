@@ -32,7 +32,7 @@ def setup_experiment(args, config):
     return experiment_dir, seed
 
 
-def load_llava_components(model_cfg):
+def load_llava_components(model_cfg, attn_implementation=None):
     """Load LLaVA model, tokenizer, image_processor. Return (tokenizer, model, image_processor)."""
     from llava.model.builder import load_pretrained_model
     from llava.mm_utils import get_model_name_from_path
@@ -44,7 +44,7 @@ def load_llava_components(model_cfg):
         model_cfg.get("model_base"),
         model_name,
         device_map="auto",
-        attn_implementation=None,
+        attn_implementation=attn_implementation,
     )
     model.eval()
     return tokenizer, model, image_processor

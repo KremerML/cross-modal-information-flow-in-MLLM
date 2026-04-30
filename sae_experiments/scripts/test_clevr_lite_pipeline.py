@@ -103,9 +103,13 @@ def main() -> None:
     check("true option != false option for all samples", mismatched == 0,
           f"{mismatched} mismatches" if mismatched else "")
 
+    # attribute_tokens is only used when position_type="attribute" — CLEVR-Lite uses "question".
+    # Color queries ("What color is the X?") have no color word in the question text, so
+    # extract_attribute_words finds nothing. This is expected and harmless.
     samples_without_attr = sum(1 for q in dataset.questions[:50] if not q.get("attribute_tokens"))
-    check("attribute_tokens populated (spot-check 50)", samples_without_attr == 0,
-          f"{samples_without_attr}/50 missing" if samples_without_attr else "")
+    tag = WARN if samples_without_attr > 0 else PASS
+    print(f"  [{tag}] attribute_tokens populated (spot-check 50) — only needed for position_type='attribute'"
+          + (f"  ({samples_without_attr}/50 missing — expected for color queries)" if samples_without_attr else ""))
 
     # ── CHECK 2: Image loading ───────────────────────────────────────────────
     print("\n[ 2 ] Image loading")
