@@ -2,3 +2,5 @@ datasets/
 LLaVA-NeXT/
 **/sae_checkpoint.pt
 **/__pycache__/
+output/**/knockout_results.json
+output/**/checkpoint.jsonl
