@@ -1,6 +1,6 @@
 model:
   name: "liuhaotian/llava-v1.5-7b"
-  target_layer: 11
+  target_layer: 0
   d_model: 4096
   conv_mode: "vicuna_v1"
   model_base: null
@@ -26,7 +26,7 @@ reproducibility:
 experiment:
   output_base: "output/sae_experiments"
   output_dir: null
-  name: "sae_clevr_lite_layer11_attn_out_question"
+  name: "sae_clevr_lite_layer0_attn_out_question"
   use_timestamp: false
 
 dataset:
