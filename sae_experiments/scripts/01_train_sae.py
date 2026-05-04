@@ -318,6 +318,7 @@ def main() -> None:
             metadata = metadata[: args.max_samples]
             print(f"[01_train_sae] Subsampled to {activations.shape[0]:,} rows (--max_samples)")
         print(f"[01_train_sae] Loaded {activations.shape[0]:,} rows × {activations.shape[1]} dims")
+        chunk_files = None
         trainer = SAETrainer(
             sae=sae,
             config=config,
@@ -355,13 +356,33 @@ def main() -> None:
             activation_site=model_cfg.get("activation_site", "residual"),
             llava_model=model,
         )
-        activations, metadata = trainer.collect_activations(
+        act_cache_dir = os.path.join(experiment_dir, "_activation_cache")
+        result = trainer.collect_activations(
             dataset,
             position_type=train_position_type,
             tokenizer=tokenizer,
             max_samples=args.max_samples,
             show_progress=args.show_progress,
+            checkpoint_dir=act_cache_dir,
         )
+        if isinstance(result[0], list):
+            metadata, chunk_files = result
+            activations = None
+        else:
+            activations, metadata = result
+            chunk_files = None
+
+    if not args.activations_path and torch.cuda.is_available():
+        del model
+        torch.cuda.empty_cache()
+        import gc; gc.collect()
+        print("[01_train_sae] Released LLaVA model to free memory for training")
+
+    if chunk_files is not None:
+        from sae_experiments.data.activation_collector import reassemble_chunks
+        print(f"[01_train_sae] Reassembling {len(chunk_files)} chunks after model release...")
+        activations = reassemble_chunks(chunk_files, cleanup=True)
+        print(f"[01_train_sae] Activations: {activations.shape[0]:,} rows × {activations.shape[1]} dims")
 
     holdout_enabled = bool(holdout_cfg.get("enabled", False))
     train_activations = activations

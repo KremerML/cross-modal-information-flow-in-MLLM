@@ -37,7 +37,8 @@ class SAETrainer:
         tokenizer=None,
         max_samples: Optional[int] = None,
         show_progress: bool = False,
-    ) -> Tuple[torch.Tensor, list]:
+        checkpoint_dir: Optional[str] = None,
+    ):
         if self.llava_model is None:
             raise ValueError("llava_model is required for activation collection")
         collector = ActivationCollector(
@@ -45,14 +46,14 @@ class SAETrainer:
             self.target_layer,
             activation_site=self.activation_site,
         )
-        activations, metadata = collector.collect_from_dataset(
+        return collector.collect_from_dataset(
             dataset,
             position_type=position_type,
             tokenizer=tokenizer,
             max_samples=max_samples,
             show_progress=show_progress,
+            checkpoint_dir=checkpoint_dir,
         )
-        return activations, metadata
 
     def train(
         self,
