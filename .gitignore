@@ -4,3 +4,7 @@ LLaVA-NeXT/
 **/__pycache__/
 output/**/knockout_results.json
 output/**/checkpoint.jsonl
+**/_activation_cache/
+output/**/pipeline_log.txt
+output/**/pipeline_pid.txt
+.claude/scheduled_tasks.lock
