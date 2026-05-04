@@ -53,46 +53,54 @@ class FeatureIdentifier:
         sae_param = next(self.sae.parameters())
         device = sae_param.device
         dtype = sae_param.dtype
-        # Keep activations in CPU RAM; move mini-batches to device inside the loop.
-        activations = activations.to(dtype=dtype)
         if batch_size is None:
             batch_size = 2048
-        feats_list = []
-        starts = range(0, activations.shape[0], batch_size)
+        n_features = self.sae.n_features
+        aggregation = str(aggregation).lower()
+
+        per_sample = []
+        per_sample_metadata: List[dict] = []
+
+        encode_batch_size = batch_size
+        total_rows = activations.shape[0]
         if show_progress:
             from tqdm import tqdm
 
-            total_batches = math.ceil(activations.shape[0] / batch_size)
-            starts = tqdm(starts, total=total_batches, desc="Encoding SAE")
-        with torch.no_grad():
-            for start in starts:
-                batch = activations[start : start + batch_size].to(device=device)
-                feats_list.append(self.sae.encode(batch).cpu())
-        feats = torch.cat(feats_list, dim=0).numpy()
+        sample_iter = iter(enumerate(metadata))
+        if show_progress:
+            sample_iter = tqdm(sample_iter, total=len(metadata), desc="Encoding SAE")
 
-        aggregation = str(aggregation).lower()
-        per_sample = []
-        per_sample_metadata = []
-        for meta in metadata:
-            start = meta["start_idx"]
+        for _si, meta in sample_iter:
             count = meta["count"]
             if count == 0:
                 continue
-            token_slice = feats[start : start + count]
+            start = meta["start_idx"]
+            sample_acts = activations[start : start + count]
+
+            feats_chunks = []
+            with torch.no_grad():
+                for s in range(0, count, encode_batch_size):
+                    chunk = sample_acts[s : s + encode_batch_size].to(
+                        device=device, dtype=dtype
+                    )
+                    feats_chunks.append(self.sae.encode(chunk).cpu().numpy())
+            token_feats = np.concatenate(feats_chunks, axis=0) if len(feats_chunks) > 1 else feats_chunks[0]
+
             if aggregation == "none":
-                for token_idx in range(token_slice.shape[0]):
-                    per_sample.append(token_slice[token_idx])
-                    token_meta = dict(meta)
-                    token_meta["token_position_index"] = token_idx
-                    per_sample_metadata.append(token_meta)
+                for ti in range(token_feats.shape[0]):
+                    per_sample.append(token_feats[ti])
+                    tm = dict(meta)
+                    tm["token_position_index"] = ti
+                    per_sample_metadata.append(tm)
             elif aggregation == "max":
-                per_sample.append(token_slice.max(axis=0))
+                per_sample.append(token_feats.max(axis=0))
                 per_sample_metadata.append(meta)
             else:
-                per_sample.append(token_slice.mean(axis=0))
+                per_sample.append(token_feats.mean(axis=0))
                 per_sample_metadata.append(meta)
+
         if not per_sample:
-            return np.empty((0, self.sae.n_features)), []
+            return np.empty((0, n_features)), []
         per_sample = np.stack(per_sample, axis=0)
         metadata = per_sample_metadata
 
