@@ -18,13 +18,13 @@ from sae_experiments.data.attribute_dataset import AttributeVQADataset
 from sae_experiments.feature_analysis.feature_catalog import FeatureCatalog
 from sae_experiments.feature_analysis.feature_identifier import FeatureIdentifier
 from sae_experiments.tools.knockout_runner import run_knockout_sweep
-from sae_experiments.models.sae_trainer import SAETrainer
+from sae_experiments.training.sae_trainer import SAETrainer
 from sae_experiments.core.sparse_autoencoder import SparseAutoencoder
 from sae_experiments.utils.checkpoint_utils import load_checkpoint, save_checkpoint
 from sae_experiments.utils.config_utils import resolve_primary_task_type, resolve_dtype
 from sae_experiments.hooks.knockout_utils import build_block_config, estimate_inputs_embeds_shape, resolve_flow_ranges
 from sae_experiments.utils.script_utils import setup_experiment, load_llava_components
-from sae_experiments.utils.sae_validation import (
+from sae_experiments.training.sae_validation import (
     compute_activation_stats,
     reconstruction_loss,
     should_reuse_sae,

@@ -18,12 +18,12 @@ if str(ROOT) not in sys.path:
 from sae_experiments.core.config import load_config, save_config
 from sae_experiments.data.attribute_dataset import AttributeVQADataset
 from sae_experiments.core.sparse_autoencoder import SparseAutoencoder
-from sae_experiments.models.sae_trainer import SAETrainer
+from sae_experiments.training.sae_trainer import SAETrainer
 from sae_experiments.utils.config_utils import (
     resolve_primary_task_type,
     resolve_training_position_type,
 )
-from sae_experiments.utils.sae_validation import compute_activation_stats
+from sae_experiments.training.sae_validation import compute_activation_stats
 from sae_experiments.utils.script_utils import setup_experiment, load_llava_components
 
 
