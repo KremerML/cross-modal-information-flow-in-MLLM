@@ -11,30 +11,34 @@ Research project studying how visual information flows into language representat
 
 ```
 sae_experiments/
-  ablation/         feature_ablator.py, ablation_experiments.py, statistical_analysis.py
-  config/           sae_config.py (load_config, save_config)
-  data/             activation_collector.py, attribute_dataset.py, clevr_lite_dataset.py
-  evaluation/       hypothesis_tester.py, metrics.py
-  feature_analysis/ feature_catalog.py, feature_identifier.py, causal_feature_identifier.py
-  knockout/         knockout_runner.py
-  models/           sparse_autoencoder.py, sae_trainer.py
-  utils/            config_utils.py, hook_utils.py, knockout_utils.py,
-                    script_utils.py, token_utils.py, visualization_utils.py, checkpoint_utils.py
-  scripts/
-    # Sequential pipeline (numbered by dependency order)
+  core/              config.py (load/save), result_schema.py, sparse_autoencoder.py
+  data/              activation_collector.py, attribute_dataset.py, clevr_lite_dataset.py,
+                     llava_loader.py, clevr_lite/ (generator subpackage)
+  hooks/             hook_utils.py, knockout_utils.py, attention_hooks.py
+  training/          sae_trainer.py, sae_validation.py
+  feature_analysis/  feature_catalog.py, feature_identifier.py, causal_feature_identifier.py
+  ablation/          feature_ablator.py, ablation_experiments.py, statistical_analysis.py,
+                     hypothesis_tester.py, metrics.py
+  pipeline/          # Sequential steps (numbered by dependency order)
     00_knockout_sweep.py           - layer selection via attention knockout
     01_train_sae.py                - train SAE on LLaVA activations
     02_identify_features_causal.py - rank features by gradient×activation
     03_run_ablation.py             - 3-condition ablation test
     04_analyze_results.py          - statistical analysis of ablation results
-    # Standalone utilities (unnumbered)
+  tools/             # Standalone utilities
     analyze_causal_features.py     - post-hoc causal feature analysis
     collect_activations.py         - multi-layer activation caching
     generate_clevr_lite.py         - CLEVR-Lite dataset generation
     knockout_guided_features.py    - knockout-supervised feature selection
+    knockout_runner.py             - knockout sweep runner
     knockout_sae_pipeline.py       - end-to-end knockout+SAE orchestrator
     rank_features_causally.py      - single-feature causal ranking
     test_clevr_lite_pipeline.py    - integration test
+  utils/             config_utils.py, script_utils.py, token_utils.py,
+                     checkpoint_utils.py, random_utils.py, visualization_utils.py
+
+InformationFlow.py   - thin re-export wrapper (backwards compat for notebooks)
+methods.py           - thin re-export wrapper (backwards compat for notebooks)
 
 configs/
   experiment_config.yaml           - shared base config
@@ -46,9 +50,13 @@ configs/
     knockout.yaml, knockout_color.yaml
     sae_base.yaml, sae_layer{0,11}_attn_out.yaml, ...
 
+scripts/             - all shell scripts (run_*, train_*, watch_gpu.sh)
+tests/               - unit and integration tests
+docs/                - research docs and methodology writeups
 output/
-  knockout_sae/     attention knockout sweep results
-  sae_experiments/  SAE training + ablation results
+  knockout_sae/      attention knockout sweep results
+  sae_experiments/   SAE training + ablation results
+archive/             - superseded code preserved with original structure
 ```
 
 ## Model Details
@@ -61,7 +69,7 @@ output/
 
 ## Attention Knockout Results (Key Finding)
 
-Script: `sae_experiments/scripts/00_knockout_sweep.py`
+Script: `sae_experiments/pipeline/00_knockout_sweep.py`
 Results: `output/knockout_sae/knockout_color_run1_20260219_180829/` (n=510) and `knockout_run2_fixed_20260203_173906/` (n=810)
 
 Metric: `margin_drop = log P(true) - log P(false)` before vs. after blocking attention at each layer.
@@ -214,7 +222,7 @@ Use containment scoring or logprob scoring. Exact match is only valid for discri
 - `question` — all question tokens
 - `all` — all positions
 - `last` — final token only
-- `image` — the expanded visual patch token positions (`image_token_count` tokens starting at the image placeholder index). Implemented in `activation_collector.py` and `feature_ablator.py` (Mar 2026). Arithmetic: `[img_placeholder_idx, img_placeholder_idx + image_token_count)`, consistent with `knockout_utils.get_image_token_range`. Zero overlap with `question` range.
+- `image` — the expanded visual patch token positions (`image_token_count` tokens starting at the image placeholder index). Implemented in `activation_collector.py` and `feature_ablator.py` (Mar 2026). Arithmetic: `[img_placeholder_idx, img_placeholder_idx + image_token_count)`, consistent with `hooks/knockout_utils.get_image_token_range`. Zero overlap with `question` range.
 
 ### Feature selection methods
 - `ratio` — correct_mean / incorrect_mean activation
@@ -231,10 +239,10 @@ All previously duplicated helpers are now in:
 | Function | Location | Replaces |
 |----------|----------|---------|
 | `resolve_dtype(value)` | `utils/config_utils.py` | `_resolve_dtype` in 5 scripts + sae_trainer |
-| `get_target_module(model, layer_idx, site)` | `utils/hook_utils.py` | `_get_target_module` in ablator + collector |
-| `estimate_image_token_count(model, ...)` | `utils/knockout_utils.py` | `_estimate_image_token_count` in ablator + collector |
-| `get_question_token_range(...)` | `utils/knockout_utils.py` (thin wrapper → token_utils) | incompatible dual implementations |
-| `sequence_logprob(model, tokenizer, ...)` | `utils/knockout_utils.py` | `_sequence_logprob` in ablator + knockout_runner |
+| `get_target_module(model, layer_idx, site)` | `hooks/hook_utils.py` | `_get_target_module` in ablator + collector |
+| `estimate_image_token_count(model, ...)` | `hooks/knockout_utils.py` | `_estimate_image_token_count` in ablator + collector |
+| `get_question_token_range(...)` | `hooks/knockout_utils.py` (thin wrapper → token_utils) | incompatible dual implementations |
+| `sequence_logprob(model, tokenizer, ...)` | `hooks/knockout_utils.py` | `_sequence_logprob` in ablator + knockout_runner |
 | `setup_experiment(args, config)` | `utils/script_utils.py` | boilerplate in 7 scripts |
 | `load_llava_components(model_cfg)` | `utils/script_utils.py` | boilerplate in 7 scripts |
 | `load_sae(config, model, path)` | `utils/script_utils.py` | boilerplate in 7 scripts |
@@ -313,10 +321,12 @@ knockout:
 
 ## Naming Convention
 
-### Scripts (`sae_experiments/scripts/`)
+### Pipeline scripts (`sae_experiments/pipeline/`)
 - **Numbered** (`NN_verb_object.py`): sequential pipeline steps where each depends on the prior step's output. Currently 00–04.
-- **Unnumbered** (`verb_object.py`): standalone utilities, ad-hoc analysis, tests. No pipeline ordering.
 - snake_case. No dataset/layer/attribute in the script name — configs carry that context.
+
+### Tool scripts (`sae_experiments/tools/`)
+- **Unnumbered** (`verb_object.py`): standalone utilities, ad-hoc analysis, tests. No pipeline ordering.
 
 ### Configs (`configs/`)
 - Organized by dataset: `configs/clevr_lite/`, `configs/gqa/`. Shared configs at root.

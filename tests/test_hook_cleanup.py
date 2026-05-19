@@ -130,7 +130,7 @@ class TestHookCleanup(unittest.TestCase):
         methods_stub.remove_wrapper_llava = lambda _m, _h: None
 
         with patch.dict(sys.modules, {"methods": methods_stub}):
-            knockout_runner = importlib.import_module("sae_experiments.knockout.knockout_runner")
+            knockout_runner = importlib.import_module("sae_experiments.tools.knockout_runner")
             with patch.object(knockout_runner, "set_block_attn_hooks_llava", return_value="hooks"), patch.object(
                 knockout_runner,
                 "remove_wrapper_llava",
