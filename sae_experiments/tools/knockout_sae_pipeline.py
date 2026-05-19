@@ -13,13 +13,13 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))
 
-from sae_experiments.config.sae_config import load_config, save_config
+from sae_experiments.core.config import load_config, save_config
 from sae_experiments.data.attribute_dataset import AttributeVQADataset
 from sae_experiments.feature_analysis.feature_catalog import FeatureCatalog
 from sae_experiments.feature_analysis.feature_identifier import FeatureIdentifier
 from sae_experiments.tools.knockout_runner import run_knockout_sweep
 from sae_experiments.models.sae_trainer import SAETrainer
-from sae_experiments.models.sparse_autoencoder import SparseAutoencoder
+from sae_experiments.core.sparse_autoencoder import SparseAutoencoder
 from sae_experiments.utils.checkpoint_utils import load_checkpoint, save_checkpoint
 from sae_experiments.utils.config_utils import resolve_primary_task_type, resolve_dtype
 from sae_experiments.utils.knockout_utils import build_block_config, estimate_inputs_embeds_shape, resolve_flow_ranges

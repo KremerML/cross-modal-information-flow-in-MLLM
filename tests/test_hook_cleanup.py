@@ -10,7 +10,7 @@ from torch import nn
 
 from sae_experiments.ablation.feature_ablator import FeatureAblator
 from sae_experiments.data.activation_collector import ActivationCollector
-from sae_experiments.models.sparse_autoencoder import SparseAutoencoder
+from sae_experiments.core.sparse_autoencoder import SparseAutoencoder
 
 
 class _DatasetStub:

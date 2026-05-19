@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))
 
-from sae_experiments.config.sae_config import load_config
+from sae_experiments.core.config import load_config
 from sae_experiments.feature_analysis.causal_feature_identifier import (
     CausalFeatureIdentifier,
 )

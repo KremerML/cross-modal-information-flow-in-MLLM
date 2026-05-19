@@ -14,7 +14,7 @@ if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))
 
 from sae_experiments.ablation.feature_ablator import FeatureAblator
-from sae_experiments.config.sae_config import load_config
+from sae_experiments.core.config import load_config
 from sae_experiments.data.attribute_dataset import AttributeVQADataset
 from sae_experiments.utils.config_utils import resolve_primary_task_type
 from sae_experiments.utils.script_utils import setup_experiment, load_llava_components, load_sae

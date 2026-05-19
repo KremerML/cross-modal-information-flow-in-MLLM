@@ -52,7 +52,7 @@ def load_llava_components(model_cfg, attn_implementation=None):
 
 def load_sae(config, model, checkpoint_path):
     """Build SparseAutoencoder, load checkpoint, move to device/dtype. Return sae."""
-    from sae_experiments.models.sparse_autoencoder import SparseAutoencoder
+    from sae_experiments.core.sparse_autoencoder import SparseAutoencoder
 
     model_cfg = config.get("model", {})
     sae = SparseAutoencoder(

@@ -55,7 +55,7 @@ def main() -> None:
     parser.add_argument("--max_samples", type=int, default=10)
     args = parser.parse_args()
 
-    from sae_experiments.config.sae_config import load_config, save_config
+    from sae_experiments.core.config import load_config, save_config
     config = load_config(args.config)
     model_cfg = config.get("model", {})
     data_cfg = config.get("dataset", {})

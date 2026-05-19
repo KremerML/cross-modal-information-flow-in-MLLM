@@ -46,7 +46,7 @@ try:
 except ImportError:
     IMAGE_TOKEN_INDEX = -200
 
-from sae_experiments.config.sae_config import load_config
+from sae_experiments.core.config import load_config
 from sae_experiments.utils.hook_utils import HookManager, get_target_module
 from sae_experiments.utils.knockout_utils import estimate_image_token_count
 from sae_experiments.utils import token_utils

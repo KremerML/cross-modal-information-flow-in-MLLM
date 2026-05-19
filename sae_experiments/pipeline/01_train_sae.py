@@ -15,9 +15,9 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))
 
-from sae_experiments.config.sae_config import load_config, save_config
+from sae_experiments.core.config import load_config, save_config
 from sae_experiments.data.attribute_dataset import AttributeVQADataset
-from sae_experiments.models.sparse_autoencoder import SparseAutoencoder
+from sae_experiments.core.sparse_autoencoder import SparseAutoencoder
 from sae_experiments.models.sae_trainer import SAETrainer
 from sae_experiments.utils.config_utils import (
     resolve_primary_task_type,

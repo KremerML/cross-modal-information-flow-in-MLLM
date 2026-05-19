@@ -16,7 +16,7 @@ if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))
 
 from InformationFlow import create_data_loader
-from sae_experiments.config.sae_config import load_config, save_config
+from sae_experiments.core.config import load_config, save_config
 from sae_experiments.tools.knockout_runner import run_knockout_sweep
 from sae_experiments.utils.checkpoint_utils import resolve_experiment_dir
 from sae_experiments.utils.config_utils import resolve_primary_task_type
