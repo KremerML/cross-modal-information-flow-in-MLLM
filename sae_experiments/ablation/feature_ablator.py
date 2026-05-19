@@ -99,42 +99,6 @@ class FeatureAblator:
 
         return hook
 
-    def run_with_ablation(self, sample: Tuple, feature_indices: List[int], tokenizer) -> Tuple[str, float]:
-        input_ids, image_tensor, image_sizes, _, _ = sample
-        try:
-            device = next(self.model.parameters()).device
-        except StopIteration:
-            device = "cuda" if torch.cuda.is_available() else "cpu"
-        input_ids = input_ids.to(device=device)
-        image_tensor = [img.to(device=device) for img in image_tensor]
-
-        layer = get_target_module(self.model, self.layer_idx, self.activation_site)
-        hook = layer.register_forward_hook(self.create_ablation_hook(feature_indices))
-
-        inps = {
-            "inputs": input_ids,
-            "images": image_tensor,
-            "image_sizes": image_sizes,
-            "do_sample": False,
-            "num_beams": 1,
-            "max_new_tokens": 1,
-            "use_cache": True,
-            "return_dict_in_generate": True,
-            "output_scores": True,
-            "pad_token_id": tokenizer.eos_token_id,
-        }
-        try:
-            with torch.inference_mode():
-                output = self.model.generate(**inps)
-        finally:
-            hook.remove()
-
-        answer_token_id = output["sequences"][:, 0]
-        logits_first = output["scores"][0]
-        prob = torch.softmax(logits_first, dim=-1)[0][answer_token_id].item()
-        prediction = tokenizer.batch_decode(output["sequences"], skip_special_tokens=True)[0].strip().lower()
-        return prediction, prob
-
     def compute_baseline_cache(
         self,
         dataset,
