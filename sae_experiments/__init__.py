@@ -1,11 +1,13 @@
 """SAE-based attribute binding experiments."""
 
 __all__ = [
-    "config",
-    "models",
+    "core",
     "data",
+    "hooks",
+    "training",
     "feature_analysis",
     "ablation",
-    "evaluation",
+    "pipeline",
+    "tools",
     "utils",
 ]

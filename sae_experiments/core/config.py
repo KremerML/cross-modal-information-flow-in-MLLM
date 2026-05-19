@@ -105,12 +105,6 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "num_workers": 2,
         "output_subdir": "knockout",
     },
-    "paths": {
-        "output_dir": "output/sae_experiments",
-        "sae_checkpoint": "output/sae_experiments/sae_checkpoint.pt",
-        "feature_catalog": "output/sae_experiments/feature_catalog.json",
-        "results_dir": "output/sae_experiments/results",
-    },
 }
 
 
