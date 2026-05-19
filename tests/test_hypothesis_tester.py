@@ -1,6 +1,6 @@
 import unittest
 
-from sae_experiments.evaluation.hypothesis_tester import HypothesisTester
+from sae_experiments.ablation.hypothesis_tester import HypothesisTester
 
 
 class TestHypothesisTester(unittest.TestCase):

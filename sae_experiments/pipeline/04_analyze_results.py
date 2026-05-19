@@ -12,7 +12,7 @@ if str(ROOT) not in sys.path:
 
 from sae_experiments.ablation import statistical_analysis
 from sae_experiments.core.config import load_config
-from sae_experiments.evaluation.hypothesis_tester import HypothesisTester
+from sae_experiments.ablation.hypothesis_tester import HypothesisTester
 from sae_experiments.utils.checkpoint_utils import resolve_experiment_dir
 
 

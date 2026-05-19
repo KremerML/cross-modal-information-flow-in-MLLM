@@ -9,8 +9,8 @@ try:
 except ImportError:
     stats = None
 
-from sae_experiments.evaluation.metrics import accuracy_at_k as compute_accuracy
-from sae_experiments.evaluation.metrics import mean_probability_drop as compute_probability_drop
+from sae_experiments.ablation.metrics import accuracy_at_k as compute_accuracy
+from sae_experiments.ablation.metrics import mean_probability_drop as compute_probability_drop
 
 
 def paired_t_test(baseline_probs: Iterable[float], ablated_probs: Iterable[float]) -> Tuple[float, float]:
