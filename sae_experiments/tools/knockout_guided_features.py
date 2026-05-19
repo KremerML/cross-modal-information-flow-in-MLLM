@@ -17,7 +17,6 @@ Usage:
 
 import argparse
 import json
-import math
 import os
 from pathlib import Path
 import sys
@@ -36,7 +35,6 @@ from sae_experiments.utils.config_utils import resolve_primary_task_type
 from sae_experiments.hooks.hook_utils import HookManager, create_activation_capture_hook, get_target_module
 from sae_experiments.hooks.knockout_utils import (
     estimate_inputs_embeds_shape,
-    get_image_token_range,
     resolve_flow_ranges,
     build_block_config,
 )
@@ -108,7 +106,6 @@ def main() -> None:
         print(f"[07] GPU memory: {free/1024**3:.2f} GB free / {total/1024**3:.2f} GB total")
 
     target_module = get_target_module(model, collection_layer, model_cfg.get("activation_site", "attn_out"))
-    model_name = model_cfg.get("name", "")
     _collector = ActivationCollector(model, collection_layer, activation_site=model_cfg.get("activation_site", "attn_out"))
 
     data_loader = dataset.create_dataloader()
@@ -182,7 +179,6 @@ def main() -> None:
             inputs_embeds_shape,
             question_text,
             tokenizer,
-            model_name,
         )
         if not source_range or not target_range:
             skipped += 1

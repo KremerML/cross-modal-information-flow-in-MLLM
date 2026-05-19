@@ -13,8 +13,6 @@ import os
 from pathlib import Path
 import sys
 
-import torch
-
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))
@@ -23,7 +21,7 @@ from sae_experiments.ablation.ablation_experiments import AblationExperiment
 from sae_experiments.ablation.feature_ablator import FeatureAblator
 from sae_experiments.core.config import load_config
 from sae_experiments.feature_analysis.feature_catalog import FeatureCatalog
-from sae_experiments.utils.config_utils import resolve_primary_task_type, resolve_task_types
+from sae_experiments.utils.config_utils import resolve_primary_task_type
 from sae_experiments.utils.script_utils import setup_experiment, load_llava_components, load_sae
 
 

@@ -48,7 +48,6 @@ except ImportError:
 
 from sae_experiments.core.config import load_config
 from sae_experiments.hooks.hook_utils import HookManager, get_target_module
-from sae_experiments.hooks.knockout_utils import estimate_image_token_count
 from sae_experiments.utils import token_utils
 from sae_experiments.utils.script_utils import load_llava_components
 

@@ -47,7 +47,6 @@ def get_question_token_range(
     inputs_embeds_shape: Tuple[int, int, int],
     question_text: str,
     tokenizer,
-    model_name: str = None,
 ) -> List[int]:
     image_token_count = inputs_embeds_shape[1] - (input_ids.shape[-1] - 1)
     from sae_experiments.utils.token_utils import get_question_token_range as _impl
@@ -122,7 +121,6 @@ def resolve_flow_ranges(
     inputs_embeds_shape: Tuple[int, int, int],
     question_text: str,
     tokenizer,
-    model_name: str,
 ) -> Tuple[List[int], List[int]]:
     source, target = [part.strip() for part in flow.split("->")]
     if source == "Image":
@@ -132,7 +130,7 @@ def resolve_flow_ranges(
 
     if target == "Question":
         target_range = get_question_token_range(
-            input_ids, inputs_embeds_shape, question_text, tokenizer, model_name
+            input_ids, inputs_embeds_shape, question_text, tokenizer
         )
     elif target == "Last":
         target_range = get_last_token_range(input_ids, inputs_embeds_shape)

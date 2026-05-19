@@ -3,10 +3,8 @@
 from typing import Dict, Iterable, List, Optional, Tuple
 
 import json
-import math
 import os
 
-import torch
 from tqdm import tqdm
 
 from sae_experiments.ablation import statistical_analysis
@@ -59,7 +57,6 @@ def run_knockout_sweep(
     questions: List[Dict],
     data_loader,
     flows: List[str],
-    model_name: str,
     window: int = 1,
     max_samples: Optional[int] = None,
     filter_correct: bool = True,
@@ -141,7 +138,7 @@ def run_knockout_sweep(
             for flow in flows:
                 source_range, target_range = knockout_utils.resolve_flow_ranges(
                     flow, input_ids, inputs_embeds_shape,
-                    question_text, tokenizer, model_name,
+                    question_text, tokenizer,
                 )
                 if not source_range or not target_range:
                     progress.update(num_layers)

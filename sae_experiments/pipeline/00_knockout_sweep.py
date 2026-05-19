@@ -7,7 +7,6 @@ from pathlib import Path
 import sys
 
 import pandas as pd
-import torch
 from llava.model.builder import load_pretrained_model
 from llava.mm_utils import get_model_name_from_path
 
@@ -125,7 +124,6 @@ def main() -> None:
         questions=questions,
         data_loader=data_loader,
         flows=flows,
-        model_name=model_name,
         window=window,
         max_samples=max_samples,
         filter_correct=filter_correct,

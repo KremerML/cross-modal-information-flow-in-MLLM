@@ -223,7 +223,6 @@ def _make_attn_block_resolver(
     layer: int,
     window: int,
     model: Any,
-    model_name: str,
 ) -> Callable[..., Optional[Dict[str, Any]]]:
     """Create a resolver that builds per-sample attention block configs.
 
@@ -232,7 +231,6 @@ def _make_attn_block_resolver(
         layer (int): Center layer index for attention blocking.
         window (int): Layer window width passed to block config generation.
         model: Loaded LLaVA model instance.
-        model_name (str): Model name used by token-range utilities.
 
     Returns:
         Callable[..., Optional[Dict[str, Any]]]: Resolver callable accepted by ``FeatureAblator``.
@@ -274,7 +272,6 @@ def _make_attn_block_resolver(
             inputs_embeds_shape,
             question_text,
             dataset.tokenizer,
-            model_name,
         )
         if not source_range or not target_range:
             return None
@@ -333,8 +330,6 @@ def main() -> None:
 
     save_config(config, os.path.join(experiment_dir, "config.yaml"))
 
-    from llava.mm_utils import get_model_name_from_path
-    model_name = get_model_name_from_path(os.path.expanduser(model_cfg.get("name", "")))
     tokenizer, model, image_processor = load_llava_components(model_cfg)
 
     dataset = AttributeVQADataset(
@@ -362,7 +357,6 @@ def main() -> None:
             questions=dataset.questions,
             data_loader=data_loader,
             flows=knockout_cfg.get("flows", []),
-            model_name=model_name,
             window=knockout_cfg.get("window", 1),
             max_samples=args.max_samples or knockout_cfg.get("max_samples"),
             filter_correct=knockout_cfg.get("filter_correct", True),
@@ -502,7 +496,7 @@ def main() -> None:
                 activation_site=model_cfg.get("activation_site", "residual"),
             )
             resolver = _make_attn_block_resolver(
-                flow, layer, knockout_cfg.get("window", 1), model, model_name
+                flow, layer, knockout_cfg.get("window", 1), model
             )
 
             result_dir = os.path.join(ablation_root, flow.replace("->", "_"), f"layer_{layer}")

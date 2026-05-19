@@ -55,7 +55,7 @@ def main() -> None:
     parser.add_argument("--max_samples", type=int, default=10)
     args = parser.parse_args()
 
-    from sae_experiments.core.config import load_config, save_config
+    from sae_experiments.core.config import load_config
     config = load_config(args.config)
     model_cfg = config.get("model", {})
     data_cfg = config.get("dataset", {})
@@ -124,7 +124,7 @@ def main() -> None:
 
     # ── CHECK 3: Baseline logprobs ────────────────────────────────────────────
     print("\n[ 3 ] Baseline logprobs (first 10 samples)")
-    from sae_experiments.hooks.knockout_utils import sequence_logprob, estimate_inputs_embeds_shape
+    from sae_experiments.hooks.knockout_utils import sequence_logprob
 
     device = next(model.parameters()).device
     n_correct_baseline = 0
@@ -182,7 +182,6 @@ def main() -> None:
         questions=dataset.questions,
         data_loader=dataset.create_dataloader(),
         flows=["Image->Question"],
-        model_name=model_name,
         window=1,
         max_samples=args.max_samples,
         filter_correct=True,

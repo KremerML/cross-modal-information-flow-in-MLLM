@@ -9,7 +9,6 @@ try:
 except ImportError:
     stats = None
 
-from sae_experiments.ablation.metrics import accuracy_at_k as compute_accuracy
 from sae_experiments.ablation.metrics import mean_probability_drop as compute_probability_drop
 
 

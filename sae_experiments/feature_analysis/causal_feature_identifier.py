@@ -125,7 +125,7 @@ class CausalFeatureIdentifier:
             question_text = detail["question"]
             positions = self._resolve_positions(
                 position_type, input_ids, image_token_count,
-                question_text, tokenizer, line,
+                question_text, tokenizer,
             )
 
             features_buffer: Dict[str, Any] = {}
@@ -293,7 +293,6 @@ class CausalFeatureIdentifier:
         image_token_count: int,
         question_text: str,
         tokenizer,
-        line: dict,
     ) -> List[int]:
         if position_type == "all":
             expanded_len = input_ids.shape[-1] - 1 + image_token_count
