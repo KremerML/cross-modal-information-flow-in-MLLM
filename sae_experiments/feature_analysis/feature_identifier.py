@@ -1,7 +1,6 @@
 """Identify discriminative SAE features for attribute binding."""
 
 from typing import Dict, List, Optional, Tuple
-import math
 import json
 
 import numpy as np
@@ -195,32 +194,6 @@ class FeatureIdentifier:
                 "incorrect_mean": float(incorrect_mean[idx]),
                 "ratio": float(ratio_diag[idx]),
                 "diff": float(diff[idx]),
-            }
-        return features
-
-    def find_attribute_specific_features(self, attribute_type: str = "color") -> List[int]:
-        if self.feature_acts is None or self.metadata is None:
-            raise ValueError("Run compute_feature_activations first")
-
-        mask = []
-        for meta in self.metadata:
-            attr_types = {a["category"] for a in meta.get("attribute_tokens", [])}
-            mask.append(attribute_type in attr_types)
-        mask = np.array(mask, dtype=bool)
-
-        if mask.sum() == 0:
-            return []
-
-        attr_mean = self.feature_acts[mask].mean(axis=0)
-        other_mean = self.feature_acts[~mask].mean(axis=0)
-        ratio = (attr_mean + 1e-8) / (other_mean + 1e-8)
-
-        features = np.argsort(ratio)[::-1].tolist()
-        for idx in features[: min(200, len(features))]:
-            self.feature_stats[idx] = {
-                "attr_mean": float(attr_mean[idx]),
-                "other_mean": float(other_mean[idx]),
-                "ratio": float(ratio[idx]),
             }
         return features
 
