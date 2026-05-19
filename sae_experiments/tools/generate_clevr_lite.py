@@ -4,7 +4,7 @@ Creates synthetic 2D scenes (squares, circles, triangles in 6 colors) with
 unambiguous attribute queries suitable for attention knockout and SAE experiments.
 
 Usage:
-    python sae_experiments/scripts/generate_clevr_lite.py \
+    python sae_experiments/tools/generate_clevr_lite.py \
         --num_train 50000 --num_val 2000 --output_dir datasets/clevr_lite
 
 At 50K train scenes (~3.7 questions/scene × ~6 question tokens) this produces

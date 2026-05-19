@@ -12,7 +12,7 @@ for layer in 0 10 11 12 13 14; do
     echo "========================================"
     echo " Training SAE — layer ${layer}"
     echo "========================================"
-    python sae_experiments/scripts/01_train_sae.py \
+    python sae_experiments/pipeline/01_train_sae.py \
         --config "configs/clevr_lite/sae_layer${layer}_attn_out_question.yaml" \
         --target_layer "${layer}" \
         --activations_path "${ACTS_DIR}" \

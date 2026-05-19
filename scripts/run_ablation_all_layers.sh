@@ -30,7 +30,7 @@ for layer in "${LAYERS[@]}"; do
 
     echo ""
     echo "[ABLATION] Layer $layer: starting at $(date)"
-    $PYTHON sae_experiments/scripts/03b_run_ablation_v2.py \
+    $PYTHON sae_experiments/pipeline/03_run_ablation.py \
         --config "$CONFIG" \
         --experiment_dir "$EXPERIMENT_DIR" \
         --skip_passthrough \

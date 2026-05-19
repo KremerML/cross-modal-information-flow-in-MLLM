@@ -5,7 +5,7 @@ correlational feature selection (activation ratio) with causal selection
 (gradient * activation through the model's computation graph).
 
 Usage:
-    python sae_experiments/scripts/02b_identify_features_causal.py \
+    python sae_experiments/pipeline/02_identify_features_causal.py \
         --config configs/clevr_lite/sae_layer11_attn_out_question.yaml \
         --max_samples 50  # smoke test
 """

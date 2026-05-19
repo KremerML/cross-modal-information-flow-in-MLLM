@@ -14,7 +14,7 @@ Checks performed:
   8. Summary has expected structure
 
 Usage:
-    python sae_experiments/scripts/test_clevr_lite_pipeline.py \
+    python sae_experiments/tools/test_clevr_lite_pipeline.py \
         --config configs/clevr_lite/knockout.yaml \
         --max_samples 10
 """
@@ -166,7 +166,7 @@ def main() -> None:
 
     # ── CHECK 4: Knockout effect at layer 0 ──────────────────────────────────
     print("\n[ 4 ] Knockout effect at layer 0 (Image->Question)")
-    from sae_experiments.knockout.knockout_runner import run_knockout_sweep
+    from sae_experiments.tools.knockout_runner import run_knockout_sweep
 
     test_dir = "output/test_clevr_lite_pipeline"
     os.makedirs(test_dir, exist_ok=True)

@@ -31,7 +31,7 @@ for layer in "${LAYERS[@]}"; do
 
     echo ""
     echo "[TRAIN] Layer $layer: starting at $(date)"
-    $PYTHON sae_experiments/scripts/01_train_sae.py \
+    $PYTHON sae_experiments/pipeline/01_train_sae.py \
         --config "$CONFIG" \
         --activations_path "$ACTIVATIONS_PATH" \
         --show_progress true
@@ -56,7 +56,7 @@ for layer in "${LAYERS[@]}"; do
 
     echo ""
     echo "[CAUSAL] Layer $layer: starting at $(date)"
-    $PYTHON sae_experiments/scripts/02b_identify_features_causal.py \
+    $PYTHON sae_experiments/pipeline/02_identify_features_causal.py \
         --config "$CONFIG" \
         --target margin \
         --position_type question \

@@ -31,7 +31,7 @@ if [[ -n "$MAX_SAMPLES" ]]; then
 fi
 
 CMD=(
-  "$PYTHON_BIN" sae_experiments/scripts/02_identify_features.py
+  "$PYTHON_BIN" sae_experiments/pipeline/02_identify_features_causal.py
   --config "$CFG"
   --sae_checkpoint "$SAE_CKPT"
   --experiment_dir "$RUN_DIR"

@@ -28,7 +28,7 @@ if [[ -n "$MAX_SAMPLES" ]]; then
 fi
 
 CMD=(
-  "$PYTHON_BIN" sae_experiments/scripts/01_train_sae.py
+  "$PYTHON_BIN" sae_experiments/pipeline/01_train_sae.py
   --config "$CFG"
   --target_layer "$TARGET_LAYER"
   --position_type "$POSITION_TYPE"

@@ -27,25 +27,25 @@ echo "Run dir: $RUN"
 echo "CUBLAS_WORKSPACE_CONFIG: $CUBLAS_WORKSPACE_CONFIG"
 
 # 0) Recompute attention-knockout baseline (fresh run)
-python sae_experiments/scripts/00_knockout_sweep.py \
+python sae_experiments/pipeline/00_knockout_sweep.py \
   --config "$CFG" \
   --experiment_dir "$RUN"
 
 # 1) Train SAE on attention outputs (layer 11, attribute positions)
-python sae_experiments/scripts/01_train_sae.py \
+python sae_experiments/pipeline/01_train_sae.py \
   --config "$CFG" \
   --target_layer 11 \
   --position_type attribute \
   --experiment_dir "$RUN"
 
 # 2) Identify features
-python sae_experiments/scripts/02_identify_features.py \
+python sae_experiments/pipeline/02_identify_features_causal.py \
   --config "$CFG" \
   --sae_checkpoint "$RUN/sae_checkpoint.pt" \
   --experiment_dir "$RUN"
 
 # 3) Run binding vs matched-random ablation
-python sae_experiments/scripts/03_run_ablation.py \
+python sae_experiments/pipeline/03_run_ablation.py \
   --config "$CFG" \
   --features "$RUN/feature_catalog.json" \
   --sae_checkpoint "$RUN/sae_checkpoint.pt" \
@@ -53,14 +53,14 @@ python sae_experiments/scripts/03_run_ablation.py \
   --experiment_dir "$RUN"
 
 # 4) Statistical analysis/report
-python sae_experiments/scripts/04_analyze_results.py \
+python sae_experiments/pipeline/04_analyze_results.py \
   --config "$CFG" \
   --results "$RUN/results/ablation_results.json" \
   --output "$RUN/analysis" \
   --experiment_dir "$RUN"
 
 # 5) Causal ranking pass (single-feature ablations)
-python sae_experiments/scripts/rank_features_causally.py \
+python sae_experiments/tools/rank_features_causally.py \
   --config "$CFG" \
   --sae_checkpoint "$RUN/sae_checkpoint.pt" \
   --output "$RUN/causal_feature_scores.json" \
