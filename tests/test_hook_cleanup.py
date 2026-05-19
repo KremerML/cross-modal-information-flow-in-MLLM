@@ -125,28 +125,24 @@ class TestHookCleanup(unittest.TestCase):
         tokenizer = _TokenizerStub()
         called = []
 
-        methods_stub = types.ModuleType("methods")
-        methods_stub.set_block_attn_hooks_llava = lambda _m, _cfg: "hooks"
-        methods_stub.remove_wrapper_llava = lambda _m, _h: None
+        from sae_experiments.hooks import knockout_utils, attention_hooks
 
-        with patch.dict(sys.modules, {"methods": methods_stub}):
-            knockout_runner = importlib.import_module("sae_experiments.tools.knockout_runner")
-            with patch.object(knockout_runner, "set_block_attn_hooks_llava", return_value="hooks"), patch.object(
-                knockout_runner,
-                "remove_wrapper_llava",
-                side_effect=lambda m, h: called.append((m, h)),
-            ):
-                with self.assertRaises(RuntimeError):
-                    knockout_runner._sequence_logprob(
-                        model=model,
-                        tokenizer=tokenizer,
-                        input_ids=torch.tensor([[1, 2]], dtype=torch.long),
-                        image_tensor=[torch.zeros(1, 3, 4, 4)],
-                        image_sizes=[(4, 4)],
-                        answer_text="yes",
-                        normalize=True,
-                        block_config={0: [(0, 0)]},
-                    )
+        with patch.object(attention_hooks, "set_block_attn_hooks_llava", return_value="hooks"), patch.object(
+            attention_hooks,
+            "remove_wrapper_llava",
+            side_effect=lambda m, h: called.append((m, h)),
+        ):
+            with self.assertRaises(RuntimeError):
+                knockout_utils.sequence_logprob(
+                    model=model,
+                    tokenizer=tokenizer,
+                    input_ids=torch.tensor([[1, 2]], dtype=torch.long),
+                    image_tensor=[torch.zeros(1, 3, 4, 4)],
+                    image_sizes=[(4, 4)],
+                    answer_text="yes",
+                    normalize=True,
+                    block_config={0: [(0, 0)]},
+                )
 
         self.assertEqual(len(called), 1)
         self.assertIs(called[0][0], model)
