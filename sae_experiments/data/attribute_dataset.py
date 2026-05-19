@@ -6,7 +6,7 @@ import os
 import re
 import pandas as pd
 
-from InformationFlow import create_data_loader
+from sae_experiments.data.llava_loader import create_data_loader
 from sae_experiments.utils import token_utils
 
 

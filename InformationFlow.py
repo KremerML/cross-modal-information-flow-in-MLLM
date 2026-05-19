@@ -1,9 +1,14 @@
+"""Backwards-compatibility re-exports.
+
+CustomDataset and create_data_loader now live in sae_experiments.data.llava_loader.
+This file re-exports them and retains the legacy InforFlowAna entry point.
+"""
+
 import copy
 import pdb
 
 from methods import *
 
-# Scienfitic packages
 import numpy as np
 import pandas as pd
 import torch
@@ -33,105 +38,8 @@ import copy
 
 from utils import prepare_image_patch_bbx,create_mask_with_bbox,show_original_image,show_transferred_maskandimage, generate_plot
 
-
-# Custom dataset class
-class CustomDataset(Dataset):
-    def __init__(self, questions, image_folder, tokenizer, image_processor, model_config, task_name, conv_mode):
-        self.questions = questions
-        self.image_folder = image_folder
-        self.tokenizer = tokenizer
-        self.image_processor = image_processor
-        self.model_config = model_config
-        self.image_processor_mask = copy.deepcopy(image_processor)
-        self.model_name = get_model_name_from_path(self.model_config._name_or_path)
-        self.task_name = task_name
-        self.conv_mode = conv_mode
-
-        if self.model_name == "llama3-llava-next-8b" or self.model_name == "llava-v1.6-vicuna-7b" or self.model_name == "llava-v1.5-7b" or self.model_name == "llava-v1.5-13b":
-            self.image_processor_mask.do_normalize=False
-            self.image_processor_mask.do_rescale=False
-        elif self.model_name == "llava-next-qwen-32b":
-            self.image_processor_mask.image_mean = (0, 0, 0)
-            self.image_processor_mask.image_std = (1, 1, 1)
-            self.image_processor_mask.rescale_factor = 1
-
-    def __getitem__(self, index):
-
-        line = self.questions[index]
-        question = line["question"]
-        question = question + " \nAnswer the question using a single word or phrase."
-        _img_id_str = str(line["img_id"])
-        _known_exts = ('.jpg', '.jpeg', '.png', '.webp', '.bmp')
-        image_file = _img_id_str if any(_img_id_str.lower().endswith(e) for e in _known_exts) else _img_id_str + ".jpg"
-
-
-        qs = DEFAULT_IMAGE_TOKEN + "\n" + question  #
-
-        conv = copy.deepcopy(conv_templates[self.conv_mode])
-        conv.append_message(conv.roles[0], qs)
-        conv.append_message(conv.roles[1], None)
-        prompt = conv.get_prompt()
-        if self.model_name == "llama3-llava-next-8b":
-            prompt+=" \n"
-
-        input_ids = tokenizer_image_token(prompt, self.tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt').unsqueeze(0)
-
-        image = Image.open(os.path.join(self.image_folder, image_file)).convert("RGB")
-
-        image_tensor = process_images([image], self.image_processor, self.model_config)
-        image_tensor = [_image.to(dtype=torch.float16) for _image in image_tensor]
-
-        if self.task_name == "CompareAttr" or self.task_name == "ChooseRel" or self.task_name == "LogicalObj":
-            bounding_boxes=[]
-            bounding_boxes.append((int(line[f'object1 x']), int(line[f'object1 y']), int(line[f'object1 x'])+int(line[f'object1 w']), int(line[f'object1 y'])+int(line[f'object1 h'])))
-            if line[f'object2 x'] !="-":
-                bounding_boxes.append((int(line[f'object2 x']), int(line[f'object2 y']), int(line[f'object2 x'])+int(line[f'object2 w']), int(line[f'object2 y'])+int(line[f'object2 h'])))
-        elif self.task_name=="ChooseAttr" or self.task_name=="ChooseCat" or self.task_name=="QueryAttr":
-            bounding_boxes = [(int(line['central object x']), int(line['central object y']), int(line['central object x'])+int(line['central object w']), int(line['central object y'])+int(line['central object h']))]
-        else:
-            bounding_boxes = None
-
-        if bounding_boxes !=None:
-            mask = create_mask_with_bbox(image, bounding_boxes)
-            mask_tensor = process_images([mask], self.image_processor_mask, self.model_config)
-            mask_tensor = [_image.to(dtype=torch.float16) for _image in mask_tensor]
-        else:
-            mask_tensor=None
-
-        # show_original_image(image, bounding_boxes, self.model_name.replace('-', '_').replace('.', '_'), save_name=str(line["img_id"]), question = line["question"], answer=line["answer"])
-        # if mask_tensor[0].ndim==3:
-        #     for ind, (ma, img) in enumerate(zip(mask_tensor, image_tensor)):
-        #         show_transferred_maskandimage(ma,img, ind, self.model_name.replace('-', '_').replace('.', '_'), save_name=str(line["img_id"]))
-        # else:
-        #     for ind, (ma, img) in enumerate(zip(mask_tensor[0], image_tensor[0])):
-        #         show_transferred_maskandimage(ma,img, ind, self.model_name.replace('-', '_').replace('.', '_'), save_name=str(line["img_id"]))
-
-        image_sizes = [image.size]
-        return input_ids, image_tensor, image_sizes, prompt, mask_tensor
-
-
-
-
-    def __len__(self):
-        return len(self.questions)
-
-
-def collate_fn(batch):
-    input_ids, image_tensors, image_sizes, prompts, mask_tensors = zip(*batch)
-
-    input_ids = input_ids[0]
-    image_tensors = image_tensors[0]
-    image_sizes=image_sizes[0]
-    mask_tensors=mask_tensors[0]
-    return input_ids, image_tensors, image_sizes, prompts,mask_tensors
-
-
-
-def create_data_loader(questions, image_folder, batch_size, num_workers, tokenizer, image_processor, model_config, task_name, conv_mode):
-    assert batch_size == 1, "batch_size must be 1"
-    dataset = CustomDataset(questions, image_folder, tokenizer, image_processor, model_config, task_name, conv_mode)
-    data_loader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False, collate_fn=collate_fn)
-    return data_loader
+# ── Re-exports from canonical location ──────────────────────────────────────
+from sae_experiments.data.llava_loader import CustomDataset, collate_fn, create_data_loader
 
 
 def find_token_range(tokenizer, token_array, substring, model_name):

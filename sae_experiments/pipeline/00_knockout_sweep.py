@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))
 
-from InformationFlow import create_data_loader
+from sae_experiments.data.llava_loader import create_data_loader
 from sae_experiments.core.config import load_config, save_config
 from sae_experiments.tools.knockout_runner import run_knockout_sweep
 from sae_experiments.utils.checkpoint_utils import resolve_experiment_dir

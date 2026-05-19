@@ -22,7 +22,7 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from InformationFlow import create_data_loader
+from sae_experiments.data.llava_loader import create_data_loader
 from sae_experiments.utils import token_utils
 
 _COLORS = ["red", "blue", "green", "yellow", "purple", "black"]

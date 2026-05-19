@@ -323,7 +323,7 @@ def collect_multilayer(
         )
 
     # ── Build batched dataloader ───────────────────────────────────────────
-    from InformationFlow import CustomDataset as _CustomDataset
+    from sae_experiments.data.llava_loader import CustomDataset as _CustomDataset
     pad_id = tokenizer.pad_token_id if tokenizer.pad_token_id is not None else tokenizer.eos_token_id
     raw_dataset = _CustomDataset(
         dataset.questions,
