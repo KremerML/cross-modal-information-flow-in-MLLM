@@ -7,6 +7,7 @@ import numpy as np
 import torch
 
 from sae_experiments.data.activation_collector import ActivationCollector
+from sae_experiments.hooks.knockout_utils import sequence_logprob as _sequence_logprob
 
 
 class FeatureIdentifier:
@@ -354,14 +355,18 @@ class FeatureIdentifier:
             false_option = detail.get("false option", "").strip()
             if not true_option or not false_option:
                 continue
-            true_lp = self._sequence_logprob(
+            true_lp = _sequence_logprob(
+                self.model,
+                self.dataset.tokenizer,
                 input_ids,
                 image_tensor,
                 image_sizes,
                 true_option,
                 normalize=normalize,
             )
-            false_lp = self._sequence_logprob(
+            false_lp = _sequence_logprob(
+                self.model,
+                self.dataset.tokenizer,
                 input_ids,
                 image_tensor,
                 image_sizes,
@@ -377,61 +382,3 @@ class FeatureIdentifier:
                 "is_correct": true_lp > false_lp,
             }
         return results
-
-    def _sequence_logprob(
-        self,
-        input_ids,
-        image_tensor,
-        image_sizes,
-        answer_text: str,
-        normalize: bool = True,
-    ) -> Optional[float]:
-        if not answer_text:
-            return None
-        answer_ids = self.dataset.tokenizer.encode(
-            f" {answer_text.strip()}",
-            add_special_tokens=False,
-        )
-        if not answer_ids:
-            return None
-        device = input_ids.device
-        answer_tensor = torch.tensor([answer_ids], device=device, dtype=input_ids.dtype)
-        input_ids_full = torch.cat([input_ids, answer_tensor], dim=1)
-        with torch.inference_mode():
-            outputs = self.model(
-                input_ids=input_ids_full,
-                images=image_tensor,
-                image_sizes=image_sizes,
-                use_cache=False,
-            )
-        logits = outputs.logits
-        log_probs = torch.log_softmax(logits[0], dim=-1)
-        # Account for multimodal expansion (image tokens) when locating answer logits.
-        start = input_ids.shape[1]
-        if hasattr(self.model, "prepare_inputs_labels_for_multimodal"):
-            try:
-                _, _, _, _, inputs_embeds, _ = self.model.prepare_inputs_labels_for_multimodal(
-                    input_ids,
-                    None,
-                    None,
-                    None,
-                    None,
-                    image_tensor,
-                    ["image"],
-                    image_sizes=image_sizes,
-                )
-                image_dim = inputs_embeds.shape[1] - (input_ids.shape[-1] - 1)
-                start = input_ids.shape[1] + image_dim - 1
-            except Exception:
-                pass
-        token_logps = []
-        for i, tok_id in enumerate(answer_ids):
-            idx = start + i - 1
-            if idx < 0 or idx >= log_probs.shape[0]:
-                continue
-            token_logps.append(log_probs[idx, tok_id].item())
-        if not token_logps:
-            return None
-        if normalize:
-            return float(sum(token_logps) / len(token_logps))
-        return float(sum(token_logps))
