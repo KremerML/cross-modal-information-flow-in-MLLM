@@ -94,7 +94,7 @@
 ## 5. Infrastructure and Pipeline Improvements
 
 - **Activation collection with checkpointing**: chunked writes to disk (float16), manifest-based resume, checkpoint interval configurable — enables collection of 4.9M+ rows without holding all in RAM
-- **Multi-layer activation collector** (`collect_activations_multilayer.py`): collects activations for multiple layers in a single forward pass using numpy memory-mapped files; peak RSS ≈ model weights + one batch
+- **Multi-layer activation collector** (`collect_activations.py`): collects activations for multiple layers in a single forward pass using numpy memory-mapped files; peak RSS ≈ model weights + one batch
 - **SAE training script improvements**: activation caching to disk, model release before training (`del model; torch.cuda.empty_cache()`), chunk reassembly after model unload
 - **Full pipeline script** (`run_full_pipeline.sh`): two-phase (train SAEs → causal feature ID) with per-layer skip logic for resumability
 - Shell scripts for CLEVR-Lite activation collection and SAE training (`scripts/`)

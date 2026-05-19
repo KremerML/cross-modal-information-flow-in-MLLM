@@ -78,7 +78,7 @@ Prior experiments ablated at `attribute` text token positions (e.g., "red", "blu
 
 ### Knockout-guided feature identification (script 07, implemented and run — null)
 
-Standard feature selection used correct/incorrect ratio — selecting features correlated with task success, not with the causal pathway. Script `07_knockout_guided_features.py` runs paired forward passes (normal + layer-0 knockout) at layer 11, and ranks features by `mean(abs(feats_normal - feats_ko))` at **image token positions**.
+Standard feature selection used correct/incorrect ratio — selecting features correlated with task success, not with the causal pathway. Script `knockout_guided_features.py` runs paired forward passes (normal + layer-0 knockout) at layer 11, and ranks features by `mean(abs(feats_normal - feats_ko))` at **image token positions**.
 
 **Result (601 samples, layer-11 SAE, layer-0 knockout):**
 ```
@@ -112,10 +112,10 @@ The patching experiment is null because `acts_normal ≡ acts_ko` at image posit
 | File | Purpose |
 |------|---------|
 | `sae_experiments/scripts/01_train_sae.py` | Train SAE at a layer |
-| `sae_experiments/scripts/02_identify_features.py` | Ratio-based feature selection |
-| `sae_experiments/scripts/03_run_ablation.py` | Standard SAE feature zeroing ablation |
-| `sae_experiments/scripts/07_knockout_guided_features.py` | Knockout-supervised feature selection |
-| `sae_experiments/scripts/08_activation_patching.py` | Per-feature activation patching |
+| `sae_experiments/scripts/02_identify_features_causal.py` | Causal feature identification (v2) |
+| `sae_experiments/scripts/03_run_ablation.py` | SAE feature ablation test |
+| `sae_experiments/scripts/knockout_guided_features.py` | Knockout-supervised feature selection |
+| `archive/scripts/08_activation_patching.py` | Per-feature activation patching (archived) |
 | `sae_experiments/ablation/feature_ablator.py` | Core ablation hook; has `attn_block_config` + `attn_block_resolver` params |
 | `sae_experiments/ablation/ablation_experiments.py` | 3-condition test orchestration; `n_random_sets=0` supported |
 | `sae_experiments/data/activation_collector.py` | Collects layer activations; supports `image` position type |

@@ -13,29 +13,38 @@ Research project studying how visual information flows into language representat
 sae_experiments/
   ablation/         feature_ablator.py, ablation_experiments.py, statistical_analysis.py
   config/           sae_config.py (load_config, save_config)
-  data/             activation_collector.py, attribute_dataset.py
+  data/             activation_collector.py, attribute_dataset.py, clevr_lite_dataset.py
   evaluation/       hypothesis_tester.py, metrics.py
-  feature_analysis/ feature_catalog.py, feature_identifier.py
+  feature_analysis/ feature_catalog.py, feature_identifier.py, causal_feature_identifier.py
   knockout/         knockout_runner.py
   models/           sparse_autoencoder.py, sae_trainer.py
   utils/            config_utils.py, hook_utils.py, knockout_utils.py,
                     script_utils.py, token_utils.py, visualization_utils.py, checkpoint_utils.py
   scripts/
-    00_knockout_sweep.py    - layer selection via attention knockout
-    01_train_sae.py         - train SAE on LLaVA activations
-    02_identify_features.py - rank features by discrimination score
-    03_run_ablation.py      - 3-condition ablation test
-    04_rank_features_causally.py
-    05_visualize_features.py
-    06_knockout_sae_pipeline.py
-    10_full_latent_ablation.py  - upper-bound ceiling experiment
+    # Sequential pipeline (numbered by dependency order)
+    00_knockout_sweep.py           - layer selection via attention knockout
+    01_train_sae.py                - train SAE on LLaVA activations
+    02_identify_features_causal.py - rank features by gradient×activation
+    03_run_ablation.py             - 3-condition ablation test
+    04_analyze_results.py          - statistical analysis of ablation results
+    # Standalone utilities (unnumbered)
+    analyze_causal_features.py     - post-hoc causal feature analysis
+    collect_activations.py         - multi-layer activation caching
+    generate_clevr_lite.py         - CLEVR-Lite dataset generation
+    knockout_guided_features.py    - knockout-supervised feature selection
+    knockout_sae_pipeline.py       - end-to-end knockout+SAE orchestrator
+    rank_features_causally.py      - single-feature causal ranking
+    test_clevr_lite_pipeline.py    - integration test
 
 configs/
-  sae_layer0_attn_out.yaml
-  sae_layer0_attn_out_scorekey_diff.yaml
-  sae_layer0_residual.yaml
-  knockout_sae/knockout_llava15_7b_color.yaml
-  sae_categories/   per-attribute category configs
+  experiment_config.yaml           - shared base config
+  sae_grid_sweep.yaml              - hyperparameter sweep template
+  clevr_lite/                      - CLEVR-Lite dataset configs (active)
+    knockout.yaml
+    sae_layer{0,10,11,12,13,14}_attn_out_question.yaml
+  gqa/                             - GQA ChooseAttr configs (reference)
+    knockout.yaml, knockout_color.yaml
+    sae_base.yaml, sae_layer{0,11}_attn_out.yaml, ...
 
 output/
   knockout_sae/     attention knockout sweep results
@@ -181,9 +190,9 @@ Use containment scoring or logprob scoring. Exact match is only valid for discri
 
 1. ✅ **Validate the SAE ceiling first.** (Done — Mar 2026) Full-latent ablation in `replace` mode confirmed: 0.3% relative perturbation at `attribute` positions (both layers), ~100% at `all` positions with margin drops matching knockout. Ceiling confirms position mismatch is the primary issue.
 
-2. **Fix SAE training.** *(Partially done — Mar 2026)* Architecture fixes applied: `b_pre`, decoder normalisation, dead-feature tracking, cosine LR schedule, n_features reduced to 4096, l1_coeff reduced to 5e-4 in `configs/sae_layer0_attn_out_v2.yaml`. Still open: training on a large diverse corpus (≥100k vectors from LLaVA Instruct or full GQA val).
+2. **Fix SAE training.** *(Partially done — Mar 2026)* Architecture fixes applied: `b_pre`, decoder normalisation, dead-feature tracking, cosine LR schedule, n_features reduced to 4096, l1_coeff reduced to 5e-4 in `configs/gqa/sae_layer0_attn_out_v2.yaml`. Still open: training on a large diverse corpus (≥100k vectors from LLaVA Instruct or full GQA val).
 
-3. ✅ **Ablate at image token positions, not attribute text positions.** (Done — Mar 2026) `"image"` position type implemented in `ActivationCollector._select_positions()` and `FeatureAblator._resolve_positions()`. Set as default in `sae_layer0_attn_out_v2.yaml`.
+3. ✅ **Ablate at image token positions, not attribute text positions.** (Done — Mar 2026) `"image"` position type implemented in `ActivationCollector._select_positions()` and `FeatureAblator._resolve_positions()`. Set as default in `configs/gqa/sae_layer0_attn_out_v2.yaml`.
 
 4. **Use activation difference as a supervision signal.** Compute activation difference at layer 11 attn_out (image token positions) between correct-answer forward passes and incorrect-answer forward passes. Features explaining this difference directly mediate attribute encoding.
 
@@ -302,9 +311,31 @@ knockout:
   normalize_logprob: true
 ```
 
+## Naming Convention
+
+### Scripts (`sae_experiments/scripts/`)
+- **Numbered** (`NN_verb_object.py`): sequential pipeline steps where each depends on the prior step's output. Currently 00–04.
+- **Unnumbered** (`verb_object.py`): standalone utilities, ad-hoc analysis, tests. No pipeline ordering.
+- snake_case. No dataset/layer/attribute in the script name — configs carry that context.
+
+### Configs (`configs/`)
+- Organized by dataset: `configs/clevr_lite/`, `configs/gqa/`. Shared configs at root.
+- Pattern: `{component}_{layer}_{site}_{position}.yaml` (e.g. `sae_layer11_attn_out_question.yaml`).
+- Variants append: `_v2`, `_replace`, `_causal`, `_holdout`.
+- One `knockout.yaml` per dataset directory.
+
+### Outputs (`output/`)
+- Generated from `experiment.name` in the config, not from the config filename.
+- SAE: `output/sae_experiments/{experiment.name}/`
+- Knockout: `output/knockout_sae/{experiment.name}_{YYYYMMDD_HHMMSS}/`
+- Existing output dirs are never renamed. Convention applies to future runs only.
+
+### Shell scripts (`scripts/`)
+- Pattern: `{verb}_{object}_{dataset}_{position}.sh`
+
 ## Known Issues / Gotchas
 
 - After refactoring to `setup_experiment()`, do NOT reference `reproducibility_cfg` as a local variable — use `config.get("reproducibility", {})` directly where needed (e.g. in checkpoint metadata in `01_train_sae.py:376` and `03_run_ablation.py:91`)
-- Script `06_knockout_sae_pipeline.py` still computes `model_name = get_model_name_from_path(...)` inline before calling `load_llava_components` because it's needed for downstream `run_knockout_sweep` and `_make_attn_block_resolver` calls
+- Script `knockout_sae_pipeline.py` still computes `model_name = get_model_name_from_path(...)` inline before calling `load_llava_components` because it's needed for downstream `run_knockout_sweep` and `_make_attn_block_resolver` calls
 - Layer 31 Image->Question always shows margin_drop=0.0 (last layer cannot be blocked effectively — output is already committed)
 - Negative margin_drops on Image->Last (layers 8, 10, 15, 17, 27...) are real: blocking those attention paths slightly *improves* accuracy, suggesting they carry distracting or noisy information

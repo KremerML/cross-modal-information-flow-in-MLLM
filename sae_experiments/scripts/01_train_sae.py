@@ -276,7 +276,7 @@ def main() -> None:
     parser.add_argument("--experiment_name", type=str, default=None)
     parser.add_argument("--activations_path", type=str, default=None,
                         help="Directory of pre-collected activations (output of "
-                             "collect_activations_multilayer.py). Skips forward pass.")
+                             "collect_activations.py). Skips forward pass.")
     args = parser.parse_args()
 
     config = load_config(args.config)

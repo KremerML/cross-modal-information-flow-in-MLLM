@@ -1,6 +1,6 @@
 sweep:
   name: "sae_grid_v1"
-  base_config: "configs/sae_config_llava15_7b.yaml"
+  base_config: "configs/gqa/sae_base.yaml"
   output_base: "output/sae_experiments/sweeps"
   layers: [0, 11]
   train_position_types: ["attribute"]

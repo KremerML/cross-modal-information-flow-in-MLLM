@@ -1,5 +1,7 @@
 # SAE-Based Attribute Binding Experiments
 
+> **Note (May 2026):** This doc describes the original GQA-based pipeline (Gen 1-2). The active pipeline uses CLEVR-Lite with v2 causal feature identification. Many scripts and configs referenced below have been archived or renamed — see `docs/CLAUDE.md` for the current structure.
+
 This directory adds a Sparse Autoencoder (SAE) pipeline for identifying and testing attribute-binding features in LLaVA models.
 
 ## Overview

@@ -12,7 +12,7 @@ fi
 # shellcheck disable=SC1091
 source LLaVA-NeXT/.venv/bin/activate
 
-CFG="${1:-configs/sae_first_layer11_attn_out.yaml}"
+CFG="${1:-configs/gqa/sae_first_layer11_attn_out.yaml}"
 RUN="${2:-output/sae_experiments/rerun_layer11_attn_out_$(date +%Y%m%d_%H%M%S)}"
 
 if [[ ! -f "$CFG" ]]; then
@@ -60,7 +60,7 @@ python sae_experiments/scripts/04_analyze_results.py \
   --experiment_dir "$RUN"
 
 # 5) Causal ranking pass (single-feature ablations)
-python sae_experiments/scripts/04_rank_features_causally.py \
+python sae_experiments/scripts/rank_features_causally.py \
   --config "$CFG" \
   --sae_checkpoint "$RUN/sae_checkpoint.pt" \
   --output "$RUN/causal_feature_scores.json" \

@@ -70,7 +70,7 @@ Date: 2026-02-09
 
 ## Redundancies
 1. Repeated dtype parsing helpers across scripts.
-- Evidence: `sae_experiments/scripts/02_identify_features.py:28`, `sae_experiments/scripts/03_run_ablation.py:28`, `sae_experiments/scripts/04_rank_features_causally.py:29`, `sae_experiments/scripts/05_visualize_features.py:26`
+- Evidence: `sae_experiments/scripts/02_identify_features_causal.py`, `sae_experiments/scripts/03_run_ablation.py`, `sae_experiments/scripts/rank_features_causally.py` (scripts 02, 05 archived)
 - Recommendation: centralize in one utility.
 
 2. Repeated sequence-logprob implementations.

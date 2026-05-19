@@ -15,7 +15,7 @@ Checks performed:
 
 Usage:
     python sae_experiments/scripts/test_clevr_lite_pipeline.py \
-        --config configs/clevr_lite/knockout_llava15_7b.yaml \
+        --config configs/clevr_lite/knockout.yaml \
         --max_samples 10
 """
 
@@ -51,7 +51,7 @@ def check(label: str, condition: bool, detail: str = "") -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str,
-                        default="configs/clevr_lite/knockout_llava15_7b.yaml")
+                        default="configs/clevr_lite/knockout.yaml")
     parser.add_argument("--max_samples", type=int, default=10)
     args = parser.parse_args()
 

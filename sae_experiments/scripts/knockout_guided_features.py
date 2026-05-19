@@ -10,7 +10,7 @@ positions are those that receive the Image→Question cross-modal signal at laye
 These are selected as the "knockout-guided" binding features.
 
 Usage:
-    python sae_experiments/scripts/07_knockout_guided_features.py \
+    python sae_experiments/scripts/knockout_guided_features.py \
         --config configs/sae_categories/sae_layer11_attn_out_v2/color.yaml \
         --knockout_layer 0
 """
