@@ -20,8 +20,8 @@ try:
 except ImportError:
     IMAGE_TOKEN_INDEX = -200
 
-from sae_experiments.utils.hook_utils import get_target_module
-from sae_experiments.utils.knockout_utils import estimate_image_token_count
+from sae_experiments.hooks.hook_utils import get_target_module
+from sae_experiments.hooks.knockout_utils import estimate_image_token_count
 from sae_experiments.utils import token_utils
 
 

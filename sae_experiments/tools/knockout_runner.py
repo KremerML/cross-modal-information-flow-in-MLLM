@@ -12,7 +12,7 @@ from tqdm import tqdm
 from sae_experiments.ablation import statistical_analysis
 from sae_experiments.evaluation import metrics as eval_metrics
 from sae_experiments.utils import knockout_utils
-from sae_experiments.utils.knockout_utils import sequence_logprob as _sequence_logprob
+from sae_experiments.hooks.knockout_utils import sequence_logprob as _sequence_logprob
 
 
 def _mean(values: Iterable[float]) -> float:

@@ -12,19 +12,10 @@ except ImportError:
     IMAGE_TOKEN_INDEX = -200
 
 from sae_experiments.utils import token_utils
-from sae_experiments.utils.hook_utils import HookManager, get_target_module
-from sae_experiments.utils.knockout_utils import estimate_image_token_count, sequence_logprob
+from sae_experiments.hooks.hook_utils import HookManager, get_target_module
+from sae_experiments.hooks.knockout_utils import estimate_image_token_count, sequence_logprob
 
-try:
-    from methods import remove_wrapper_llava, set_block_attn_hooks_llava
-except Exception:  # pragma: no cover - fallback for lightweight test environments
-    def set_block_attn_hooks_llava(model, block_config):
-        raise RuntimeError(
-            "Attention blocking hooks are unavailable because methods.py dependencies failed to import."
-        )
-
-    def remove_wrapper_llava(model, hooks):
-        return None
+from sae_experiments.hooks.attention_hooks import remove_wrapper_llava, set_block_attn_hooks_llava
 
 
 class FeatureAblator:

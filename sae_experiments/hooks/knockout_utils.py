@@ -75,7 +75,7 @@ def sequence_logprob(
 
     hooks = None
     if block_config:
-        from methods import set_block_attn_hooks_llava, remove_wrapper_llava
+        from sae_experiments.hooks.attention_hooks import set_block_attn_hooks_llava, remove_wrapper_llava
         hooks = set_block_attn_hooks_llava(model, block_config)
 
     try:

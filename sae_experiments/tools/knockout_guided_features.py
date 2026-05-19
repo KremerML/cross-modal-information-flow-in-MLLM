@@ -33,8 +33,8 @@ from sae_experiments.data.activation_collector import ActivationCollector
 from sae_experiments.data.attribute_dataset import AttributeVQADataset
 from sae_experiments.feature_analysis.feature_catalog import FeatureCatalog
 from sae_experiments.utils.config_utils import resolve_primary_task_type
-from sae_experiments.utils.hook_utils import HookManager, create_activation_capture_hook, get_target_module
-from sae_experiments.utils.knockout_utils import (
+from sae_experiments.hooks.hook_utils import HookManager, create_activation_capture_hook, get_target_module
+from sae_experiments.hooks.knockout_utils import (
     estimate_inputs_embeds_shape,
     get_image_token_range,
     resolve_flow_ranges,
@@ -42,13 +42,7 @@ from sae_experiments.utils.knockout_utils import (
 )
 from sae_experiments.utils.script_utils import setup_experiment, load_llava_components, load_sae
 
-try:
-    from methods import set_block_attn_hooks_llava, remove_wrapper_llava
-except ImportError as exc:
-    raise ImportError(
-        "Cannot import set_block_attn_hooks_llava from methods.py. "
-        "Run from the repo root so that methods.py is on sys.path."
-    ) from exc
+from sae_experiments.hooks.attention_hooks import set_block_attn_hooks_llava, remove_wrapper_llava
 
 
 def _encode_batched(sae, activations: torch.Tensor, batch_size: int = 2048, device=None) -> torch.Tensor:

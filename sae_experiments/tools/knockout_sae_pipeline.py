@@ -22,7 +22,7 @@ from sae_experiments.models.sae_trainer import SAETrainer
 from sae_experiments.core.sparse_autoencoder import SparseAutoencoder
 from sae_experiments.utils.checkpoint_utils import load_checkpoint, save_checkpoint
 from sae_experiments.utils.config_utils import resolve_primary_task_type, resolve_dtype
-from sae_experiments.utils.knockout_utils import build_block_config, estimate_inputs_embeds_shape, resolve_flow_ranges
+from sae_experiments.hooks.knockout_utils import build_block_config, estimate_inputs_embeds_shape, resolve_flow_ranges
 from sae_experiments.utils.script_utils import setup_experiment, load_llava_components
 from sae_experiments.utils.sae_validation import (
     compute_activation_stats,

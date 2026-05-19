@@ -124,7 +124,7 @@ def main() -> None:
 
     # ── CHECK 3: Baseline logprobs ────────────────────────────────────────────
     print("\n[ 3 ] Baseline logprobs (first 10 samples)")
-    from sae_experiments.utils.knockout_utils import sequence_logprob, estimate_inputs_embeds_shape
+    from sae_experiments.hooks.knockout_utils import sequence_logprob, estimate_inputs_embeds_shape
 
     device = next(model.parameters()).device
     n_correct_baseline = 0
