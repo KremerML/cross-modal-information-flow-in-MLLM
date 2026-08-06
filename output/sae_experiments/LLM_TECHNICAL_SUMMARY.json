@@ -1,704 +1,224 @@
 {
-  "base_dir": "output/sae_experiments",
-  "run_count": 14,
-  "summary_markdown": "output/sae_experiments/LLM_TECHNICAL_SUMMARY.md",
-  "runs": [
-    {
-      "run_dir": "exp_default",
-      "config": {
-        "target_layer": 12,
-        "activation_site": "residual(default)",
-        "train_position_type": "(not_set)",
-        "feature_position_type": "attribute",
-        "feature_top_k": 50,
-        "feature_min_activation": 0.1,
-        "feature_aggregation": "(default)",
-        "ablation_position_type": "attribute",
-        "ablation_mode": "residual",
-        "delta_scale": 1.0,
-        "n_random_features": 50,
-        "n_random_sets": null,
-        "random_sampling": null,
-        "primary_metric": "pred_token_prob",
-        "task_types": [
-          "ChooseAttr"
-        ]
-      },
-      "knockout_summary": {
-        "rows": 64,
-        "flows": {
-          "Image->Last": {
-            "top_layer": 0,
-            "top_effect_size": 0.0,
-            "top_margin_drop": 0.0,
-            "layer11_effect_size": 0.0,
-            "layer11_margin_drop": 0.0
-          },
-          "Image->Question": {
-            "top_layer": 0,
-            "top_effect_size": 0.0,
-            "top_margin_drop": 0.0,
-            "layer11_effect_size": 0.0,
-            "layer11_margin_drop": 0.0
-          }
-        }
-      }
-    },
-    {
-      "run_dir": "exp_run1",
-      "config": {
-        "target_layer": 12,
-        "activation_site": "residual(default)",
-        "train_position_type": "(not_set)",
-        "feature_position_type": "attribute",
-        "feature_top_k": 50,
-        "feature_min_activation": 0.1,
-        "feature_aggregation": "(default)",
-        "ablation_position_type": "attribute",
-        "ablation_mode": "residual",
-        "delta_scale": 1.0,
-        "n_random_features": 50,
-        "n_random_sets": null,
-        "random_sampling": null,
-        "primary_metric": "pred_token_prob",
-        "task_types": [
-          "ChooseAttr"
-        ]
-      },
-      "results": {
-        "result_file": "exp_run1/results/ablation_results.json",
-        "baseline_accuracy": 0.6590649942987458,
-        "binding_accuracy_drop": 0.0,
-        "random_accuracy_drop": 0.0,
-        "binding_minus_random_accuracy_drop": 0.0,
-        "binding_mean_margin_drop": null,
-        "random_mean_margin_drop": null,
-        "binding_minus_random_margin_drop": null,
-        "binding_mean_probability_drop": -1.7088760399899977e-05,
-        "random_mean_probability_drop": -1.7111562404828304e-05,
-        "binding_mean_gt_probability_drop": -2.465169314847794e-09,
-        "random_mean_gt_probability_drop": -1.876451394824075e-08,
-        "binding_mean_relative_perturbation": null,
-        "random_mean_relative_perturbation": null,
-        "random_n_sets_reported": null,
-        "binding_rows": 877,
-        "random_rows": 877,
-        "random_set_summaries": 0,
-        "significance_accuracy_empirical_p": null,
-        "significance_margin_empirical_p": null,
-        "meta_activation_site": null,
-        "meta_task_type": null
-      },
-      "hypothesis_report": {
-        "primary_metric": "pred_token_prob",
-        "mean_drop": -1.7088760399899977e-05,
-        "p_value": 0.9995961592240319,
-        "effect_size": 1.7105617486851652e-05,
-        "hypothesis_supported": false,
-        "test_type": null,
-        "random_set_count": null
-      },
-      "feature_files": {
-        "feature_stats_count": 9191,
-        "feature_catalog_count": 50
-      }
-    },
-    {
-      "run_dir": "exp_run2_all_residual",
-      "config": {
-        "target_layer": null,
-        "activation_site": "residual(default)",
-        "train_position_type": "(not_set)",
-        "feature_position_type": null,
-        "feature_top_k": null,
-        "feature_min_activation": null,
-        "feature_aggregation": "(default)",
-        "ablation_position_type": null,
-        "ablation_mode": null,
-        "delta_scale": null,
-        "n_random_features": null,
-        "n_random_sets": null,
-        "random_sampling": null,
-        "primary_metric": null,
-        "task_types": null
-      },
-      "results": {
-        "result_file": "exp_run2_all_residual/results/ablation_results.json",
-        "baseline_accuracy": 0.6590649942987458,
-        "binding_accuracy_drop": 0.0011402508551882073,
-        "random_accuracy_drop": 0.0022805017103763037,
-        "binding_minus_random_accuracy_drop": -0.0011402508551880963,
-        "binding_mean_margin_drop": null,
-        "random_mean_margin_drop": null,
-        "binding_minus_random_margin_drop": null,
-        "binding_mean_probability_drop": 0.00043981981929922594,
-        "random_mean_probability_drop": -0.0009974883179028466,
-        "binding_mean_gt_probability_drop": 1.645428610087886e-07,
-        "random_mean_gt_probability_drop": -2.4083788407380653e-08,
-        "binding_mean_relative_perturbation": null,
-        "random_mean_relative_perturbation": null,
-        "random_n_sets_reported": null,
-        "binding_rows": 877,
-        "random_rows": 877,
-        "random_set_summaries": 0,
-        "significance_accuracy_empirical_p": null,
-        "significance_margin_empirical_p": null,
-        "meta_activation_site": null,
-        "meta_task_type": null
-      },
-      "hypothesis_report": {
-        "primary_metric": "pred_token_prob",
-        "mean_drop": 0.00043981981929922594,
-        "p_value": 1.5863066421455764e-10,
-        "effect_size": 0.21874100420425135,
-        "hypothesis_supported": true,
-        "test_type": null,
-        "random_set_count": null
-      },
-      "feature_files": {
-        "feature_stats_count": 9191,
-        "feature_catalog_count": 50
-      }
-    },
-    {
-      "run_dir": "exp_run3_attr_residual_weak",
-      "config": {
-        "target_layer": null,
-        "activation_site": "residual(default)",
-        "train_position_type": "(not_set)",
-        "feature_position_type": null,
-        "feature_top_k": null,
-        "feature_min_activation": null,
-        "feature_aggregation": "(default)",
-        "ablation_position_type": null,
-        "ablation_mode": null,
-        "delta_scale": null,
-        "n_random_features": null,
-        "n_random_sets": null,
-        "random_sampling": null,
-        "primary_metric": null,
-        "task_types": null
-      },
-      "results": {
-        "result_file": "exp_run3_attr_residual_weak/results/ablation_results.json",
-        "baseline_accuracy": 0.6590649942987458,
-        "binding_accuracy_drop": 0.0011402508551882073,
-        "random_accuracy_drop": 0.0011402508551882073,
-        "binding_minus_random_accuracy_drop": 0.0,
-        "binding_mean_margin_drop": null,
-        "random_mean_margin_drop": null,
-        "binding_minus_random_margin_drop": null,
-        "binding_mean_probability_drop": 1.2812925717170046e-05,
-        "random_mean_probability_drop": 9.000131450466038e-06,
-        "binding_mean_gt_probability_drop": 9.324124191610144e-10,
-        "random_mean_gt_probability_drop": 3.792757246744903e-09,
-        "binding_mean_relative_perturbation": null,
-        "random_mean_relative_perturbation": null,
-        "random_n_sets_reported": null,
-        "binding_rows": 877,
-        "random_rows": 877,
-        "random_set_summaries": 0,
-        "significance_accuracy_empirical_p": null,
-        "significance_margin_empirical_p": null,
-        "meta_activation_site": null,
-        "meta_task_type": null
-      },
-      "hypothesis_report": {
-        "primary_metric": "pred_token_prob",
-        "mean_drop": 1.2812925717170046e-05,
-        "p_value": 0.9270501168577321,
-        "effect_size": 0.0030942853532920666,
-        "hypothesis_supported": false,
-        "test_type": null,
-        "random_set_count": null
-      },
-      "feature_files": {
-        "feature_stats_count": 9191,
-        "feature_catalog_count": 50
-      }
-    },
-    {
-      "run_dir": "exp_run4",
-      "config": {
-        "target_layer": null,
-        "activation_site": "residual(default)",
-        "train_position_type": "(not_set)",
-        "feature_position_type": null,
-        "feature_top_k": null,
-        "feature_min_activation": null,
-        "feature_aggregation": "(default)",
-        "ablation_position_type": null,
-        "ablation_mode": null,
-        "delta_scale": null,
-        "n_random_features": null,
-        "n_random_sets": null,
-        "random_sampling": null,
-        "primary_metric": null,
-        "task_types": null
-      },
-      "results": {
-        "result_file": "exp_run4/results/ablation_results.json",
-        "baseline_accuracy": 0.6590649942987458,
-        "binding_accuracy_drop": 0.0011402508551882073,
-        "random_accuracy_drop": 0.0,
-        "binding_minus_random_accuracy_drop": 0.0011402508551882073,
-        "binding_mean_margin_drop": null,
-        "random_mean_margin_drop": null,
-        "binding_minus_random_margin_drop": null,
-        "binding_mean_probability_drop": 2.432498176122337e-05,
-        "random_mean_probability_drop": 4.0446678888022965e-05,
-        "binding_mean_gt_probability_drop": -2.717188825391389e-09,
-        "random_mean_gt_probability_drop": -7.791572340570533e-09,
-        "binding_mean_relative_perturbation": null,
-        "random_mean_relative_perturbation": null,
-        "random_n_sets_reported": null,
-        "binding_rows": 877,
-        "random_rows": 877,
-        "random_set_summaries": 0,
-        "significance_accuracy_empirical_p": null,
-        "significance_margin_empirical_p": null,
-        "meta_activation_site": null,
-        "meta_task_type": null
-      },
-      "hypothesis_report": {
-        "primary_metric": "pred_token_prob",
-        "mean_drop": 2.432498176122337e-05,
-        "p_value": 0.7880373071063455,
-        "effect_size": -0.009086671648639624,
-        "hypothesis_supported": false,
-        "test_type": null,
-        "random_set_count": null
-      },
-      "feature_files": {
-        "feature_stats_count": 9191,
-        "feature_catalog_count": 50
-      }
-    },
-    {
-      "run_dir": "first_pass_layer11_residual",
-      "config": {
-        "target_layer": 11,
-        "activation_site": "residual",
-        "train_position_type": "(not_set)",
-        "feature_position_type": "attribute",
-        "feature_top_k": 200,
-        "feature_min_activation": 0.0,
-        "feature_aggregation": "mean",
-        "ablation_position_type": "attribute",
-        "ablation_mode": "replace",
-        "delta_scale": 1.0,
-        "n_random_features": 200,
-        "n_random_sets": 5,
-        "random_sampling": "matched",
-        "primary_metric": "forced_choice_margin",
-        "task_types": [
-          "ChooseAttr"
-        ]
-      },
-      "results": {
-        "result_file": "first_pass_layer11_residual/results/ablation_results.json",
-        "baseline_accuracy": 0.6590649942987458,
-        "binding_accuracy_drop": -0.0011402508551880963,
-        "random_accuracy_drop": -0.0022805017103761926,
-        "binding_minus_random_accuracy_drop": 0.0011402508551880963,
-        "binding_mean_margin_drop": 0.0013514466371993708,
-        "random_mean_margin_drop": 0.0014014829576606683,
-        "binding_minus_random_margin_drop": -5.003632046129752e-05,
-        "binding_mean_probability_drop": 0.00040296212841194875,
-        "random_mean_probability_drop": 0.0003618422296735009,
-        "binding_mean_gt_probability_drop": 6.68869410789346e-08,
-        "random_mean_gt_probability_drop": 6.241499562163916e-08,
-        "binding_mean_relative_perturbation": 0.000166906638097186,
-        "random_mean_relative_perturbation": 0.00016714980208256536,
-        "random_n_sets_reported": 15,
-        "binding_rows": 877,
-        "random_rows": 877,
-        "random_set_summaries": 15,
-        "significance_accuracy_empirical_p": 0.0625,
-        "significance_margin_empirical_p": 1.0,
-        "meta_activation_site": "residual",
-        "meta_task_type": "ChooseAttr"
-      },
-      "feature_files": {
-        "feature_stats_count": 551,
-        "feature_catalog_count": 200
-      }
-    },
-    {
-      "run_dir": "rerun_layer11_attn_out_20260209_211336",
-      "config": {
-        "target_layer": 11,
-        "activation_site": "attn_out",
-        "train_position_type": "attribute",
-        "feature_position_type": "attribute",
-        "feature_top_k": 200,
-        "feature_min_activation": 0.0,
-        "feature_aggregation": "mean",
-        "ablation_position_type": "attribute",
-        "ablation_mode": "replace",
-        "delta_scale": 1.0,
-        "n_random_features": 200,
-        "n_random_sets": 15,
-        "random_sampling": "matched",
-        "primary_metric": "forced_choice_margin",
-        "task_types": [
-          "ChooseAttr"
-        ]
-      }
-    },
-    {
-      "run_dir": "rerun_layer11_attn_out_20260209_213255",
-      "config": {
-        "target_layer": 11,
-        "activation_site": "attn_out",
-        "train_position_type": "attribute",
-        "feature_position_type": "attribute",
-        "feature_top_k": 200,
-        "feature_min_activation": 0.0,
-        "feature_aggregation": "mean",
-        "ablation_position_type": "attribute",
-        "ablation_mode": "replace",
-        "delta_scale": 1.0,
-        "n_random_features": 200,
-        "n_random_sets": 15,
-        "random_sampling": "matched",
-        "primary_metric": "forced_choice_margin",
-        "task_types": [
-          "ChooseAttr"
-        ]
-      },
-      "results": {
-        "result_file": "rerun_layer11_attn_out_20260209_213255/results/ablation_results.json",
-        "baseline_accuracy": 0.6590649942987458,
-        "binding_accuracy_drop": 0.0011402508551882073,
-        "random_accuracy_drop": 0.0012162675788674137,
-        "binding_minus_random_accuracy_drop": -7.601672367920633e-05,
-        "binding_mean_margin_drop": -0.0021054053736414423,
-        "random_mean_margin_drop": -0.001967491452547971,
-        "binding_minus_random_margin_drop": -0.00013791392109347139,
-        "binding_mean_probability_drop": -9.208183603928326e-05,
-        "random_mean_probability_drop": -6.067634127249694e-05,
-        "binding_mean_gt_probability_drop": 1.7399771842016352e-08,
-        "random_mean_gt_probability_drop": 1.8640541096188215e-08,
-        "binding_mean_relative_perturbation": 0.00030304036646137955,
-        "random_mean_relative_perturbation": 0.00030302565425039253,
-        "random_n_sets_reported": 15,
-        "binding_rows": 877,
-        "random_rows": 877,
-        "random_set_summaries": 15,
-        "significance_accuracy_empirical_p": 1.0,
-        "significance_margin_empirical_p": 1.0,
-        "meta_activation_site": "attn_out",
-        "meta_task_type": "ChooseAttr"
-      },
-      "hypothesis_report": {
-        "primary_metric": "forced_choice_margin",
-        "mean_drop": -0.0021054053736414423,
-        "p_value": 1.0,
-        "effect_size": -2.547096051979856,
-        "hypothesis_supported": false,
-        "test_type": "empirical_random_set",
-        "random_set_count": 15.0
-      },
-      "knockout_summary": {
-        "rows": 64,
-        "flows": {
-          "Image->Last": {
-            "top_layer": 2,
-            "top_effect_size": 0.5903643366526166,
-            "top_margin_drop": 0.017400947653175142,
-            "layer11_effect_size": 0.10814973771878589,
-            "layer11_margin_drop": 0.0009020405258138241
-          },
-          "Image->Question": {
-            "top_layer": 0,
-            "top_effect_size": 0.806171758702782,
-            "top_margin_drop": 0.5084878103493269,
-            "layer11_effect_size": 0.6053664329044577,
-            "layer11_margin_drop": 0.1688140939828294
-          }
-        }
-      },
-      "feature_files": {
-        "feature_stats_count": 1072,
-        "feature_catalog_count": 200
-      }
-    },
-    {
-      "run_dir": "sae_q_layer0",
-      "config": {
-        "target_layer": 12,
-        "activation_site": "residual(default)",
-        "train_position_type": "(not_set)",
-        "feature_position_type": "attribute",
-        "feature_top_k": 50,
-        "feature_min_activation": 0.1,
-        "feature_aggregation": "(default)",
-        "ablation_position_type": "attribute",
-        "ablation_mode": "residual",
-        "delta_scale": 1.0,
-        "n_random_features": 50,
-        "n_random_sets": null,
-        "random_sampling": null,
-        "primary_metric": "pred_token_prob",
-        "task_types": [
-          "ChooseAttr"
-        ]
-      },
-      "results": {
-        "result_file": "sae_q_layer0/results/ablation_results_fixed.json",
-        "baseline_accuracy": 0.6590649942987458,
-        "binding_accuracy_drop": 0.0,
-        "random_accuracy_drop": 0.0011402508551882073,
-        "binding_minus_random_accuracy_drop": -0.0011402508551882073,
-        "binding_mean_margin_drop": -4.1925993031414465e-05,
-        "random_mean_margin_drop": 7.738631593230276e-05,
-        "binding_minus_random_margin_drop": -0.00011931230896371723,
-        "binding_mean_probability_drop": -1.3924413015524365e-05,
-        "random_mean_probability_drop": -4.358061227178628e-05,
-        "binding_mean_gt_probability_drop": -4.051630505061793e-09,
-        "random_mean_gt_probability_drop": 5.029935364457233e-09,
-        "binding_mean_relative_perturbation": null,
-        "random_mean_relative_perturbation": null,
-        "random_n_sets_reported": null,
-        "binding_rows": 877,
-        "random_rows": 877,
-        "random_set_summaries": 0,
-        "significance_accuracy_empirical_p": null,
-        "significance_margin_empirical_p": null,
-        "meta_activation_site": null,
-        "meta_task_type": null
-      },
-      "feature_files": {
-        "feature_stats_count": 10789,
-        "feature_catalog_count": 50
-      }
-    },
-    {
-      "run_dir": "sae_q_layer11",
-      "config": {
-        "target_layer": 12,
-        "activation_site": "residual(default)",
-        "train_position_type": "(not_set)",
-        "feature_position_type": "attribute",
-        "feature_top_k": 50,
-        "feature_min_activation": 0.1,
-        "feature_aggregation": "(default)",
-        "ablation_position_type": "attribute",
-        "ablation_mode": "residual",
-        "delta_scale": 1.0,
-        "n_random_features": 50,
-        "n_random_sets": null,
-        "random_sampling": null,
-        "primary_metric": "pred_token_prob",
-        "task_types": [
-          "ChooseAttr"
-        ]
-      },
-      "results": {
-        "result_file": "sae_q_layer11/results/ablation_results_fixed.json",
-        "baseline_accuracy": 0.6590649942987458,
-        "binding_accuracy_drop": 0.0011402508551882073,
-        "random_accuracy_drop": 0.0011402508551882073,
-        "binding_minus_random_accuracy_drop": 0.0,
-        "binding_mean_margin_drop": 3.6532759430098995e-05,
-        "random_mean_margin_drop": 0.0005990075774559016,
-        "binding_minus_random_margin_drop": -0.0005624748180258026,
-        "binding_mean_probability_drop": -1.9257397580989546e-05,
-        "random_mean_probability_drop": 9.274261843247452e-05,
-        "binding_mean_gt_probability_drop": -1.0883665194219656e-09,
-        "random_mean_gt_probability_drop": 2.958832791598963e-09,
-        "binding_mean_relative_perturbation": null,
-        "random_mean_relative_perturbation": null,
-        "random_n_sets_reported": null,
-        "binding_rows": 877,
-        "random_rows": 877,
-        "random_set_summaries": 0,
-        "significance_accuracy_empirical_p": null,
-        "significance_margin_empirical_p": null,
-        "meta_activation_site": null,
-        "meta_task_type": null
-      },
-      "feature_files": {
-        "feature_stats_count": 14914,
-        "feature_catalog_count": 50
-      }
-    },
-    {
-      "run_dir": "sweeps/sae_grid_v1_layer0_train-attribute_feat-attribute_top_k50_min_activation0.0_modereplace_delta_scale1.0",
-      "config": {
-        "target_layer": 0,
-        "activation_site": "residual(default)",
-        "train_position_type": "(not_set)",
-        "feature_position_type": "attribute",
-        "feature_top_k": 50,
-        "feature_min_activation": 0.0,
-        "feature_aggregation": "(default)",
-        "ablation_position_type": "attribute",
-        "ablation_mode": "replace",
-        "delta_scale": 1.0,
-        "n_random_features": 50,
-        "n_random_sets": null,
-        "random_sampling": null,
-        "primary_metric": "pred_token_prob",
-        "task_types": [
-          "ChooseAttr"
-        ]
-      },
-      "results": {
-        "result_file": "sweeps/sae_grid_v1_layer0_train-attribute_feat-attribute_top_k50_min_activation0.0_modereplace_delta_scale1.0/results/ablation_results.json",
-        "baseline_accuracy": 0.6590649942987458,
-        "binding_accuracy_drop": 0.0011402508551882073,
-        "random_accuracy_drop": 0.0011402508551882073,
-        "binding_minus_random_accuracy_drop": 0.0,
-        "binding_mean_margin_drop": -0.001409935229824863,
-        "random_mean_margin_drop": -0.0013703626043452652,
-        "binding_minus_random_margin_drop": -3.957262547959789e-05,
-        "binding_mean_probability_drop": -0.00011470166280304964,
-        "random_mean_probability_drop": -0.0001443235401144865,
-        "binding_mean_gt_probability_drop": 6.562360435876215e-10,
-        "random_mean_gt_probability_drop": 1.0251565695922023e-08,
-        "binding_mean_relative_perturbation": null,
-        "random_mean_relative_perturbation": null,
-        "random_n_sets_reported": null,
-        "binding_rows": 877,
-        "random_rows": 877,
-        "random_set_summaries": 0,
-        "significance_accuracy_empirical_p": null,
-        "significance_margin_empirical_p": null,
-        "meta_activation_site": null,
-        "meta_task_type": null
-      },
-      "feature_files": {
-        "feature_stats_count": 559,
-        "feature_catalog_count": 50
-      }
-    },
-    {
-      "run_dir": "sweeps/sae_grid_v1_layer0_train-attribute_feat-attribute_top_k50_min_activation0.0_modereplace_delta_scale2.0",
-      "config": {
-        "target_layer": 0,
-        "activation_site": "residual(default)",
-        "train_position_type": "(not_set)",
-        "feature_position_type": "attribute",
-        "feature_top_k": 50,
-        "feature_min_activation": 0.0,
-        "feature_aggregation": "(default)",
-        "ablation_position_type": "attribute",
-        "ablation_mode": "replace",
-        "delta_scale": 2.0,
-        "n_random_features": 50,
-        "n_random_sets": null,
-        "random_sampling": null,
-        "primary_metric": "pred_token_prob",
-        "task_types": [
-          "ChooseAttr"
-        ]
-      },
-      "feature_files": {
-        "feature_stats_count": 535,
-        "feature_catalog_count": 50
-      }
-    },
-    {
-      "run_dir": "sweeps/sae_grid_v1_layer0_train-attribute_feat-attribute_top_k50_min_activation0.0_moderesidual_delta_scale1.0",
-      "config": {
-        "target_layer": 0,
-        "activation_site": "residual(default)",
-        "train_position_type": "(not_set)",
-        "feature_position_type": "attribute",
-        "feature_top_k": 50,
-        "feature_min_activation": 0.0,
-        "feature_aggregation": "(default)",
-        "ablation_position_type": "attribute",
-        "ablation_mode": "residual",
-        "delta_scale": 1.0,
-        "n_random_features": 50,
-        "n_random_sets": null,
-        "random_sampling": null,
-        "primary_metric": "pred_token_prob",
-        "task_types": [
-          "ChooseAttr"
-        ]
-      },
-      "results": {
-        "result_file": "sweeps/sae_grid_v1_layer0_train-attribute_feat-attribute_top_k50_min_activation0.0_moderesidual_delta_scale1.0/results/ablation_results.json",
-        "baseline_accuracy": 0.6590649942987458,
-        "binding_accuracy_drop": 0.0,
-        "random_accuracy_drop": 0.0011402508551882073,
-        "binding_minus_random_accuracy_drop": -0.0011402508551882073,
-        "binding_mean_margin_drop": 1.520264033025529e-06,
-        "random_mean_margin_drop": 8.842120744497511e-05,
-        "binding_minus_random_margin_drop": -8.690094341194958e-05,
-        "binding_mean_probability_drop": -1.0984415611084402e-05,
-        "random_mean_probability_drop": 9.947960841614953e-06,
-        "binding_mean_gt_probability_drop": 1.6711840698824179e-09,
-        "random_mean_gt_probability_drop": -1.8386664951249425e-09,
-        "binding_mean_relative_perturbation": null,
-        "random_mean_relative_perturbation": null,
-        "random_n_sets_reported": null,
-        "binding_rows": 877,
-        "random_rows": 877,
-        "random_set_summaries": 0,
-        "significance_accuracy_empirical_p": null,
-        "significance_margin_empirical_p": null,
-        "meta_activation_site": null,
-        "meta_task_type": null
-      },
-      "feature_files": {
-        "feature_stats_count": 561,
-        "feature_catalog_count": 50
-      }
-    },
-    {
-      "run_dir": "sweeps/sae_grid_v1_layer0_train-attribute_feat-attribute_top_k50_min_activation0.0_moderesidual_delta_scale2.0",
-      "config": {
-        "target_layer": 0,
-        "activation_site": "residual(default)",
-        "train_position_type": "(not_set)",
-        "feature_position_type": "attribute",
-        "feature_top_k": 50,
-        "feature_min_activation": 0.0,
-        "feature_aggregation": "(default)",
-        "ablation_position_type": "attribute",
-        "ablation_mode": "residual",
-        "delta_scale": 2.0,
-        "n_random_features": 50,
-        "n_random_sets": null,
-        "random_sampling": null,
-        "primary_metric": "pred_token_prob",
-        "task_types": [
-          "ChooseAttr"
-        ]
-      },
-      "results": {
-        "result_file": "sweeps/sae_grid_v1_layer0_train-attribute_feat-attribute_top_k50_min_activation0.0_moderesidual_delta_scale2.0/results/ablation_results.json",
-        "baseline_accuracy": 0.6590649942987458,
-        "binding_accuracy_drop": 0.0,
-        "random_accuracy_drop": 0.0,
-        "binding_minus_random_accuracy_drop": 0.0,
-        "binding_mean_margin_drop": -3.8251882088517685e-06,
-        "random_mean_margin_drop": 0.0004412292939044987,
-        "binding_minus_random_margin_drop": -0.00044505448211335045,
-        "binding_mean_probability_drop": -8.637270334780964e-06,
-        "random_mean_probability_drop": 6.802541500078504e-07,
-        "binding_mean_gt_probability_drop": -3.2773340833275138e-09,
-        "random_mean_gt_probability_drop": -1.4104812636751718e-08,
-        "binding_mean_relative_perturbation": null,
-        "random_mean_relative_perturbation": null,
-        "random_n_sets_reported": null,
-        "binding_rows": 877,
-        "random_rows": 877,
-        "random_set_summaries": 0,
-        "significance_accuracy_empirical_p": null,
-        "significance_margin_empirical_p": null,
-        "meta_activation_site": null,
-        "meta_task_type": null
-      },
-      "feature_files": {
-        "feature_stats_count": 563,
-        "feature_catalog_count": 50
-      }
-    }
-  ]
+ "generated": "2026-08-06",
+ "supersedes": "2026-02-10 version, whose null-result conclusion was overturned by v2",
+ "project_phase": "writeup; no further experiments planned",
+ "prose_companion": "output/sae_experiments/LLM_TECHNICAL_SUMMARY.md",
+ "dataset": "CLEVR-Lite (synthetic, open-ended; 186638 train / 7790 val questions)",
+ "model": "LLaVA-v1.5-7b, 32 layers, d_model=4096",
+ "method": {
+  "site": "attn_out",
+  "position_type": "question",
+  "ablation_mode": "replace",
+  "sae_n_features": 32768,
+  "feature_id": "v2 gradient x activation (causal_feature_identifier.py), n=7790",
+  "ablation_n": 256,
+  "n_random_control_sets": 15,
+  "random_sampling": "matched"
+ },
+ "layers": {
+  "0": {
+   "knockout": {
+    "mean_margin_drop": 0.4574917789156684,
+    "effect_size": 1.0424429389773522,
+    "samples": 7084
+   },
+   "sae": {
+    "rows": 4898438,
+    "mse": 3.162681491190224e-08,
+    "normalized_mse": 0.00016629114030297103,
+    "explained_variance": 0.999833708859697,
+    "mean_l0": 1416.1103886585888,
+    "dead_feature_fraction": 0.74188232421875
+   },
+   "ablation_v2": {
+    "source": "sae_clevr_lite_layer0_attn_out_question_causal/results/ablation_v2_results.json",
+    "n_samples": 256,
+    "mean_margin_drop": 0.019957038263479877,
+    "accuracy_drop": -0.00390625,
+    "random_mean": -0.000283920195781513,
+    "random_sd": 0.00027671329956655027,
+    "z_score": 73.14776156754036,
+    "frac_samples_positive": 0.56640625,
+    "flips_correct_to_wrong": 0,
+    "n_random_sets": 15,
+    "pct_of_knockout_ceiling": 0.04362272544171477
+   },
+   "feature_concentration": {
+    "n_nonzero": 4485,
+    "score_mass_frac_top50": 0.373716436951399,
+    "score_mass_frac_top200": 0.6309106412335035,
+    "score_mass_frac_top500": 0.7985596446777938
+   },
+   "activation_top500_mean": 0.003373749284695488,
+   "activation_all_median": 0.0
+  },
+  "10": {
+   "knockout": {
+    "mean_margin_drop": 0.2683023558584239,
+    "effect_size": 1.1352599226560909,
+    "samples": 7084
+   },
+   "sae": {
+    "rows": 4898438,
+    "mse": 6.754018444662071e-06,
+    "normalized_mse": 0.0011188860508000505,
+    "explained_variance": 0.9988811139492,
+    "mean_l0": 1128.0367760090053,
+    "dead_feature_fraction": 0.00201416015625
+   },
+   "ablation_v2": {
+    "source": "sae_clevr_lite_layer10_attn_out_question_causal/results/ablation_results.json",
+    "n_samples": 256,
+    "mean_margin_drop": 0.15141100653757653,
+    "accuracy_drop": 0.0078125,
+    "random_mean": 4.209609081348084e-05,
+    "random_sd": 0.002276825022340354,
+    "z_score": 66.48245208196569,
+    "frac_samples_positive": 0.8125,
+    "flips_correct_to_wrong": 3,
+    "n_random_sets": 15,
+    "pct_of_knockout_ceiling": 0.5643297691261129
+   }
+  },
+  "11": {
+   "knockout": {
+    "mean_margin_drop": 0.4272842982686802,
+    "effect_size": 0.9149295702362569,
+    "samples": 7084
+   },
+   "sae": {
+    "rows": 4898438,
+    "mse": 1.0737108489934485e-05,
+    "normalized_mse": 0.001487281694531175,
+    "explained_variance": 0.9985127183054688,
+    "mean_l0": 1180.1057181901658,
+    "dead_feature_fraction": 0.00384521484375
+   },
+   "ablation_v2": {
+    "source": "sae_clevr_lite_layer11_attn_out_question_causal/results/ablation_results.json",
+    "n_samples": 256,
+    "mean_margin_drop": 0.21307707345113158,
+    "accuracy_drop": 0.015625,
+    "random_mean": -0.00039484781316584416,
+    "random_sd": 0.00261455932818028,
+    "z_score": 81.64738086585045,
+    "frac_samples_positive": 0.84765625,
+    "flips_correct_to_wrong": 4,
+    "n_random_sets": 15,
+    "pct_of_knockout_ceiling": 0.49867751825775447
+   },
+   "feature_concentration": {
+    "n_nonzero": 27810,
+    "score_mass_frac_top50": 0.17167305115872317,
+    "score_mass_frac_top200": 0.4573037803269785,
+    "score_mass_frac_top500": 0.799440443166201
+   },
+   "activation_top500_mean": 0.11679172174201466,
+   "activation_all_median": 6.067985618341743e-08
+  },
+  "12": {
+   "knockout": {
+    "mean_margin_drop": 0.24521969689300632,
+    "effect_size": 0.7638282491881371,
+    "samples": 7084
+   },
+   "sae": {
+    "rows": 4898438,
+    "mse": 5.07106922300532e-06,
+    "normalized_mse": 0.000641177101091439,
+    "explained_variance": 0.9993588228989085,
+    "mean_l0": 1587.1672410674587,
+    "dead_feature_fraction": 0.0006103515625
+   },
+   "ablation_v2": {
+    "source": "sae_clevr_lite_layer12_attn_out_question_causal/results/ablation_v2_results.json",
+    "n_samples": 256,
+    "mean_margin_drop": 0.16700315754860645,
+    "accuracy_drop": 0.0078125,
+    "random_mean": 0.0005851452238857804,
+    "random_sd": 0.00297023539589856,
+    "z_score": 56.02856007793808,
+    "frac_samples_positive": 0.828125,
+    "flips_correct_to_wrong": 3,
+    "n_random_sets": 15,
+    "pct_of_knockout_ceiling": 0.6810348420807031
+   },
+   "feature_concentration": {
+    "n_nonzero": 27298,
+    "score_mass_frac_top50": 0.12331583490305414,
+    "score_mass_frac_top200": 0.3595001395485207,
+    "score_mass_frac_top500": 0.661226438754358
+   },
+   "activation_top500_mean": 0.10690318160687544,
+   "activation_all_median": 3.7169126146919824e-08
+  },
+  "13": {
+   "knockout": {
+    "mean_margin_drop": -0.048344413775992044,
+    "effect_size": -0.36439133544190977,
+    "samples": 7084
+   },
+   "sae": {
+    "rows": 4898438,
+    "mse": 1.0347284146348468e-05,
+    "normalized_mse": 0.0014083425009091537,
+    "explained_variance": 0.9985916574990908,
+    "mean_l0": 1256.0398406594102,
+    "dead_feature_fraction": 0.001495361328125
+   },
+   "ablation_v2": {
+    "source": "sae_clevr_lite_layer13_attn_out_question_causal/results/ablation_v2_results.json",
+    "n_samples": 256,
+    "mean_margin_drop": 0.1219867984764278,
+    "accuracy_drop": 0.01171875,
+    "random_mean": 0.00022842322165767676,
+    "random_sd": 0.002554830150465728,
+    "z_score": 47.658109574358356,
+    "frac_samples_positive": 0.6484375,
+    "flips_correct_to_wrong": 3,
+    "n_random_sets": 15,
+    "pct_of_knockout_ceiling": null
+   },
+   "feature_concentration": {
+    "n_nonzero": 26649,
+    "score_mass_frac_top50": 0.16402177349722094,
+    "score_mass_frac_top200": 0.43903885780290697,
+    "score_mass_frac_top500": 0.7645229755319759
+   },
+   "activation_top500_mean": 0.11721484049240294,
+   "activation_all_median": 4.379441478948404e-08
+  },
+  "14": {
+   "knockout": {
+    "mean_margin_drop": 0.398271095959139,
+    "effect_size": 1.2052904497502763,
+    "samples": 7084
+   },
+   "sae": {
+    "rows": 4898438,
+    "mse": 1.4728843898438978e-05,
+    "normalized_mse": 0.0013046246438654019,
+    "explained_variance": 0.9986953753561346,
+    "mean_l0": 1446.4913882752012,
+    "dead_feature_fraction": 0.001556396484375
+   },
+   "ablation_v2": null,
+   "feature_concentration": {
+    "n_nonzero": 27918,
+    "score_mass_frac_top50": 0.16324640943116342,
+    "score_mass_frac_top200": 0.4369385822338774,
+    "score_mass_frac_top500": 0.7622609738885002
+   },
+   "activation_top500_mean": 0.15646567916948423,
+   "activation_all_median": 6.499478999353151e-08
+  }
+ },
+ "caveats": [
+  "Layer 0 SAE has dead_feature_fraction=0.742; its low ablation effect is a dictionary-training failure, not a claim about the model.",
+  "Layer 13 knockout is inhibitory (negative) while its feature ablation is positive; pct_of_knockout_ceiling is undefined there.",
+  "Layer 14 has feature identification but no ablation run.",
+  "Mean L0 of 1100-1600 is high; reconstruction is excellent but dictionaries are not very sparse.",
+  "Single-layer ablation only; the model can re-read the image at layers L+1..31.",
+  "v1 (ratio-based) runs under output/sae_experiments/ are null results caused by ghost-feature selection; evidence about the method, not the model."
+ ]
 }

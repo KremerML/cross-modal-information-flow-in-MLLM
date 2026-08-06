@@ -1,0 +1,82 @@
+{
+  "num_train": 50000,
+  "num_val": 2000,
+  "held_out_ratio": 0.4,
+  "train_combos": [
+    [
+      "green",
+      "square"
+    ],
+    [
+      "green",
+      "circle"
+    ],
+    [
+      "purple",
+      "square"
+    ],
+    [
+      "black",
+      "circle"
+    ],
+    [
+      "blue",
+      "triangle"
+    ],
+    [
+      "purple",
+      "triangle"
+    ],
+    [
+      "yellow",
+      "triangle"
+    ],
+    [
+      "yellow",
+      "square"
+    ],
+    [
+      "red",
+      "triangle"
+    ],
+    [
+      "green",
+      "triangle"
+    ],
+    [
+      "blue",
+      "square"
+    ]
+  ],
+  "held_out_combos": [
+    [
+      "blue",
+      "circle"
+    ],
+    [
+      "red",
+      "circle"
+    ],
+    [
+      "purple",
+      "circle"
+    ],
+    [
+      "yellow",
+      "circle"
+    ],
+    [
+      "black",
+      "triangle"
+    ],
+    [
+      "black",
+      "square"
+    ],
+    [
+      "red",
+      "square"
+    ]
+  ],
+  "seed": 32
+}

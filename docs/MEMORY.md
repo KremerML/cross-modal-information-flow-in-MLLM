@@ -1,74 +1,129 @@
 # Project Memory: cross-modal-information-flow-in-MLLM
 
-Full project context is in `CLAUDE.md` at the repo root. Key points for quick recall:
+Last synced: 2026-08-06. This is the in-repo copy of the working memory that otherwise lives
+only on the author's machine (`~/.claude/projects/.../memory/`), so the context travels with a
+clone. Full project context is in `CLAUDE.md` at the repo root; verified result numbers are in
+`output/sae_experiments/LLM_TECHNICAL_SUMMARY.md`.
 
-## Research Goal
-Study cross-modal information flow in LLaVA-v1.5-7b using attention knockout + SAE feature ablation on ChooseAttr VQA task (forced-choice attribute binding: color, material, shape, size, state).
+**Project phase: writeup.** No further experiments planned. Remaining work is documentation,
+visualization, and methodology description.
 
-## Key Finding: Knockout Results
-- Layer 0 Image->Question: effect_size=0.83, margin_drop=0.54 — dominant layer
-- Layer 11 Image->Question: effect_size=0.60, margin_drop=0.17 — second peak
-- Image->Last flow is much weaker overall
-- SAE experiments trained at attn_out at these two layers
+## Research goal
 
-## SAE Ablation Status
-Consistent null result across 18 experiments — binding features show no significant causal effect vs. random.
+Study cross-modal information flow in LLaVA-v1.5-7b (32 layers, d_model=4096) by combining
+attention knockout with SAE feature ablation, measuring
+`margin = log P(true option) − log P(false option)`.
 
-**Full-latent ceiling results** (`replace` mode, n=128, color; `10_full_latent_ablation.py`):
+## Key finding 1 — CLEVR-Lite knockout sweep
 
-| Layer | Position | Accuracy drop | Margin drop | Relative perturbation | Knockout margin_drop |
-|-------|----------|--------------|-------------|----------------------|----------------------|
-| 11 | attribute | +3.1% | 0.046 | 0.003 (0.3%) | 0.17 |
-| 11 | all | +3.1% | 0.169 | 0.999 (99.9%) | 0.17 |
-| 0 | attribute | −0.8% | 0.022 | 0.003 (0.3%) | 0.54 |
-| 0 | all | −0.8% | 0.314 | 1.016 (101.6%) | 0.54 |
+33-hour sweep, n=7084, baseline margin 3.178.
+Source: `output/sae_experiments/exp_default/knockout/knockout_summary.json`.
 
-**Key finding:** The `attribute` position rows (0.3% perturbation at both layers) confirm that attribute text tokens carry essentially no visual signal via the SAE — the problem is *position*, not SAE quality. The `all` position rows show the SAE captures ~100% of activation norm and the margin drops match the knockout results (layer 0: 0.314 vs knockout 0.54; layer 11: 0.169 vs knockout 0.17), but accuracy barely changes because the model re-reads image tokens at subsequent layers.
+`Image->Question`, top layers by effect size:
 
-**The null result is almost certainly methodological.** Key issues:
-- **Position mismatch**: ablating at `attribute` text token positions (targets) catches nothing; should ablate at **image token positions** (source)
-- Fundamental mismatch: knockout = persistent attention barrier; SAE ablation = single-layer output mod; model re-reads image at layers L+1 to 31
-- **SAE ablation is NOT single-token**: `create_ablation_hook` receives the full `[batch, seq_len, d_model]` tensor and corrupts ALL positions simultaneously. With `position_type="all"`, all 576 image tokens + question tokens are replaced at once. The small effect is cross-layer redundancy, not single-token processing.
-- **Why full-latent `all` positions still shows small accuracy drop**: Corruption at layer L modifies one additive component in the residual stream. Layers 1–31 each re-attend to image token positions whose residual stream still contains the unmodified vision encoder embeddings. The knockout has a large effect precisely because it applies a *persistent mask* across the entire forward pass — a barrier SAE ablation cannot replicate without applying at every layer simultaneously.
-- SAE trained on ~6–8k vectors for 32,768 features (needs millions); 44% dead features is expected
-- ChooseAttr forced-choice puts both options in question text — language-side bypass dilutes visual ablation effects
-- SAE lacks: decoder normalization, encoder pre-bias, dead-feature prevention; l1_coeff=1e-3 too large
+| Layer | margin_drop | d | Note |
+|---|---|---|---|
+| 14 | 0.398 | 1.205 | strongest single-layer effect |
+| 10 | 0.268 | 1.135 | mid-depth binding |
+| 0 | 0.457 | 1.042 | early grounding |
+| 11 | 0.427 | 0.915 | much stronger than on GQA |
+| 12 | 0.245 | 0.764 | extends the 10–12 cluster |
 
-**Priority fixes:**
-1. Ablate at **image token positions**, not attribute token positions (most impactful fix based on ceiling data)
-2. Train SAE on ≥100k diverse activations; reduce l1_coeff to 1e-4; normalize decoder; smaller n_features
-3. Use knockout-difference activations as SAE training/supervision signal
-4. Use `replace` mode (not `residual`) for all ablations — already done
+Inhibitory layers (blocking *improves* accuracy — real signal, not bugs):
+29 (−0.017, d=−1.218), 26 (−0.009, d=−0.707), 15 (−0.043, d=−0.416), 13 (−0.048, d=−0.364).
 
-## Codebase State (post-refactor, Mar 2026)
-- Utility functions centralized: `resolve_dtype`, `get_target_module`, `estimate_image_token_count`, `sequence_logprob`, `get_question_token_range` all in `sae_experiments/utils/`
-- Setup helpers in `utils/script_utils.py`: `setup_experiment`, `load_llava_components`, `load_sae`
-- Dead methods removed from `ablation_experiments.py` and `hypothesis_tester.py`
-- Bug: after refactor, reference `config.get("reproducibility", {})` directly — not `reproducibility_cfg` local var
+**Three-region structure:** layer 0 = immediate cross-modal registration; layers 10–12 =
+mid-depth semantic binding (with layer 13 inhibitory *inside* the cluster); layer 14 = final
+visual-semantic consolidation.
 
-## Dataset Quality (analyzed Mar 2026)
-- **color** (602 rows): best category — clean, homogeneous. ~58% involve black/white options; 20.6% tiny objects (<1% image area).
-- **material** (96 rows): clean but below runnable threshold (100).
-- **shape** (15 rows): too small for any analysis.
-- **size** (87 rows): heterogeneous — bundles height/length/width/depth/thickness/weight.
-- **state** (151 rows): very heterogeneous — 77% are generic "choose X|Y" items (open/closed, wet/dry, etc.) with no GQA attribute type; also includes weather and cleanliness.
-- 49 rows unassigned (pose/activity/sportActivity) — correctly excluded, not visual attribute-binding.
-- False options are never in the object's own attribute list (sound foil design).
-- Option order is balanced (501 true-first, 499 false-first).
-- **Use color for primary experiments; treat state results with caution; ignore shape.**
-- Python env: `LLaVA-NeXT/.venv/bin/python`
+Versus GQA: effect sizes 25–50% larger, confirming that GQA ChooseAttr's language-side bypass
+was diluting effects. `Image->Last` is also much stronger here (max d=1.15 at layer 2 vs ~0.20
+on GQA). GQA's two-peak structure (0 and 11) becomes a richer multi-peak structure.
 
-## Active Plan
-Staged methodology improvement plan saved at `/home/ron/.claude/plans/optimized-discovering-moon.md`.
-- **Pre-requisite**: create branch `methodology-improvements` before any code/config changes
-- **Stage 1** (parallel): Plan A (ceiling + replace mode configs), Plan B (research open-ended tasks), Plan C (image position type)
-- **Stage 2** (parallel): Plan D (fix SAE architecture + training data), Plan E (knockout-guided feature ID design)
-- **Stage 3**: Plan F (integration experiment combining all fixes)
+## Key finding 2 — v2 causal feature ablation
 
-## Important File Paths
-- Configs: `configs/sae_layer0_attn_out.yaml`, `configs/knockout_sae/knockout_llava15_7b_color.yaml`
-- Knockout results: `output/knockout_sae/knockout_color_run1_20260219_180829/knockout/knockout_summary.json`
-- SAE outputs: `output/sae_experiments/`
-- Main dataset: `datasets/GQA_val_correct_question_with_choose_ChooseAttr.csv`
-- Dataset CSVs: `datasets/by_attribute_category/ChooseAttr_{color,...}.csv`
-- Images: `datasets/images/`
+**This broke an 18-experiment null streak (May 2026).** All numbers below re-verified 2026-08-06.
+
+Feature ID on the full val set (n=7790); ablation on 256 samples; `attn_out`, `question`
+positions, `replace` mode, 15 matched random control sets.
+
+| Layer | ablation margin_drop | z | % positive | flips | % of knockout ceiling |
+|---|---|---|---|---|---|
+| 0 | 0.0200 | 73.1 | 56.6% | 0 | 4.4% |
+| 10 | 0.1514 | 66.5 | 81.2% | 3 | 56.4% |
+| **11** | **0.2131** | **81.6** | **84.8%** | 4 | **49.9%** |
+| 12 | 0.1670 | 56.0 | 82.8% | 3 | 68.1% |
+| 13 | 0.1220 | 47.7 | 64.8% | 3 | — |
+| 14 | not run | | | | |
+
+**Correction to older prose:** the "39% of knockout ceiling" figure compared the CLEVR-Lite
+ablation against the *GQA* knockout drop (0.540). Against CLEVR-Lite's own layer-11 knockout
+drop (0.4273) the correct figure is **49.9%**.
+
+**Root cause of the prior nulls:** v1 scored features by correct/incorrect activation ratio,
+which is maximised by features that barely activate — "ghost features". At layer 11 the v2
+top-500 features have mean activation 0.117 against a median of 6.1e-08 across all 32768
+features. Zero overlap between v1 and v2 top-200 sets.
+
+**v2 method:** insert the SAE into the forward pass, backprop the target to feature
+activations, score `|grad| × |activation|`. Marks et al. 2024 (Sparse Feature Circuits),
+Agrawal et al. 2025. Implementation: `feature_analysis/causal_feature_identifier.py`.
+
+## Caveats that must appear in the writeup
+
+- **Layer 0 is a dictionary-training failure, not a negative result.** Its SAE has
+  `dead_feature_fraction = 0.742` (74% of features never fire) against 0.06–0.4% at every
+  other layer. Its 4.4%-of-ceiling ablation says nothing about the model.
+- **Layer 13 is a genuine puzzle.** Knockout there is inhibitory (−0.048) but ablating its
+  causal features hurts (+0.122). The two interventions disagree in sign; "% of ceiling" is
+  undefined. Worth a sentence rather than a quiet omission.
+- **Mean L0 is 1100–1600** across all six SAEs. Reconstruction is near-perfect
+  (explained variance > 0.998) but the dictionaries are not very sparse, which limits claims
+  about individual features being clean interpretable units.
+- **Single-layer ablation only.** The model can re-read the image at layers L+1…31, the most
+  likely reason ablation captures ~50% rather than 100% of the knockout ceiling. Multi-layer
+  ablation was never run.
+- **Layer 14 has feature identification but no ablation run** — the most conspicuous gap.
+
+## CLEVR-Lite dataset
+
+Synthetic: 6 colors × 3 shapes, PIL-rendered 224×224 PNGs, open-ended queries ("What color is
+the triangle?") so there is no language-side bypass. 186,638 train / 7,790 val questions
+(50K scenes × ~3.7 q/scene). Generated deterministically — `tools/generate_clevr_lite.py
+--seed 32` reproduces it exactly.
+
+A `false option` is synthesised by deterministically sampling a distractor from the closed
+attribute set, so open-ended questions still support the forced-choice `margin` metric.
+
+## GQA ChooseAttr dataset quality (Mar 2026, reference only)
+
+- **color** (602 rows): the only clean, homogeneous category — use it for any GQA work.
+  ~58% involve black/white; 20.6% have objects covering <1% of image area.
+- **material** (96), **shape** (15), **size** (87): below the runnable threshold or
+  heterogeneous (size bundles height/length/width/depth/thickness/weight).
+- **state** (151): 77% generic "choose X|Y" items with no GQA attribute type.
+
+## Codebase state (branch `LLaVA-Instruct-150K`, 54 commits ahead of `main`)
+
+Post-reorganization layout: `core/`, `hooks/`, `training/`, `data/`, `feature_analysis/`,
+`ablation/`, `pipeline/` (numbered stages 00–04), `tools/` (unnumbered). `evaluation/` was
+folded into `ablation/`; Gen 0–2 code lives in `archive/`.
+
+Other branches: `paligemma-2` holds an unmerged PaliGemma-2 3B port using pretrained
+GemmaScope SAEs (will conflict heavily — it edits paths the reorg has since moved);
+`codex/…-tsatoi` holds an unmerged SAE grid sweep. `methodology-improvements`,
+`methodological-improvements-v2`, and `codex/…-causal-impact` are fully merged.
+
+## Environment
+
+- Python: `LLaVA-NeXT/.venv/bin/python` — the `llava` package is only importable there.
+- `LLaVA-NeXT/` and `datasets/` are gitignored. See `CLAUDE.md` § "Artifacts not in git".
+
+## Important paths
+
+- Configs: `configs/clevr_lite/` (active), `configs/gqa/` (reference)
+- CLEVR-Lite knockout: `output/sae_experiments/exp_default/knockout/knockout_summary.json`
+- v2 results: `output/sae_experiments/sae_clevr_lite_layer{0,10,11,12,13}_attn_out_question_causal/`
+  — cite `ablation_results.json` (n=256) at layer 11, **not** `ablation_v2_results.json` (n=50)
+- Writeup figures: `output/sae_experiments/report_assets/`
+- Verified result tables: `output/sae_experiments/LLM_TECHNICAL_SUMMARY.{md,json}`

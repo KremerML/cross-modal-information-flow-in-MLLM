@@ -23,8 +23,41 @@ Upstream is the CVPR paper repo (`README.md`, `archive/`); everything under `sae
 LLaVA-NeXT/.venv/bin/python ...        # or: source LLaVA-NeXT/.venv/bin/activate
 ```
 
-Python 3.10. `LLaVA-NeXT/` and `datasets/` are gitignored (the LLaVA install and image data live there).
-Extra deps beyond the LLaVA env: `requirements_sae.txt`.
+Python 3.10.20, torch 2.10.0+cu128, transformers 4.57.6. `LLaVA-NeXT/` and `datasets/` are gitignored
+(the LLaVA install and image data live there). Extra deps beyond the LLaVA env: `requirements_sae.txt`.
+
+## Artifacts not in git
+
+A fresh clone is ~24 MB and contains **all the results needed to read, cite, and write up this
+project** — but none of the bulk artifacts. Nothing here needs regenerating to understand the
+findings; regenerate only to re-run experiments.
+
+| Absent | Size | How to get it back | Cost |
+|---|---|---|---|
+| `LLaVA-NeXT/` (install + venv) | 8.7 GB | Upstream LLaVA-NeXT install + `requirements_sae.txt` | minutes |
+| `datasets/images/` (GQA) | 21 GB | Public GQA download | download-bound |
+| `datasets/clevr_lite/` | 413 MB | `tools/generate_clevr_lite.py` with `datasets/clevr_lite/config.json` (seed 32) — **deterministic, reproduces exactly** | ~1h |
+| `output/**/sae_checkpoint.pt` (20 files) | ~20 GB | `pipeline/01_train_sae.py` per layer | ~20 GPU-hours total |
+| `output/**/knockout_results.json` (per-sample) | 58 MB | `pipeline/00_knockout_sweep.py` | 33h for the n=7084 sweep |
+| `output/**/_activation_cache/` | varies | `tools/collect_activations.py` | hours |
+| `output/**/feature_<N>.png` (220 files) | 247 MB | `04_analyze_results.py` | minutes; all v1-era, superseded |
+
+**Distilled, not lost.** The bulk result JSONs are gitignored but each has a committed
+`*.summary.json` sibling carrying the top-500 features, the full score distribution, and
+aggregate statistics — ~4% of the size, and the form the writeup actually cites. Regenerate
+with `tools/distill_results.py --root output` after any new run. Two fields in those summaries
+exist *only* there, because the runner never stored them: per-sample `margin_drop` (derived
+from `baseline_margin − ablated_margin`) and `*_prediction_changes` (flip counts).
+
+`knockout_results.json` is the exception — it already had a complete `knockout_summary.json`
+sibling (n, means, t-stat, p, Cohen's d) before any of this, so it was simply untracked.
+
+**Start here, in this order:**
+1. `output/sae_experiments/LLM_TECHNICAL_SUMMARY.md` — every verified result number, per-layer
+   tables, trust levels per run, and which files to load. Its `.json` twin is the same data,
+   machine-readable, generated from the result files.
+2. `docs/MEMORY.md` — accumulated project context and the caveats that must survive into the writeup.
+3. `docs/CLAUDE.md` — the research log and the reasoning behind the current pipeline.
 
 ## Commands
 

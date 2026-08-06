@@ -8,3 +8,21 @@ output/**/checkpoint.jsonl
 output/**/pipeline_log.txt
 output/**/pipeline_pid.txt
 .claude/scheduled_tasks.lock
+
+# Bulk result artifacts. These are distilled by tools/distill_results.py into
+# *.summary.json siblings, which ARE committed; the originals stay local.
+# See the "Artifacts not in git" section of CLAUDE.md.
+output/**/causal_feature_stats.json
+output/**/feature_stats.json
+output/**/ablation_results.json
+output/**/ablation_results_fixed.json
+output/**/ablation_v2_results.json
+
+# Per-feature SAE visualizations (~1.1 MB each, 220 files). Generated art, not
+# analysis; the writeup figures live in output/sae_experiments/report_assets/.
+output/**/feature_[0-9]*.png
+
+# Orphaned MNIST download for notebooks/sae_toy_demo.ipynb, which fetches its
+# own copy to ./data with download=True. Never read from this path.
+archive/notebooks/MNIST/
+data/

@@ -1,109 +1,192 @@
-# LLM Technical Summary: SAE Experiment Runs (output/sae_experiments)
-Last updated: 2026-02-10
+# LLM Technical Summary: SAE Experiment Runs
 
-## Scope
-This summary compresses all **14 indexed experiment runs** under `output/sae_experiments` so another LLM can reason about setup changes, result quality, and what conclusions are reliable.
+Last updated: 2026-08-06. Supersedes the 2026-02-10 version, whose headline conclusion
+("SAE feature ablation signal remains weak and usually indistinguishable from random
+controls") was overturned by the v2 causal method in May 2026. **Do not trust any
+document in this repo dated before 2026-05 on the question of whether SAE ablation works.**
 
-## Primary Research Context
-- Base finding from attention knockout: image-to-question flow has strong layer-dependent causal effects.
-- SAE extension goal: identify sparse features and show that ablating selected ("binding") features hurts performance more than matched random features.
+## Project phase
 
-## High-Confidence Global Takeaway
-Across completed runs, the main pattern is:
-1. **Knockout signal exists and is strong** (latest run).
-2. **SAE feature ablation signal remains weak and usually indistinguishable from random controls**, including after switching from residual stream to attention output (`attn_out`), increasing top-k, and using matched multi-set random controls.
+The project is in **writeup**. No further experiments are planned. This file exists so a
+reader — human or model — can reconstruct what was run, what it showed, and which numbers
+are safe to cite, without loading the raw result files.
 
-## Trust Levels for Runs
-- **High trust (current methodology)**:
-  - `first_pass_layer11_residual`
-  - `rerun_layer11_attn_out_20260209_213255`
-  - Layer-0 sweep completed runs (`...residual_delta1.0`, `...residual_delta2.0`, `...replace_delta1.0`)
-- **Medium/low trust (older methodology)**:
-  - `exp_run1`, `exp_run2_all_residual`, `exp_run3_attr_residual_weak`, `exp_run4`, `sae_q_layer0`, `sae_q_layer11`
-  - Reasons: mostly single random control set, no multi-set empirical random baseline, older metric focus.
-- **Incomplete / interrupted**:
-  - `rerun_layer11_attn_out_20260209_211336` (config only)
-  - `sweeps/...modereplace_delta_scale2.0` (ablation interrupted by KeyboardInterrupt)
+All numbers below were recomputed from the on-disk results on 2026-08-06, not copied from
+earlier prose.
 
-## Canonical Files to Load First
-- Latest strong knockout + attn_out SAE run:
-  - `output/sae_experiments/rerun_layer11_attn_out_20260209_213255/knockout/knockout_summary.json`
-  - `output/sae_experiments/rerun_layer11_attn_out_20260209_213255/results/ablation_results.json`
-  - `output/sae_experiments/rerun_layer11_attn_out_20260209_213255/analysis/hypothesis_report.json`
-  - `output/sae_experiments/rerun_layer11_attn_out_20260209_213255/config.yaml`
-- Corrected residual comparison run:
-  - `output/sae_experiments/first_pass_layer11_residual/results/ablation_results.json`
-  - `output/sae_experiments/first_pass_layer11_residual/config.yaml`
-- Layer-0 strength/mode sweep (completed):
-  - `output/sae_experiments/sweeps/sae_grid_v1_layer0_train-attribute_feat-attribute_top_k50_min_activation0.0_moderesidual_delta_scale1.0/results/ablation_results.json`
-  - `output/sae_experiments/sweeps/sae_grid_v1_layer0_train-attribute_feat-attribute_top_k50_min_activation0.0_moderesidual_delta_scale2.0/results/ablation_results.json`
-  - `output/sae_experiments/sweeps/sae_grid_v1_layer0_train-attribute_feat-attribute_top_k50_min_activation0.0_modereplace_delta_scale1.0/results/ablation_results.json`
+## The two techniques
 
-## Run Catalog (14 runs)
-Legend:
-- `B_acc_drop`: binding accuracy drop.
-- `R_acc_drop`: random accuracy drop.
-- `B-R acc`: binding minus random accuracy drop.
-- `B_margin`: binding mean margin drop.
-- `R_margin`: random mean margin drop.
-- `B-R margin`: binding minus random margin drop.
+1. **Attention knockout** — block an attention flow at one layer, measure the drop in
+   `margin = log P(true option) − log P(false option)`. Identifies which layers carry
+   causal image→text information.
+2. **SAE feature ablation** — train a sparse autoencoder at those layers, identify causally
+   important features by gradient attribution, zero them, measure the same margin drop.
+   Tests whether the flow is mediated by *sparse interpretable features*.
 
-| Run | Setup Summary | Status | Key Outcome |
+The knockout drop is the natural ceiling for the ablation drop at the same layer: knockout
+removes the whole flow, ablation removes only what the selected features carry.
+
+## Headline result 1 — CLEVR-Lite knockout sweep
+
+`Image->Question` flow, n=7084 per layer, 33h run, all p < 1e-10.
+
+| Layer | mean margin_drop | Cohen's d |
+|---|---|---|
+| 0 | 0.4575 | 1.042 |
+| 14 | 0.3983 | 1.205 |
+| 11 | 0.4273 | 0.915 |
+| 10 | 0.2683 | 1.135 |
+| 12 | 0.2452 | 0.764 |
+| 13 | **−0.0483** | **−0.364** |
+| 29 | **−0.0170** | **−1.218** |
+
+Three-region structure: a strong early site (layer 0), a mid cluster (10–14), and late-layer
+inhibition (26, 29). **Negative values are real signal, not bugs** — blocking those layers
+slightly *improves* accuracy. Layer 13 is inhibitory while flanked by positive layers 12 and 14.
+
+Full 64-row table (both flows, all 32 layers):
+`output/sae_experiments/exp_default/knockout/knockout_summary.json`.
+
+## Headline result 2 — v2 causal feature ablation
+
+Feature identification ran on the full validation set (n=7790); ablation on a 256-sample
+subsample. `attn_out` site, `question` positions, `replace` mode, top-k features vs. 15
+matched random control sets.
+
+| Layer | ablation margin_drop | random mean (sd) | z | % positive | flips | % of knockout ceiling |
+|---|---|---|---|---|---|---|
+| 0 | 0.0200 | −0.00028 (0.00028) | 73.1 | 56.6% | 0 | **4.4%** |
+| 10 | 0.1514 | 0.00004 (0.00228) | 66.5 | 81.2% | 3 | 56.4% |
+| **11** | **0.2131** | −0.00040 (0.00262) | **81.6** | **84.8%** | 4 | **49.9%** |
+| 12 | 0.1670 | 0.00059 (0.00297) | 56.0 | 82.8% | 3 | 68.1% |
+| 13 | 0.1220 | 0.00023 (0.00255) | 47.7 | 64.8% | 3 | — |
+| 14 | not run | — | — | — | — | — |
+
+Layer 11 is the headline: margin_drop 0.2131 against a random-control mean of −0.0004,
+z = 81.6, with 84.8% of individual samples showing a positive drop and 4 predictions flipped
+correct→wrong (0 flipped the other way).
+
+**Correction to earlier prose:** the "39% of knockout ceiling" figure in older documents
+compared the CLEVR-Lite ablation (0.213) against the *GQA* knockout drop (0.540). Against
+CLEVR-Lite's own layer-11 knockout drop (0.4273) the correct figure is **49.9%**.
+
+### Why the ablation captures only half the ceiling
+
+Single-layer ablation leaves the model free to re-read the image at layers L+1…31. This is
+the most likely explanation for the gap and was never tested — multi-layer ablation is the
+obvious follow-up the project did not run.
+
+## Two results that need care in the writeup
+
+**Layer 0 is an outlier and probably a methodological artifact.** It has the largest knockout
+effect (0.4575) but the smallest ablation effect (0.0200, 4.4% of ceiling). Its SAE is the
+reason: `dead_feature_fraction = 0.742` — 74% of the 32768 features never activate, against
+0.06–0.4% at every other layer. The layer-0 dictionary largely failed to train. Do not read
+"visual information at layer 0 is not sparsely encoded" from this number; the honest claim is
+that this SAE could not test it.
+
+**Layer 13 is a genuine puzzle.** Knockout there is *inhibitory* (−0.0483, d = −0.364): blocking
+the flow slightly improves accuracy. Yet ablating its causally-identified features *hurts*
+(margin_drop 0.1220, z = 47.7). Blocking the whole flow and removing these specific features
+push in opposite directions, so the "% of ceiling" framing is undefined here. Worth a sentence
+in the writeup rather than being quietly dropped from the table.
+
+## Why v1 produced 18 consecutive nulls
+
+v1 (`feature_analysis/feature_identifier.py`) scored features by ratio of mean activation on
+correct vs. incorrect samples. That metric is maximised by features that barely activate at
+all — "ghost features" with ~1e-5 magnitudes — so ablating them changed nothing.
+
+The distilled catalogs quantify this directly. At layer 11, the top-500 features by causal
+score have mean activation **0.117**, against a median across all 32768 features of
+**6.1e-08** — roughly six orders of magnitude apart. There is **zero overlap** between the v1
+and v2 top-200 sets.
+
+v2 (`feature_analysis/causal_feature_identifier.py`) instead inserts the SAE into the forward
+pass, backprops the target to feature activations, and scores `|grad| × |activation|`. Grounded
+in Marks et al. 2024 (Sparse Feature Circuits) and Agrawal et al. 2025.
+
+## Feature sparsity
+
+At layer 11 the causal score is concentrated: top-50 features carry 17.2% of total score mass,
+top-200 carry 45.7%, top-500 carry 79.9% (27,810 of 32,768 features are nonzero). This
+concentration is the quantitative form of the paper's central claim and is available per-layer
+in each `causal_feature_stats.summary.json`.
+
+## SAE training quality
+
+All six SAEs: 32768 features, `attn_out`, `question` positions, 4,898,438 training rows,
+l1_coeff 5e-4, 10 epochs.
+
+| Layer | explained variance | mean L0 | dead fraction |
 |---|---|---|---|
-| `exp_default` | residual(default), layer 12, knockout only | completed | Knockout summary exists but all effects are zero (stale/legacy behavior). |
-| `exp_run1` | residual(default), layer 12, attr positions, mode=residual, delta=1.0, top_k=50 | completed | `B_acc_drop=0.0`, `R_acc_drop=0.0` (null). |
-| `exp_run2_all_residual` | all positions, mode=residual, delta=1.0, top_k=50 | completed | `B_acc_drop=0.00114`, `R_acc_drop=0.00228`, old hypothesis report says significant; treat as low-trust legacy evidence. |
-| `exp_run3_attr_residual_weak` | attr positions, mode=residual, delta=0.5, top_k=50 | completed | `B_acc_drop=0.00114`, `R_acc_drop=0.00114` (null). |
-| `exp_run4` | attr positions, mode=residual, delta=2.0, top_k=50 | completed | Tiny effects; no robust separation. |
-| `sae_q_layer0` | residual(default), fixed results file, top_k=50 | completed | `B_acc_drop=0.0`, `R_acc_drop=0.00114`; tiny margins, null interpretation. |
-| `sae_q_layer11` | residual(default), fixed results file, top_k=50 | completed | `B_acc_drop=0.00114`, `R_acc_drop=0.00114`; null interpretation. |
-| `sweeps/...residual_delta_scale1.0` | layer 0, attr-train/attr-feature, mode=residual, delta=1.0, top_k=50, min_act=0.0 | completed | `B_acc_drop=0.0`, `R_acc_drop=0.00114`, `B-R margin=-8.69e-05` (null). |
-| `sweeps/...residual_delta_scale2.0` | same as above, delta=2.0 | completed | `B_acc_drop=0.0`, `R_acc_drop=0.0`, `B-R margin=-4.45e-04` (null). |
-| `sweeps/...replace_delta_scale1.0` | same grid, mode=replace, delta=1.0 | completed | `B_acc_drop=0.00114`, `R_acc_drop=0.00114`, `B-R margin=-3.96e-05` (null). |
-| `sweeps/...replace_delta_scale2.0` | same grid, mode=replace, delta=2.0 | incomplete | No `ablation_results.json`; run interrupted (KeyboardInterrupt in `run.log`). |
-| `first_pass_layer11_residual` | residual, layer 11, attr positions, mode=replace, top_k=200, matched random sets | completed | `B_acc_drop=-0.00114`, `R_acc_drop=-0.00228`, `B_margin=0.00135`, `R_margin=0.00140`, empirical p: acc `0.0625`, margin `1.0` (null). |
-| `rerun_layer11_attn_out_20260209_211336` | attn_out, layer 11, attr positions | incomplete | Config exists; no knockout/results artifacts. |
-| `rerun_layer11_attn_out_20260209_213255` | attn_out, layer 11, attr positions, mode=replace, top_k=200, matched random sets, margin metric | completed | `B_acc_drop=0.001140`, `R_acc_drop=0.001216`, `B-R acc=-7.60e-05`; `B_margin=-0.002105`, `R_margin=-0.001967`, `B-R margin=-1.38e-04`; empirical p values both `1.0` (null). |
+| 0 | 0.99983 | 1416 | **0.742** |
+| 10 | 0.99888 | 1128 | 0.0020 |
+| 11 | 0.99851 | 1180 | 0.0038 |
+| 12 | 0.99936 | 1587 | 0.0006 |
+| 13 | 0.99859 | 1256 | 0.0015 |
+| 14 | 0.99870 | 1446 | 0.0016 |
 
-## Most Important Quantitative Snapshot (Latest attn_out run)
-Run: `output/sae_experiments/rerun_layer11_attn_out_20260209_213255`
+Caveat worth stating in the writeup: **mean L0 of 1100–1600 active features is high** for an
+SAE of this size. Reconstruction is near-perfect but the dictionaries are not very sparse, which
+weakens any claim that individual features are cleanly interpretable units.
 
-### Knockout (same run, strong signal)
-- `Image->Question`, layer 11:
-  - `mean_margin_drop = 0.168814`
-  - `effect_size = 0.605366`
-  - `p_value = 7.62e-57`
+## Trust levels
 
-### SAE ablation (null vs random)
-- Binding:
-  - `accuracy_drop = 0.001140`
-  - `mean_margin_drop = -0.002105`
-  - `mean_relative_perturbation = 0.000303`
-- Random (15 matched sets mean):
-  - `accuracy_drop = 0.001216`
-  - `mean_margin_drop = -0.001967`
-  - `mean_relative_perturbation = 0.000303`
-- Empirical p-values:
-  - `accuracy_drop p = 1.0`
-  - `margin_drop p = 1.0`
-- Hypothesis report:
-  - `hypothesis_supported = false`
-  - `test_type = empirical_random_set`
+**Cite freely (current methodology, CLEVR-Lite, v2 causal):**
+- `sae_clevr_lite_layer{0,10,11,12,13,14}_attn_out_question` — SAE training
+- `sae_clevr_lite_layer{0,10,11,12,13}_attn_out_question_causal` — feature ID + ablation
+- `exp_default/knockout/` — the n=7084 knockout sweep
 
-## Method Evolution (What Changed Across Runs)
-1. Residual-only early runs with limited controls.
-2. Fixed indexing and updated evaluation outputs (`*_fixed.json`).
-3. Layer-0 grid sweep varying intervention mode (`residual` vs `replace`) and strength (`delta_scale`).
-4. Layer-11 focused runs with larger feature sets (`top_k=200`) and matched multi-set random controls.
-5. Shift from residual target to attention-output target (`attn_out`) to align with knockout mechanism.
+**Reference only (superseded v1 methodology, GQA, ratio-based features):**
+- `exp_run1`, `exp_run2_all_residual`, `exp_run3_attr_residual_weak`, `exp_run4`
+- `sae_q_layer0`, `sae_q_layer11`, `first_pass_*`, `layer0_*`, `layer11_*`
+- `sweeps/sae_grid_v1_*`
+- All of these are null results caused by ghost-feature selection. They are evidence about
+  the *method*, not about the model.
 
-## Caveats and Data Hygiene Notes
-1. Some old runs are missing `config.yaml`; reconstruct setup from result files where possible.
-2. `exp_default` knockout summary appears non-informative (all zeros).
-3. `sweeps/...replace_delta_scale2.0` is incomplete; do not include in aggregate efficacy conclusions.
-4. Older runs often have `random_set_summaries=0`; direct statistical comparisons with newer empirical-random-set runs are not apples-to-apples.
+**Incomplete:**
+- `sae_clevr_lite_layer14_attn_out_question_causal` — feature ID done, ablation never run
+- `rerun_layer11_attn_out_20260209_211336` — config only
+- `sweeps/...modereplace_delta_scale2.0` — ablation interrupted
 
-## Bottom-Line Interpretation for Downstream LLM
-Use this conclusion as prior:
-- The pipeline repeatedly confirms **layer-level cross-modal dependence** via knockout.
-- The current SAE feature selection + ablation interventions do **not** show stable binding-specific causal effects beyond matched random controls, even when targeting `attn_out` and using stronger controls.
+**Structural irregularity:** layer 10's results are nested one level deeper
+(`results/ablation_v2/ablation_v2_results.json`) than every other layer, and layer 11 has both
+an n=50 run (`ablation_v2_results.json`) and the n=256 headline run (`ablation_results.json`).
+Read filenames carefully; the n=256 file is the one to cite.
+
+## Canonical files to load first
+
+For the headline claim:
+- `sae_clevr_lite_layer11_attn_out_question_causal/results/ablation_results.summary.json`
+- `sae_clevr_lite_layer11_attn_out_question_causal/causal_feature_stats.summary.json`
+- `sae_clevr_lite_layer11_attn_out_question_causal/causal_summary.json`
+- `exp_default/knockout/knockout_summary.json`
+
+For cross-layer comparison, the same two `*.summary.json` files under each
+`sae_clevr_lite_layer{0,10,12,13}_attn_out_question_causal/`.
+
+Writeup figures: `output/sae_experiments/report_assets/` and
+`output/knockout_sae/knockout_color_run1_20260219_180829/knockout/plots/`.
+
+## Distilled vs. raw data
+
+Large result files are **not in git**. Each has a committed `*.summary.json` sibling holding
+the top-500 features, the full score distribution, and aggregate statistics — everything the
+writeup needs, at ~4% of the size. The originals remain on the author's disk and are
+regenerable by re-running the pipeline.
+
+| Raw file (gitignored) | Committed summary |
+|---|---|
+| `causal_feature_stats.json` (4.5 MB × 6) | `causal_feature_stats.summary.json` (~76 KB) |
+| `feature_stats.json` | `feature_stats.summary.json` |
+| `ablation*results*.json` | `ablation*results*.summary.json` |
+| `knockout_results.json` (per-sample) | `knockout_summary.json` (already existed) |
+| `feature_<N>.png` (220 files, 247 MB) | — dropped; v1-era ghost features |
+
+Regenerate with `sae_experiments/tools/distill_results.py --root output`.
+
+Note the summaries carry two fields the raw runner never stored: per-sample `margin_drop`
+(derived from `baseline_margin − ablated_margin`) and `*_prediction_changes` (correct→wrong
+and wrong→correct flip counts). See `docs/CLAUDE.md` for the research log and
+`CLAUDE.md` § "Artifacts not in git" for what else is absent from a fresh clone.
