@@ -57,9 +57,23 @@ def main() -> None:
     parser.add_argument("--experiment_name", type=str, default=None)
     parser.add_argument("--skip_passthrough", action="store_true",
                         help="Skip the SAE pass-through baseline")
+    # Control overrides live on the CLI rather than in the configs so the six per-layer
+    # YAMLs keep documenting exactly what produced the published numbers, while a
+    # matched-control re-run can be driven from a script without editing them.
+    parser.add_argument("--matched_metric", type=str, default=None,
+                        help="override random_control.matched_metric, e.g. activation_mean")
+    parser.add_argument("--strict_matching", action="store_true",
+                        help="raise instead of silently falling back to uniform sampling")
     args = parser.parse_args()
 
     config = load_config(args.config)
+    if args.matched_metric or args.strict_matching:
+        random_cfg = dict(config.get("random_control", {}))
+        if args.matched_metric:
+            random_cfg["matched_metric"] = args.matched_metric
+        if args.strict_matching:
+            random_cfg["strict_matching"] = True
+        config.data["random_control"] = random_cfg
     model_cfg = config.get("model", {})
     data_cfg = config.get("dataset", {})
     ablation_cfg = config.get("ablation", {})
@@ -148,7 +162,16 @@ def main() -> None:
     results["passthrough_baseline"] = passthrough_summary
     results["meta"] = {
         "seed": seed,
+        # target_layer was previously absent, which made a result file impossible to
+        # attribute to a layer without knowing which directory it came from.
+        "target_layer": target_layer,
         "activation_site": activation_site,
+        "feature_selection": "causal_v2",
+        "intervention": "single_layer_sae_ablation",
+        "mode": ablation_cfg.get("mode", "residual"),
+        "control": results.get("random_control_settings", {}).get("sampling_effective"),
+        # Kept for readers of the older result files. Note it says "error_preserving" while
+        # every active config sets mode: replace -- prefer the explicit fields above.
         "ablation_version": "v2_error_preserving",
         "features_source": features_path,
     }
