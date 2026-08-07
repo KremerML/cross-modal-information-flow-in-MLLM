@@ -1,6 +1,6 @@
 """Utilities for attention knockout flow definitions and token ranges."""
 
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple
 
 import torch
 
@@ -154,3 +154,17 @@ def build_block_config(
     half = window // 2
     layerlist = list(range(max(0, layer - half), min(num_layers, layer + half + 1)))
     return {l: list(src_tgt_pairs) for l in layerlist}
+
+
+def build_block_config_for_layers(
+    layers: Iterable[int],
+    src_tgt_pairs: List[Tuple[int, int]],
+) -> Dict[int, List[Tuple[int, int]]]:
+    """Block the same (target, source) pairs at an explicit set of layers.
+
+    ``build_block_config`` can only express a symmetric window centred on one layer, so it
+    cannot say "layers 12..31" (the downstream-knockout arm) or "{10, 12, 14}" (the
+    non-nested spans that separate span size from span depth). This takes the layer set
+    directly.
+    """
+    return {int(layer): list(src_tgt_pairs) for layer in sorted(set(int(l) for l in layers))}
