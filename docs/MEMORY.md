@@ -45,16 +45,21 @@ on GQA). GQA's two-peak structure (0 and 11) becomes a richer multi-peak structu
 **This broke an 18-experiment null streak (May 2026).** All numbers below re-verified 2026-08-06.
 
 Feature ID on the full val set (n=7790); ablation on 256 samples; `attn_out`, `question`
-positions, `replace` mode, 15 matched random control sets.
+positions, `replace` mode, 15 random control sets (**uniform, not matched — see the caveats
+below; every z here is inflated**).
 
 | Layer | ablation margin_drop | z | % positive | flips | % of knockout ceiling |
 |---|---|---|---|---|---|
 | 0 | 0.0200 | 73.1 | 56.6% | 0 | 4.4% |
 | 10 | 0.1514 | 66.5 | 81.2% | 3 | 56.4% |
-| **11** | **0.2131** | **81.6** | **84.8%** | 4 | **49.9%** |
+| 11 | 0.2131 | 81.6 | 84.8% | 4 | 49.9% |
 | 12 | 0.1670 | 56.0 | 82.8% | 3 | 68.1% |
 | 13 | 0.1220 | 47.7 | 64.8% | 3 | — |
-| 14 | not run | | | | |
+| **14** | **0.2433** | 70.0 | **90.2%** | 2 | **61.1%** |
+
+**Layer 14 is the strongest result, not layer 11** (run 2026-08-06): largest drop, highest
+% positive, largest knockout d (1.205), healthy SAE. Layer 11's higher z reflects quieter
+control sets, not a bigger effect.
 
 **Correction to older prose:** the "39% of knockout ceiling" figure compared the CLEVR-Lite
 ablation against the *GQA* knockout drop (0.540). Against CLEVR-Lite's own layer-11 knockout
@@ -81,9 +86,13 @@ Agrawal et al. 2025. Implementation: `feature_analysis/causal_feature_identifier
   (explained variance > 0.998) but the dictionaries are not very sparse, which limits claims
   about individual features being clean interpretable units.
 - **Single-layer ablation only.** The model can re-read the image at layers L+1…31, the most
-  likely reason ablation captures ~50% rather than 100% of the knockout ceiling. Multi-layer
-  ablation was never run.
-- **Layer 14 has feature identification but no ablation run** — the most conspicuous gap.
+  likely reason ablation captures ~50% rather than 100% of the knockout ceiling. A multi-layer
+  harness to test this is under construction on branch `multilayer-ablation`; no results yet.
+- **The random controls were uniform, not matched** (found 2026-08-07). Configs set
+  `matched_metric: "correct_mean"`, absent from every v2 stats file, so the matched sampler
+  silently fell back to uniform draws. At layer 11 the controls have median activation 6.1e-08
+  against the binding set's 0.117. **Every z above is inflated.** The margin drops and
+  per-sample positive fractions are unaffected. Re-runs land in `ablation_matched_controls.json`.
 
 ## CLEVR-Lite dataset
 

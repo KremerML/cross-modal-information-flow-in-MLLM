@@ -231,11 +231,21 @@ Ablate the same feature set across layers 10-14 simultaneously to close the 39% 
 
 ## 5. What Does NOT Need Fixing
 
+> **RETRACTION (2026-08-07).** The third and fifth bullets below are wrong and are kept only so the
+> error is traceable. The random controls were never matched — they were uniform. Configs set
+> `matched_metric: "correct_mean"`, a key absent from every v2 stats file, so `_extract_metric_value`
+> returned `None` and `_sample_matched_random_features` silently took its uniform branch. At layer 11
+> the controls have median activation 6.1e-08 against the binding set's 0.117. The z-scores therefore
+> compare top-causal features against near-dead features and are inflated. See CLAUDE.md
+> § "Ablation modes" and the multi-layer work for the fix (`matched_metric: "activation_mean"` plus
+> `random_control.strict_matching: true`).
+
 - **Zero ablation of SAE features is appropriate** (features have natural zero state)
 - **gradient × activation feature identification is well-grounded** (attribution patching)
-- **Random-feature control methodology is sound** (same encode/decode path)
+- ~~**Random-feature control methodology is sound** (same encode/decode path)~~ — **retracted, see above**
 - **Position-selective ablation is correct** (residual mode delta is zero at non-target positions)
-- **The relative z-score of 81.6 is valid** regardless of reconstruction error
+- ~~**The relative z-score of 81.6 is valid** regardless of reconstruction error~~ — valid with respect
+  to *reconstruction error*, but inflated by the uniform-control bug above
 
 ---
 
@@ -256,7 +266,9 @@ Ablate the same feature set across layers 10-14 simultaneously to close the 39% 
    The original replace-mode result (0.213) was NOT inflated by reconstruction error.
 2. **Error-preserving delta produces nearly identical results** (0.208 vs 0.213 within sampling noise).
    The methodology was already sound for relative comparisons.
-3. **The original z-score of 81.6 is valid.** The slight reduction to 71.5 is purely due to
+3. ~~**The original z-score of 81.6 is valid.**~~ **Retracted 2026-08-07** — valid against *reconstruction
+   error*, which is all this test examined, but inflated by the uniform-control bug (see the retraction
+   note in section 5). The z here (71.5) has the same defect. The slight reduction from 81.6 is due to
    smaller sample size (n=50 vs n=256).
 4. **No methodological fix was necessary for the core finding.** The improvements are:
    - Cleaner code (single path instead of two modes)

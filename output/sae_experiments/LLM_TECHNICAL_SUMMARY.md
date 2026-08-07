@@ -51,20 +51,48 @@ Full 64-row table (both flows, all 32 layers):
 
 Feature identification ran on the full validation set (n=7790); ablation on a 256-sample
 subsample. `attn_out` site, `question` positions, `replace` mode, top-k features vs. 15
-matched random control sets.
+random control sets.
+
+> **All z-scores in this table are inflated — read the control caveat below before citing them.**
 
 | Layer | ablation margin_drop | random mean (sd) | z | % positive | flips | % of knockout ceiling |
 |---|---|---|---|---|---|---|
 | 0 | 0.0200 | −0.00028 (0.00028) | 73.1 | 56.6% | 0 | **4.4%** |
 | 10 | 0.1514 | 0.00004 (0.00228) | 66.5 | 81.2% | 3 | 56.4% |
-| **11** | **0.2131** | −0.00040 (0.00262) | **81.6** | **84.8%** | 4 | **49.9%** |
+| 11 | 0.2131 | −0.00040 (0.00262) | 81.6 | 84.8% | 4 | 49.9% |
 | 12 | 0.1670 | 0.00059 (0.00297) | 56.0 | 82.8% | 3 | 68.1% |
 | 13 | 0.1220 | 0.00023 (0.00255) | 47.7 | 64.8% | 3 | — |
-| 14 | not run | — | — | — | — | — |
+| **14** | **0.2433** | 0.00076 (0.00347) | 70.0 | **90.2%** | 2 | **61.1%** |
 
-Layer 11 is the headline: margin_drop 0.2131 against a random-control mean of −0.0004,
-z = 81.6, with 84.8% of individual samples showing a positive drop and 4 predictions flipped
-correct→wrong (0 flipped the other way).
+**Layer 14 is the strongest result, not layer 11** (run 2026-08-06; this file previously said
+"not run"). It has the largest ablation drop, the highest fraction of positive samples, the
+largest knockout effect size in the whole sweep (d = 1.205), and a healthy SAE
+(`dead_feature_fraction` 0.0016). Layer 11 retains the highest z (81.6 vs 70.0) only because
+layer 14's control sets are noisier (sd 0.00347 vs 0.00262); with 15 control sets that sd is
+itself a noisy estimate, so the z gap is not a meaningful difference.
+
+### Control caveat — the random controls were uniform, not matched
+
+Discovered 2026-08-07. The configs request `random_sampling: "matched"` with
+`matched_metric: "correct_mean"`, but v2 stats files carry only `causal_score`,
+`activation_mean` and `gradient_mean`. `_extract_metric_value` falls back through
+`correct_mean → ratio → diff → incorrect_mean`, finds none, returns `None`, and
+`_sample_matched_random_features` takes its uniform branch. Confirmed empirically: 0 of the 45
+stored control features fall in the causal top-500 (matched sampling predicts nearly all;
+uniform predicts ~0.7).
+
+At layer 11 the controls therefore have median activation **6.1e-08** against the binding set's
+**0.117** — the same near-dead "ghost features" this project diagnosed in v1 *selection*,
+surviving in the *control* arm. **Every z above is inflated by an unknown amount.** The
+direction and per-sample consistency of the results (84–90% of samples positive) are unaffected;
+only the magnitude of the separation from controls is in question.
+
+Two further reporting problems in the same table: with 15 control sets the empirical p is floored
+at 1/16 = 0.0625, and a z estimated from 15 draws has standard error ≈ z/√(2(n−1)), so `81.6`
+cannot carry three significant figures.
+
+Re-runs with `matched_metric: "activation_mean"` and `strict_matching: true` will be written to
+`ablation_matched_controls.json` beside each existing result file. Expect every z to fall.
 
 **Correction to earlier prose:** the "39% of knockout ceiling" figure in older documents
 compared the CLEVR-Lite ablation (0.213) against the *GQA* knockout drop (0.540). Against
@@ -73,8 +101,10 @@ CLEVR-Lite's own layer-11 knockout drop (0.4273) the correct figure is **49.9%**
 ### Why the ablation captures only half the ceiling
 
 Single-layer ablation leaves the model free to re-read the image at layers L+1…31. This is
-the most likely explanation for the gap and was never tested — multi-layer ablation is the
-obvious follow-up the project did not run.
+the most likely explanation for the gap. **A multi-layer ablation harness to test it is under
+construction** (branch `multilayer-ablation`): joint ablation across layers 10–14 against a
+knockout ceiling measured on the same samples, plus a downstream-knockout arm that tests the
+re-reading mechanism directly. No results yet.
 
 ## Two results that need care in the writeup
 
@@ -135,7 +165,8 @@ weakens any claim that individual features are cleanly interpretable units.
 
 **Cite freely (current methodology, CLEVR-Lite, v2 causal):**
 - `sae_clevr_lite_layer{0,10,11,12,13,14}_attn_out_question` — SAE training
-- `sae_clevr_lite_layer{0,10,11,12,13}_attn_out_question_causal` — feature ID + ablation
+- `sae_clevr_lite_layer{0,10,11,12,13,14}_attn_out_question_causal` — feature ID + ablation
+  (**margin_drop and % positive are solid; the z-scores are inflated — see the control caveat**)
 - `exp_default/knockout/` — the n=7084 knockout sweep
 
 **Reference only (superseded v1 methodology, GQA, ratio-based features):**
@@ -146,7 +177,6 @@ weakens any claim that individual features are cleanly interpretable units.
   the *method*, not about the model.
 
 **Incomplete:**
-- `sae_clevr_lite_layer14_attn_out_question_causal` — feature ID done, ablation never run
 - `rerun_layer11_attn_out_20260209_211336` — config only
 - `sweeps/...modereplace_delta_scale2.0` — ablation interrupted
 

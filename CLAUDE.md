@@ -187,9 +187,19 @@ dry expansion to get that count.
   error cancels, so only the selected features' contribution is removed. Soft/"error-preserving delta" mode.
 
 `ablation/ablation_experiments.AblationExperiment.run_three_condition_test` is the core comparison: binding
-features vs. N random control sets vs. baseline. Controls default to `random_sampling: "matched"`, which samples
-random features matched on `random_control.matched_metric` — a random set with the same activation profile, not
-uniformly random indices.
+features vs. N random control sets vs. baseline. Configs request `random_sampling: "matched"`, which is *meant*
+to sample random features matched on `random_control.matched_metric` — a random set with the same activation
+profile, not uniformly random indices.
+
+**It silently did not do that in any run to date.** Configs set `matched_metric: "correct_mean"`, but v2 stats
+files carry only `causal_score` / `activation_mean` / `gradient_mean`. `_extract_metric_value` falls back
+through `correct_mean → ratio → diff → incorrect_mean`, finds none of them, returns `None`, and
+`_sample_matched_random_features` takes its `rng.choice(sorted(available))` branch — **uniform**. At layer 11
+that means controls with median activation 6.1e-08 against the binding set's 0.117, i.e. the same near-dead
+"ghost features" the project diagnosed in v1 *selection*, surviving in the *control* arm. Every published
+z-score is inflated by this. Use `matched_metric: "activation_mean"` and `random_control.strict_matching: true`
+(which raises instead of falling back) for new work; the default stays permissive so existing runs reproduce,
+but it now warns loudly when it falls back.
 
 ### Feature identification: v1 vs v2
 
