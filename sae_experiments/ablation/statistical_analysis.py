@@ -1,6 +1,6 @@
 """Statistical tests and plots for ablation results."""
 
-from typing import Dict, Iterable, Tuple
+from typing import Callable, Dict, Iterable, Tuple
 
 import numpy as np
 
@@ -45,6 +45,107 @@ def bootstrap_confidence_interval(data: Iterable[float], n_bootstrap: int = 1000
         samples.append(np.mean(resample))
     low, high = np.percentile(samples, [2.5, 97.5])
     return float(low), float(high)
+
+
+def paired_bootstrap_ci(
+    per_sample: Dict[str, Iterable[float]],
+    statistic: Callable[[Dict[str, np.ndarray]], float],
+    n_bootstrap: int = 10000,
+    seed: int = 42,
+    ci: Tuple[float, float] = (2.5, 97.5),
+) -> Tuple[float, float, float]:
+    """Bootstrap a statistic computed across several conditions measured on the same samples.
+
+    The essential property is that each iteration resamples the *question indices once* and
+    applies the same indices to every condition. Conditions here are evaluated on an
+    identical, identically-ordered sample set, so their per-question values are strongly
+    correlated; resampling each condition independently would discard that pairing and
+    inflate the interval on a ratio like ``A(S)/K(S)`` enormously.
+
+    Args:
+        per_sample: condition id -> per-question values, all the same length and order.
+        statistic: takes ``{condition_id: np.ndarray}`` and returns a scalar.
+        n_bootstrap: resampling iterations.
+        seed: makes the interval reproducible.
+        ci: percentile bounds.
+
+    Returns:
+        ``(point_estimate, ci_low, ci_high)``. The bounds are NaN if no iteration produced
+        a finite value, which happens when a denominator straddles zero.
+    """
+    arrays = {key: np.asarray(list(values), dtype=float) for key, values in per_sample.items()}
+    if not arrays:
+        return float("nan"), float("nan"), float("nan")
+
+    lengths = {len(v) for v in arrays.values()}
+    if len(lengths) != 1:
+        raise ValueError(
+            f"paired bootstrap needs one value per question per condition; got lengths "
+            f"{ {k: len(v) for k, v in arrays.items()} }"
+        )
+    n_samples = lengths.pop()
+    if n_samples == 0:
+        return float("nan"), float("nan"), float("nan")
+
+    point = float(statistic(arrays))
+
+    rng = np.random.default_rng(seed)
+    draws = []
+    for _ in range(n_bootstrap):
+        idx = rng.integers(0, n_samples, size=n_samples)
+        value = statistic({key: arr[idx] for key, arr in arrays.items()})
+        if np.isfinite(value):
+            draws.append(value)
+
+    if not draws:
+        return point, float("nan"), float("nan")
+    low, high = np.percentile(draws, list(ci))
+    return point, float(low), float(high)
+
+
+def ratio_statistic(numerator: str, denominator: str, min_denominator: float = 1e-9):
+    """A statistic for ``paired_bootstrap_ci``: mean(numerator) / mean(denominator).
+
+    Returns NaN when the denominator is at or below ``min_denominator`` so those draws are
+    dropped rather than exploding the interval. Layer 13's knockout drop is negative, so its
+    ratio is genuinely undefined and must not be reported.
+    """
+
+    def statistic(arrays: Dict[str, np.ndarray]) -> float:
+        denom = float(np.mean(arrays[denominator]))
+        if denom <= min_denominator:
+            return float("nan")
+        return float(np.mean(arrays[numerator])) / denom
+
+    return statistic
+
+
+def wilcoxon_vs_controls(
+    binding: Iterable[float], control_mean: Iterable[float]
+) -> Tuple[float, float]:
+    """Per-question signed-rank test of binding against the mean control effect.
+
+    With 15 control sets the empirical p-value is floored at 1/16 = 0.0625, so it cannot
+    express the strength of these effects. This test runs over the questions instead, where
+    n is 256, and has no such floor.
+    """
+    diff = np.asarray(list(binding), dtype=float) - np.asarray(list(control_mean), dtype=float)
+    if stats is None or diff.size == 0 or np.allclose(diff, 0.0):
+        return 0.0, 1.0
+    statistic, p_value = stats.wilcoxon(diff)
+    return float(statistic), float(p_value)
+
+
+def z_score_standard_error(z: float, n_sets: int) -> float:
+    """Standard error of a z estimated from ``n_sets`` control draws.
+
+    The control standard deviation is itself estimated from a handful of draws, so its
+    relative error is about ``1/sqrt(2(n-1))`` and the z inherits it. At 15 sets a reported
+    z of 81.6 carries an SE around 15 -- three significant figures are not meaningful.
+    """
+    if n_sets < 2:
+        return float("nan")
+    return float(abs(z) / np.sqrt(2.0 * (n_sets - 1)))
 
 
 def plot_ablation_comparison(results_dict: Dict[str, Dict], save_path: str) -> None:
