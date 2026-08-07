@@ -119,14 +119,30 @@ class MultiLayerAblationExperiment:
     # ------------------------------------------------------------------ features
 
     def top_k(self, layer: int, k: int) -> List[int]:
-        """The first ``k`` features of a layer's causal catalog, which is score-ordered."""
-        catalog = self.catalogs[int(layer)]
-        if k > len(catalog):
+        """The ``k`` highest-scoring causal features at a layer.
+
+        The exported catalogs hold only the top 200, but the budget-matched arm needs a
+        concentrated count curve well past that. When ``k`` exceeds the catalog we re-derive
+        the ranking from the full stats file, which scores every feature -- the catalog is
+        just its head, so the two agree on the overlap.
+        """
+        layer = int(layer)
+        catalog = self.catalogs[layer]
+        if k <= len(catalog):
+            return list(catalog[:k])
+
+        stats = self.feature_stats.get(layer, {})
+        if len(stats) < k:
             raise ValueError(
-                f"layer {layer} catalog holds {len(catalog)} features, {k} requested; "
-                f"re-export the catalog with a larger --top_k"
+                f"layer {layer}: {k} features requested but the catalog holds "
+                f"{len(catalog)} and the stats file {len(stats)}. Point stats_paths at the "
+                f"full causal_feature_stats.json, or lower the requested k"
             )
-        return list(catalog[:k])
+        ranked = sorted(
+            stats.items(),
+            key=lambda item: (-float(item[1].get("causal_score", 0.0)), item[0]),
+        )
+        return [int(feature) for feature, _ in ranked[:k]]
 
     def features_for(self, layers: Sequence[int], k) -> Dict[int, List[int]]:
         """Build a ``{layer: features}`` mapping.
@@ -187,12 +203,17 @@ class MultiLayerAblationExperiment:
         return control
 
     def effective_sampling(self, sampling: str, matched_metric: str) -> Dict[str, str]:
-        """Per-layer report of what the sampler will really do, for the result metadata."""
+        """Per-layer report of what the sampler will really do, for the result metadata.
+
+        Keyed off the loaded stats rather than the loaded SAEs so it also works in a dry
+        run, where no model or dictionary has been loaded.
+        """
+        layers = sorted(set(self.feature_stats) | set(self.catalogs))
         return {
             str(layer): AblationExperiment._effective_sampling(
                 sampling, self.feature_stats.get(layer), matched_metric
             )
-            for layer in sorted(self.saes)
+            for layer in layers
         }
 
     # ------------------------------------------------------------------ running

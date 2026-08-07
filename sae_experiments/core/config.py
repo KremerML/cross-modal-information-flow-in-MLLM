@@ -80,7 +80,14 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "n_random_sets": 1,
         "sampling": "uniform",
         "seed": 42,
+        # NOTE: "correct_mean" is a v1 statistic. v2 stats files carry only causal_score,
+        # activation_mean and gradient_mean, so matched sampling against this key silently
+        # degrades to uniform -- which is what every published v2 run actually did. New
+        # configs should set matched_metric: "activation_mean" and strict_matching: true.
+        # The default is left as-is so existing configs still reproduce their numbers.
         "matched_metric": "correct_mean",
+        # Raise instead of falling back to uniform when the metric is missing.
+        "strict_matching": False,
     },
     "evaluation": {
         "significance_level": 0.05,
@@ -104,6 +111,45 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "batch_size": 1,
         "num_workers": 2,
         "output_subdir": "knockout",
+    },
+    # Multi-layer ablation. Paths are deliberately explicit rather than derived from an
+    # experiment dir: layer 10's causal catalog lives at a non-standard nested path, and a
+    # loader that guessed would silently find zero features for it.
+    "multilayer": {
+        "layers": [10, 11, 12, 13, 14],
+        # Layer 0 is excluded: dead_feature_fraction 0.742, so its dictionary never trained.
+        "excluded_layers": [0],
+        # "live" -- a downstream SAE encodes the already-perturbed stream, which is the
+        # point when testing whether downstream layers compensate. "frozen" would encode
+        # from clean activations and bias the result toward "no redundancy".
+        "encode_mode": "live",
+        "encode_positions_only": True,
+        # int applied to every layer, or {layer: k} for the budget/mass-matched arms.
+        "features_per_layer": 200,
+        "sae_dtype": "float32",
+        "sae_paths": {},
+        "catalog_paths": {},
+        "stats_paths": {},
+    },
+    "conditions": {
+        "gate": True,
+        "primary": True,
+        "nested": [[14], [13, 14], [12, 13, 14], [11, 12, 13, 14], [10, 11, 12, 13, 14]],
+        # Same sizes as nested spans but different depths. Without these the nested curve
+        # cannot separate "how many layers" from "which layers", since it always grows
+        # downward from 14.
+        "non_nested": [[10, 12, 14], [10, 11, 12]],
+        "leave_one_out": True,
+        "span_knockout": True,
+        "budget_matched": {
+            "spread_per_layer": 40,
+            "concentrated_layer": 11,
+            "concentrated_k": [40, 100, 200, 400, 800],
+        },
+        "downstream_knockout": {"anchor_layers": [11, 14], "downstream_to": 31},
+        # Layer 13's knockout is inhibitory while its ablation drop is positive, so the
+        # joint ceiling is not a sum of positive contributions; this span drops it.
+        "sensitivity_span": [10, 11, 12, 14],
     },
 }
 
