@@ -105,9 +105,14 @@ class TestRandomControlSampling(unittest.TestCase):
             }
         ]
 
+        # run_three_condition_test now resolves the baseline and the intervention positions
+        # once up front, so the stub dataset needs that call patched out too.
         with patch(
             "sae_experiments.ablation.ablation_experiments.FeatureAblator.batch_ablation_experiment",
             return_value=fake_rows,
+        ), patch(
+            "sae_experiments.ablation.ablation_experiments.build_sample_cache",
+            return_value=[],
         ):
             results = exp.run_three_condition_test(
                 dataset=object(),

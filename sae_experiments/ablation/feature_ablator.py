@@ -18,6 +18,11 @@ from sae_experiments.hooks.knockout_utils import estimate_image_token_count, seq
 from sae_experiments.hooks.attention_hooks import remove_wrapper_llava, set_block_attn_hooks_llava
 
 
+# `None` is a legitimate resolved positions value meaning "every position", so a cache miss
+# needs a sentinel distinct from it.
+_POSITIONS_UNCACHED = object()
+
+
 class FeatureAblator:
     """Ablates SAE features by zeroing them in the hidden state."""
 
@@ -214,8 +219,11 @@ class FeatureAblator:
         max_samples: Optional[int] = None,
         baseline_cache: Optional[Any] = None,
         score_options: bool = True,
+        strict_cache: bool = False,
+        positions_cache: Optional[Any] = None,
     ) -> List[dict]:
         results = []
+        self._cache_misses = 0
         data_loader = dataset.create_dataloader()
         try:
             device = next(self.model.parameters()).device
@@ -254,6 +262,16 @@ class FeatureAblator:
                 question_id=line.get("q_id"),
             )
             if baseline_record is None:
+                # A cache that was supplied but did not resolve means the cache and the
+                # dataloader disagree on sample order. Silently recomputing would make that
+                # look like a slowdown rather than a bug, so strict_cache surfaces it.
+                if baseline_cache is not None:
+                    self._cache_misses += 1
+                    if strict_cache:
+                        raise ValueError(
+                            f"baseline cache miss at sample {idx} "
+                            f"(q_id={line.get('q_id')!r}); cache and dataloader are out of sync"
+                        )
                 baseline_record = self._compute_baseline_record(
                     input_ids=input_ids,
                     image_tensor=image_tensor,
@@ -277,14 +295,28 @@ class FeatureAblator:
             true_option = dataset.dataset_dict[line["q_id"]].get("true option", "").strip()
             false_option = dataset.dataset_dict[line["q_id"]].get("false option", "").strip()
 
-            positions = self._resolve_positions(
-                position_type,
-                input_ids,
-                image_tensor,
-                image_sizes,
-                dataset,
-                line,
+            # Resolving positions runs prepare_inputs_labels_for_multimodal (a full vision-tower
+            # pass), and the answer only depends on the sample, not the condition — so a caller
+            # sweeping many conditions can resolve once and pass the result in.
+            positions = self._resolve_cached_positions(
+                positions_cache=positions_cache,
+                sample_idx=idx,
+                question_id=line.get("q_id"),
             )
+            if positions is _POSITIONS_UNCACHED:
+                if positions_cache is not None and strict_cache:
+                    raise ValueError(
+                        f"positions cache miss at sample {idx} "
+                        f"(q_id={line.get('q_id')!r}); cache and dataloader are out of sync"
+                    )
+                positions = self._resolve_positions(
+                    position_type,
+                    input_ids,
+                    image_tensor,
+                    image_sizes,
+                    dataset,
+                    line,
+                )
             hooks: List[Any] = []
             sample_diagnostics: List[Dict[str, float]] = []
             if apply_sae:
@@ -463,6 +495,31 @@ class FeatureAblator:
             "baseline_false_logprob": baseline_false_lp,
             "baseline_margin": baseline_margin,
         }
+
+    @staticmethod
+    def _resolve_cached_positions(
+        positions_cache: Optional[Any],
+        sample_idx: int,
+        question_id: Any,
+    ) -> Any:
+        """Look up pre-resolved positions, returning ``_POSITIONS_UNCACHED`` on a miss.
+
+        Accepts either a ``{question_id: positions}`` mapping or a list indexed by sample,
+        mirroring ``_resolve_cached_baseline``.
+        """
+        if positions_cache is None:
+            return _POSITIONS_UNCACHED
+        if isinstance(positions_cache, dict):
+            if question_id in positions_cache:
+                return positions_cache[question_id]
+            if str(question_id) in positions_cache:
+                return positions_cache[str(question_id)]
+            return _POSITIONS_UNCACHED
+        if isinstance(positions_cache, list):
+            if sample_idx < 0 or sample_idx >= len(positions_cache):
+                return _POSITIONS_UNCACHED
+            return positions_cache[sample_idx]
+        return _POSITIONS_UNCACHED
 
     @staticmethod
     def _resolve_cached_baseline(

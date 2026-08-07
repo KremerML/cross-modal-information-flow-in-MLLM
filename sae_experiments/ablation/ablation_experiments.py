@@ -13,6 +13,11 @@ import numpy as np
 import torch
 
 from sae_experiments.ablation.feature_ablator import FeatureAblator
+from sae_experiments.ablation.sample_cache import (
+    baseline_cache,
+    build_sample_cache,
+    positions_cache,
+)
 
 
 class AblationExperiment:
@@ -55,6 +60,21 @@ class AblationExperiment:
         if not binding_features:
             raise ValueError("binding_features is empty; run feature identification first.")
 
+        # The baseline and the resolved positions do not depend on which features are
+        # ablated, so resolve them once instead of once per condition. With the default 15
+        # random sets that is 16 baselines per sample collapsed into one.
+        cache_records = build_sample_cache(
+            ablator,
+            dataset,
+            position_type=position_type,
+            logprob_normalize=logprob_normalize,
+            max_samples=max_samples,
+            show_progress=show_progress,
+            progress_desc="Baseline cache",
+        )
+        cached_baselines = baseline_cache(cache_records)
+        cached_positions = positions_cache(cache_records)
+
         binding_results = ablator.batch_ablation_experiment(
             dataset,
             binding_features,
@@ -66,6 +86,9 @@ class AblationExperiment:
             logprob_normalize=logprob_normalize,
             show_progress=show_progress,
             max_samples=max_samples,
+            baseline_cache=cached_baselines,
+            positions_cache=cached_positions,
+            strict_cache=True,
         )
         binding_summary = ablator.compute_ablation_effect(binding_results)
 
@@ -134,6 +157,9 @@ class AblationExperiment:
                 logprob_normalize=logprob_normalize,
                 show_progress=show_progress and set_idx == 0,
                 max_samples=max_samples,
+                baseline_cache=cached_baselines,
+                positions_cache=cached_positions,
+                strict_cache=True,
             )
             set_summary = ablator.compute_ablation_effect(set_results)
             set_summary["set_index"] = set_idx
