@@ -238,6 +238,7 @@ class FeatureAblator:
         score_options: bool = True,
         strict_cache: bool = False,
         positions_cache: Optional[Any] = None,
+        progress_desc: str = "Ablation",
     ) -> List[dict]:
         results = []
         self._cache_misses = 0
@@ -252,7 +253,7 @@ class FeatureAblator:
             total = len(dataset.questions)
             if max_samples is not None:
                 total = min(total, max_samples)
-            iterator = tqdm(iterator, total=total, desc="Ablation")
+            iterator = tqdm(iterator, total=total, desc=progress_desc)
         for idx, (batch, line) in enumerate(iterator):
             if max_samples is not None and idx >= max_samples:
                 break

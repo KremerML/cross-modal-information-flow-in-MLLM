@@ -32,6 +32,7 @@ import os
 import random
 import sys
 import time
+from datetime import datetime, timedelta
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
@@ -68,6 +69,43 @@ PHASES = (
     "downstream",
     "sensitivity",
 )
+
+
+def log(message="", indent=0):
+    """Timestamped, explicitly flushed line.
+
+    The shell script pipes stdout through tee, so Python block-buffers it and nothing
+    appears for minutes at a time. tqdm writes to stderr and is unaffected, which is why
+    the bars showed up while the messages did not. Every log line flushes.
+    """
+    stamp = datetime.now().strftime("%H:%M:%S")
+    prefix = " " * indent
+    print(f"[{stamp}] {prefix}{message}", flush=True)
+
+
+def human_duration(seconds):
+    if seconds is None or seconds != seconds:  # None or NaN
+        return "unknown"
+    seconds = int(seconds)
+    if seconds < 60:
+        return f"{seconds}s"
+    if seconds < 3600:
+        return f"{seconds // 60}m{seconds % 60:02d}s"
+    return f"{seconds // 3600}h{(seconds % 3600) // 60:02d}m"
+
+
+def gpu_memory_note():
+    """Peak allocated / reserved, so a run creeping toward the 24 GB ceiling is visible."""
+    try:
+        import torch
+
+        if not torch.cuda.is_available():
+            return ""
+        allocated = torch.cuda.max_memory_allocated() / 1024**3
+        reserved = torch.cuda.max_memory_reserved() / 1024**3
+        return f" | gpu peak {allocated:.1f}G alloc / {reserved:.1f}G reserved"
+    except Exception:
+        return ""
 
 
 # --------------------------------------------------------------------------- conditions
@@ -494,15 +532,23 @@ def main():
     checkpoint_path = os.path.join(experiment_dir, "checkpoint.jsonl")
     done = set() if args.force else completed_conditions(checkpoint_path)
 
+    pending = [c for c in conditions if c.condition_id not in done]
+    total_runs = sum(1 + controls_for(c, phases, config) for c in pending)
+    log(f"{len(conditions)} conditions in this phase set, "
+        f"{len(done & {c.condition_id for c in conditions})} already done, "
+        f"{len(pending)} to run ({total_runs} evaluation passes)")
+
     # One cache for the whole run: the baseline and the resolved positions do not depend
     # on the condition, so paying for them once instead of once per condition is roughly
     # half the wall clock across the matrix.
     cache_path = os.path.join(experiment_dir, "sample_cache.json")
     if os.path.exists(cache_path) and not args.force:
         sample_records = load_sample_cache(cache_path)
-        print(f"[multilayer] reusing sample cache: {len(sample_records)} samples")
+        log(f"reusing sample cache: {len(sample_records)} samples ({cache_path})")
     else:
-        print("[multilayer] building sample cache...")
+        log("building sample cache (one baseline + position resolve per sample, "
+            "reused by every condition)...")
+        cache_started = time.time()
         sample_records = build_sample_cache(
             experiment.ablator,
             dataset,
@@ -512,21 +558,33 @@ def main():
             show_progress=show_progress,
         )
         save_sample_cache(sample_records, cache_path)
-    print(f"[multilayer] {len(sample_records)} samples cached\n")
+        log(f"sample cache built in {human_duration(time.time() - cache_started)}")
+    log(f"{len(sample_records)} samples cached")
 
     rc_cfg = config.get("random_control", {})
     sampling = str(rc_cfg.get("sampling", "matched"))
     matched_metric = str(rc_cfg.get("matched_metric", "activation_mean"))
     strict = bool(rc_cfg.get("strict_matching", True))
-    print(f"[multilayer] control regime per layer: "
-          f"{experiment.effective_sampling(sampling, matched_metric)}\n")
+    log(f"control regime per layer: {experiment.effective_sampling(sampling, matched_metric)}")
+    log("")
+
+    run_started = time.time()
+    condition_times = []
 
     for index, condition in enumerate(conditions, start=1):
+        position = f"{index}/{len(conditions)}"
         if condition.condition_id in done:
-            print(f"[SKIP {index}/{len(conditions)}] {condition.condition_id}")
+            log(f"[SKIP {position}] {condition.condition_id} (already in checkpoint.jsonl)")
             continue
 
-        print(f"[RUN {index}/{len(conditions)}] {condition.describe()}")
+        n_controls = controls_for(condition, phases, config)
+        log(f"[RUN {position}] {condition.condition_id}")
+        log(condition.describe(), indent=13)
+        if condition.label:
+            log(f"-> {condition.label}", indent=13)
+        log(f"1 binding pass + {n_controls} control passes, {args.max_samples} samples each",
+            indent=13)
+
         started = time.time()
         rows, summary = experiment.run_condition(
             dataset,
@@ -534,12 +592,26 @@ def main():
             sample_records,
             max_samples=args.max_samples,
             show_progress=show_progress,
+            progress_desc=f"  binding {condition.condition_id}",
+        )
+        binding_seconds = time.time() - started
+        log(
+            f"binding margin_drop = {summary.get('mean_margin_drop'):+.4f}  "
+            f"acc_drop = {summary.get('accuracy_drop'):+.4f}  "
+            f"({human_duration(binding_seconds)}){gpu_memory_note()}",
+            indent=13,
         )
 
-        n_controls = controls_for(condition, phases, config)
         control_summaries, control_sets = [], []
         if n_controls:
+            # One log line per control set rather than a progress bar. Each set takes about
+            # as long as the binding pass, so 15 of them is the ~19 minutes that previously
+            # went by in silence; and a bar redrawn through tee becomes thousands of lines
+            # in the log file.
+            log(f"drawing and running {n_controls} joint control sets "
+                f"(~{human_duration(binding_seconds * n_controls)} estimated)", indent=13)
             rng = random.Random(int(rc_cfg.get("seed", seed)))
+            controls_started = time.time()
             for set_index in range(n_controls):
                 control_features = experiment.sample_joint_random(
                     condition.features,
@@ -568,9 +640,28 @@ def main():
                 control_sets.append(
                     {str(l): v for l, v in sorted(control_features.items())}
                 )
-                print(
-                    f"    control {set_index + 1}/{n_controls}: "
-                    f"margin_drop {control_summary.get('mean_margin_drop')}"
+
+                controls_elapsed = time.time() - controls_started
+                per_set = controls_elapsed / (set_index + 1)
+                controls_eta = per_set * (n_controls - set_index - 1)
+                log(
+                    f"control {set_index + 1}/{n_controls}: "
+                    f"margin_drop {control_summary.get('mean_margin_drop'):+.5f}  "
+                    f"({human_duration(per_set)}/set, "
+                    f"{human_duration(controls_eta)} left in this condition)",
+                    indent=15,
+                )
+
+            drops = [c.get("mean_margin_drop") for c in control_summaries]
+            if all(d is not None for d in drops):
+                mean_drop = sum(drops) / len(drops)
+                spread = (
+                    sum((d - mean_drop) ** 2 for d in drops) / len(drops)
+                ) ** 0.5
+                log(
+                    f"controls mean = {mean_drop:+.5f}  sd = {spread:.5f}  "
+                    f"(n = {len(drops)})",
+                    indent=13,
                 )
 
         payload = {
@@ -606,12 +697,39 @@ def main():
             "mean_margin_drop": summary.get("mean_margin_drop"),
             "finished_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
         })
-        print(
-            f"    margin_drop {summary.get('mean_margin_drop'):+.4f} "
-            f"in {time.time() - started:.0f}s\n"
-        )
 
-    print(f"[multilayer] done. Results under {experiment_dir}/conditions/")
+        if payload["significance"]:
+            z = payload["significance"].get("mean_margin_drop", {}).get("z_score")
+            if z is not None:
+                log(f"z = {z:.1f} vs controls", indent=13)
+
+        elapsed = time.time() - started
+        condition_times.append(elapsed)
+        remaining = [
+            c for c in conditions[index:]
+            if c.condition_id not in done
+        ]
+        # ETA from the mean of what has actually run, scaled by each remaining
+        # condition's pass count -- a 16-pass condition is not one 1-pass condition.
+        passes_done = sum(
+            1 + controls_for(c, phases, config)
+            for c in conditions[:index] if c.condition_id not in done
+        )
+        per_pass = (sum(condition_times) / passes_done) if passes_done else None
+        passes_left = sum(1 + controls_for(c, phases, config) for c in remaining)
+        eta = per_pass * passes_left if per_pass else None
+
+        log(
+            f"[DONE {position}] {condition.condition_id} in {human_duration(elapsed)} "
+            f"| total elapsed {human_duration(time.time() - run_started)} "
+            f"| {len(remaining)} conditions / {passes_left} passes left "
+            f"| ETA {human_duration(eta)}"
+            + (f" (~{(datetime.now() + timedelta(seconds=eta)).strftime('%H:%M')})" if eta else "")
+        )
+        log("")
+
+    log(f"phase set complete. Results under {experiment_dir}/conditions/")
+    log(f"total wall clock: {human_duration(time.time() - run_started)}")
 
 
 def write_condition(experiment_dir, condition_id, rows, payload):

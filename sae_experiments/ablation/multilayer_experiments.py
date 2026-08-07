@@ -225,6 +225,7 @@ class MultiLayerAblationExperiment:
         sample_records,
         max_samples: Optional[int] = None,
         show_progress: bool = False,
+        progress_desc: Optional[str] = None,
     ) -> Tuple[List[dict], dict]:
         """Evaluate one condition, returning its per-sample rows and its summary."""
         resolver = None
@@ -250,6 +251,7 @@ class MultiLayerAblationExperiment:
             baseline_cache=baseline_cache(sample_records),
             positions_cache=positions_cache(sample_records),
             strict_cache=True,
+            progress_desc=progress_desc or f"  {condition.condition_id}",
         )
         summary = self.ablator.compute_ablation_effect(rows)
         summary.update(

@@ -23,6 +23,11 @@ MAX_SAMPLES="${MAX_SAMPLES:-256}"
 # Five fp32 SAEs sit alongside the 7B model; this keeps fragmentation from eating the margin.
 export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
 
+# Everything below is piped through tee, so stdout is not a tty and Python block-buffers it.
+# Without this, log lines sit in a 4-8KB buffer for minutes while tqdm (which writes to
+# stderr) keeps updating -- which looks exactly like the run having gone silent.
+export PYTHONUNBUFFERED=1
+
 # Phases run in dependency order. The gate comes first because nothing downstream means
 # anything until A0 reproduces the published single-layer layer-11 number.
 DEFAULT_PHASES="gate primary nested non_nested leave_one_out budget downstream sensitivity"
@@ -50,15 +55,29 @@ $PYTHON sae_experiments/tools/run_multilayer_ablation.py \
     --max_samples "$MAX_SAMPLES" \
     --dry_run
 
+PHASE_TOTAL=$(echo "$PHASE_LIST" | wc -w)
+PHASE_INDEX=0
+RUN_START=$(date +%s)
+
 for phase in $PHASE_LIST; do
+    PHASE_INDEX=$((PHASE_INDEX + 1))
+    PHASE_START=$(date +%s)
     echo ""
-    echo "[PHASE] $phase: starting at $(date)"
+    echo "=========================================="
+    echo "[PHASE $PHASE_INDEX/$PHASE_TOTAL] $phase: starting at $(date '+%H:%M:%S')"
+    echo "=========================================="
     $PYTHON sae_experiments/tools/run_multilayer_ablation.py \
         --config "$CONFIG" \
         --phases "$phase" \
         --experiment_dir "$EXPERIMENT_DIR" \
         --max_samples "$MAX_SAMPLES"
-    echo "[PHASE] $phase: finished at $(date)"
+    PHASE_ELAPSED=$(( $(date +%s) - PHASE_START ))
+    TOTAL_ELAPSED=$(( $(date +%s) - RUN_START ))
+    echo "[PHASE $PHASE_INDEX/$PHASE_TOTAL] $phase: finished at $(date '+%H:%M:%S')" \
+         "(took $((PHASE_ELAPSED / 60))m$((PHASE_ELAPSED % 60))s," \
+         "total $((TOTAL_ELAPSED / 3600))h$(((TOTAL_ELAPSED % 3600) / 60))m)"
+    echo "[PHASE $PHASE_INDEX/$PHASE_TOTAL] completed conditions so far:" \
+         "$(wc -l < "$EXPERIMENT_DIR/checkpoint.jsonl" 2>/dev/null || echo 0)/47"
 
     # The gate is a hard stop: if the harness cannot reproduce the published single-layer
     # result, every number after it is meaningless.
