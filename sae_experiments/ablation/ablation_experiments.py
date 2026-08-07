@@ -8,6 +8,7 @@ import os
 import random
 import statistics
 import time
+import warnings
 
 import numpy as np
 import torch
@@ -18,6 +19,17 @@ from sae_experiments.ablation.sample_cache import (
     build_sample_cache,
     positions_cache,
 )
+
+
+def _warn_uniform_fallback(message: str) -> None:
+    """Make a silent degradation from matched to uniform sampling impossible to miss.
+
+    This is printed as well as warned because these runs are driven from shell scripts
+    whose stdout is the log that gets read afterwards.
+    """
+    banner = f"MATCHED SAMPLING FELL BACK TO UNIFORM: {message}"
+    warnings.warn(banner, RuntimeWarning, stacklevel=3)
+    print(f"[random_control] !! {banner}", flush=True)
 
 
 class AblationExperiment:
@@ -97,6 +109,9 @@ class AblationExperiment:
         n_random_sets = max(0, n_random_sets)
         random_sampling = str(ablation_cfg.get("random_sampling", random_cfg.get("sampling", "uniform"))).lower()
         matched_metric = str(random_cfg.get("matched_metric", "correct_mean"))
+        # Default False so existing configs reproduce their published numbers; new configs
+        # set it true so a missing metric raises instead of silently drawing uniformly.
+        strict_matching = bool(random_cfg.get("strict_matching", False))
         seed = int(
             random_cfg.get(
                 "seed",
@@ -142,6 +157,7 @@ class AblationExperiment:
                 feature_stats=normalized_stats,
                 matched_metric=matched_metric,
                 rng=rng,
+                strict_matching=strict_matching,
             )
             random_feature_sets.append(random_features)
 
@@ -202,6 +218,13 @@ class AblationExperiment:
                 "n_random_sets": n_random_sets,
                 "sampling": random_sampling,
                 "matched_metric": matched_metric,
+                "strict_matching": strict_matching,
+                # What the sampler actually did, not merely what was requested. The
+                # published v2 runs asked for matched sampling and silently got uniform;
+                # recording the effective regime makes that visible in the result file.
+                "sampling_effective": self._effective_sampling(
+                    random_sampling, normalized_stats, matched_metric
+                ),
                 "seed": seed + int(random_seed_offset),
             },
             "evaluation_settings": {
@@ -223,6 +246,7 @@ class AblationExperiment:
         feature_stats: Dict[int, dict],
         matched_metric: str,
         rng: random.Random,
+        strict_matching: bool = False,
     ) -> List[int]:
         n_total = int(self.sae.n_features)
         target_count = int(n_random_features) if int(n_random_features) > 0 else len(binding_features)
@@ -244,31 +268,70 @@ class AblationExperiment:
                 feature_stats=feature_stats,
                 matched_metric=matched_metric,
                 rng=rng,
+                strict_matching=strict_matching,
+            )
+        if sampling in ("matched", "matched_activation", "matched_metric"):
+            _warn_uniform_fallback(
+                f"matched sampling requested but no feature_stats were supplied; "
+                f"drawing uniformly instead"
             )
         return rng.sample(pool, k=target_count)
 
+    @staticmethod
+    def _effective_sampling(
+        sampling: str, feature_stats: Optional[Dict[int, dict]], matched_metric: str
+    ) -> str:
+        """Resolve what the sampler will really do, given the stats it was handed."""
+        if sampling not in ("matched", "matched_activation", "matched_metric"):
+            return "uniform"
+        if not feature_stats:
+            return "uniform_no_stats"
+        has_metric = any(
+            AblationExperiment._extract_metric_value(stats, matched_metric) is not None
+            for stats in feature_stats.values()
+        )
+        return f"matched_{matched_metric}" if has_metric else "uniform_metric_missing"
+
+    @staticmethod
     def _sample_matched_random_features(
-        self,
         binding_features: List[int],
         pool: List[int],
         target_count: int,
         feature_stats: Dict[int, dict],
         matched_metric: str,
         rng: random.Random,
+        strict_matching: bool = False,
     ) -> List[int]:
         selected: List[int] = []
         available = set(pool)
         candidate_stats = {
-            idx: self._extract_metric_value(feature_stats.get(idx, {}), matched_metric)
+            idx: AblationExperiment._extract_metric_value(feature_stats.get(idx, {}), matched_metric)
             for idx in available
         }
         valid_metric_pool = {idx for idx in available if candidate_stats.get(idx) is not None}
+
+        # Every published v2 run silently landed here: configs asked for matched sampling on
+        # `correct_mean`, a key the v2 stats files do not carry, so every metric lookup
+        # returned None, the pool was empty, and every draw fell through to uniform. The
+        # controls ended up as near-dead features and the z-scores were inflated. Refuse to
+        # do that quietly ever again.
+        if not valid_metric_pool:
+            message = (
+                f"matched sampling on {matched_metric!r} found no feature with that metric "
+                f"(checked {len(available)} candidates); every draw would fall back to "
+                f"uniform. Check that the stats file carries the metric you asked for"
+            )
+            if strict_matching:
+                raise ValueError(message)
+            _warn_uniform_fallback(message)
         # Randomized nearest-neighbor matching width. Keeps candidates close in metric space
         # while allowing independent random control sets across repeats.
         neighbor_width = 16
 
         for feature_idx in binding_features[:target_count]:
-            target_value = self._extract_metric_value(feature_stats.get(feature_idx, {}), matched_metric)
+            target_value = AblationExperiment._extract_metric_value(
+                feature_stats.get(feature_idx, {}), matched_metric
+            )
             if target_value is None or not valid_metric_pool:
                 if not available:
                     break
