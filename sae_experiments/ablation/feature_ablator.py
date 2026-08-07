@@ -44,6 +44,7 @@ class FeatureAblator:
         diagnostics_buffer: Optional[List[Dict[str, float]]] = None,
         sae=None,
         diagnostics_tag: Optional[int] = None,
+        encode_positions_only: bool = False,
     ):
         # `sae` lets a multi-layer ablator drive one hook per layer with that layer's own
         # dictionary; `diagnostics_tag` records which layer a diagnostics entry came from.
@@ -58,7 +59,15 @@ class FeatureAblator:
             acts_device = acts.device
             sae_device = sae_param.device
             sae_dtype = sae_param.dtype
-            acts_for_sae = acts.to(device=sae_device, dtype=sae_dtype)
+
+            # The encoder is row-wise, so encoding only the positions we will write back
+            # gives identical values there at a fraction of the memory and FLOPs. Both
+            # modes discard everything outside `positions` anyway. Off by default so the
+            # single-layer path stays exactly as it was.
+            slice_positions = bool(encode_positions_only and positions)
+            work = acts[:, positions, :] if slice_positions else acts
+
+            acts_for_sae = work.to(device=sae_device, dtype=sae_dtype)
             feats_full = sae.encode(acts_for_sae)
             idx = feature_indices.to(feats_full.device)
             feats_mod = feats_full.clone()
@@ -71,20 +80,28 @@ class FeatureAblator:
                 feats_mod[:, idx] = 0.0
 
             if mode == "replace":
-                recon_mod = sae.decode(feats_mod, target_shape=acts.shape)
-                out = recon_mod.to(device=acts_device, dtype=acts_dtype)
-                out = self._apply_positions(acts, out, positions)
+                recon_mod = sae.decode(feats_mod, target_shape=work.shape)
+                recon_mod = recon_mod.to(device=acts_device, dtype=acts_dtype)
+                if slice_positions:
+                    out = acts.clone()
+                    out[:, positions, :] = recon_mod
+                else:
+                    out = self._apply_positions(acts, recon_mod, positions)
             else:
-                recon_full = sae.decode(feats_full, target_shape=acts.shape)
-                recon_mod = sae.decode(feats_mod, target_shape=acts.shape)
+                recon_full = sae.decode(feats_full, target_shape=work.shape)
+                recon_mod = sae.decode(feats_mod, target_shape=work.shape)
                 delta = (recon_mod - recon_full).to(device=acts_device, dtype=acts_dtype)
                 if delta_scale != 1.0:
                     delta = delta * delta_scale
-                if positions:
-                    mask = torch.zeros_like(acts, dtype=delta.dtype, device=acts_device)
-                    mask[:, positions, :] = 1.0
-                    delta = delta * mask
-                out = acts + delta
+                if slice_positions:
+                    out = acts.clone()
+                    out[:, positions, :] = out[:, positions, :] + delta
+                else:
+                    if positions:
+                        mask = torch.zeros_like(acts, dtype=delta.dtype, device=acts_device)
+                        mask[:, positions, :] = 1.0
+                        delta = delta * mask
+                    out = acts + delta
 
             if diagnostics_buffer is not None:
                 delta_tensor = (out - acts).detach().float()
