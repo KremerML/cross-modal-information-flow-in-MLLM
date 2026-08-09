@@ -1,0 +1,343 @@
+{
+  "experiment_dir": "output/sae_experiments/multilayer_clevr_lite_l10-14_attn_out_question",
+  "span": [
+    10,
+    11,
+    12,
+    13,
+    14
+  ],
+  "n_conditions": 47,
+  "redundancy_index": {
+    "ablation_condition": "joint_L10-14",
+    "knockout_condition": "span_knockout_L10-14",
+    "ablation_mean": 1.0028024140625,
+    "knockout_mean": 1.3934086210937502,
+    "n_samples": 256,
+    "status": "ok",
+    "ratio": 0.7196757640808584,
+    "ci_low": 0.6890384939957019,
+    "ci_high": 0.7527898904414516
+  },
+  "single_layer_ratios": {
+    "10": {
+      "status": "missing_condition"
+    },
+    "11": {
+      "status": "missing_condition"
+    },
+    "12": {
+      "status": "missing_condition"
+    },
+    "13": {
+      "status": "missing_condition"
+    },
+    "14": {
+      "ablation_condition": "nested_L14",
+      "knockout_condition": "knockout_L14",
+      "ablation_mean": 0.24319078515625,
+      "knockout_mean": 0.35927636328125,
+      "n_samples": 256,
+      "status": "ok",
+      "ratio": 0.6768905778693671,
+      "ci_low": 0.632577919317602,
+      "ci_high": 0.7222039822589357
+    }
+  },
+  "saturation": {
+    "ablation": [
+      {
+        "span_size": 1,
+        "margin_drop": 0.24319078012680007
+      },
+      {
+        "span_size": 2,
+        "margin_drop": 0.26788233856981
+      },
+      {
+        "span_size": 3,
+        "margin_drop": 0.5006609667713443
+      },
+      {
+        "span_size": 4,
+        "margin_drop": 0.8302125952516994
+      },
+      {
+        "span_size": 5,
+        "margin_drop": 1.0028023958827057
+      }
+    ],
+    "knockout": [
+      {
+        "span_size": 1,
+        "margin_drop": 0.3592763701453804
+      },
+      {
+        "span_size": 2,
+        "margin_drop": 0.31912242202088237
+      },
+      {
+        "span_size": 3,
+        "margin_drop": 0.5721089360304176
+      },
+      {
+        "span_size": 4,
+        "margin_drop": 1.2762033270361524
+      },
+      {
+        "span_size": 5,
+        "margin_drop": 1.3934086559650798
+      }
+    ],
+    "ablation_fit": {
+      "a": 6012.277381217325,
+      "b": 3.210542390838172e-05,
+      "degenerate": true,
+      "initial_slope": 0.19302671397875734
+    },
+    "knockout_fit": {
+      "a": 7147.781750080828,
+      "b": 3.7613023754555107e-05,
+      "degenerate": true,
+      "initial_slope": 0.2688496847581657
+    },
+    "b_minus_d": -5.5075998461733835e-06,
+    "degenerate": true,
+    "slope_ratio": 0.7179726253069174,
+    "interpretation": "NEITHER curve saturates over this range -- both fits collapsed to straight lines (ablation 0.193/layer, knockout 0.269/layer), so b and d are not identified and b - d carries no information. What is identified is the slope ratio, 0.718: over spans of 1-5 layers the ablation recovers a constant fraction of the flow, with no sign of the ablation curve turning over sooner. Wider spans would be needed to see saturation at all."
+  },
+  "interaction": {
+    "span": [
+      10,
+      11,
+      12,
+      13,
+      14
+    ],
+    "ablation_status": "incomplete",
+    "missing_single_layer_ablations": [
+      10,
+      12,
+      13
+    ],
+    "knockout_status": "ok",
+    "span_knockout": 1.3934086559650798,
+    "sum_single_knockout": 1.2154715582728384,
+    "rho_knockout": 1.1463934688402637
+  },
+  "leave_one_out": [
+    {
+      "layer": 10,
+      "joint": 1.0028023958827057,
+      "without_layer": 0.8302125952516994,
+      "marginal": 0.17258980063100626,
+      "standalone": null,
+      "marginal_over_standalone": null
+    },
+    {
+      "layer": 11,
+      "joint": 1.0028023958827057,
+      "without_layer": 0.6680581343049804,
+      "marginal": 0.3347442615777253,
+      "standalone": 0.21306933105612802,
+      "marginal_over_standalone": 1.5710579271004748
+    },
+    {
+      "layer": 12,
+      "joint": 1.0028023958827057,
+      "without_layer": 0.7036686638991038,
+      "marginal": 0.29913373198360194,
+      "standalone": null,
+      "marginal_over_standalone": null
+    },
+    {
+      "layer": 13,
+      "joint": 1.0028023958827057,
+      "without_layer": 0.9166179088254767,
+      "marginal": 0.08618448705722903,
+      "standalone": null,
+      "marginal_over_standalone": null
+    },
+    {
+      "layer": 14,
+      "joint": 1.0028023958827057,
+      "without_layer": 0.9065924532090622,
+      "marginal": 0.09620994267364347,
+      "standalone": 0.24319078012680007,
+      "marginal_over_standalone": 0.3956150912607766
+    }
+  ],
+  "significance": [
+    {
+      "condition_id": "A0_regression_L11",
+      "binding": 0.21306933105612802,
+      "random_mean": -0.021664936923318435,
+      "random_std": 0.0036955467290524053,
+      "z_score": 63.51814364410321,
+      "z_standard_error": 12.003800844483933,
+      "n_control_sets": 15,
+      "empirical_p": 0.0625,
+      "empirical_p_floor": 0.0625,
+      "control_regime": {
+        "10": "matched_activation_mean",
+        "11": "matched_activation_mean",
+        "12": "matched_activation_mean",
+        "13": "matched_activation_mean",
+        "14": "matched_activation_mean"
+      },
+      "wilcoxon_p": 2.2269223699260783e-35
+    },
+    {
+      "condition_id": "budget_spread40x5",
+      "binding": 0.6181702635561427,
+      "random_mean": 0.10479065139467521,
+      "random_std": 0.0,
+      "z_score": null,
+      "z_standard_error": null,
+      "n_control_sets": 1,
+      "empirical_p": 0.5,
+      "empirical_p_floor": 0.5,
+      "control_regime": {
+        "10": "matched_activation_mean",
+        "11": "matched_activation_mean",
+        "12": "matched_activation_mean",
+        "13": "matched_activation_mean",
+        "14": "matched_activation_mean"
+      },
+      "wilcoxon_p": 5.056116355910851e-35
+    },
+    {
+      "condition_id": "joint_L10-14",
+      "binding": 1.0028023958827057,
+      "random_mean": 0.054916291828784686,
+      "random_std": 0.008571439703523902,
+      "z_score": 110.58656851593143,
+      "z_standard_error": 20.89889704551141,
+      "n_control_sets": 15,
+      "empirical_p": 0.0625,
+      "empirical_p_floor": 0.0625,
+      "control_regime": {
+        "10": "matched_activation_mean",
+        "11": "matched_activation_mean",
+        "12": "matched_activation_mean",
+        "13": "matched_activation_mean",
+        "14": "matched_activation_mean"
+      },
+      "wilcoxon_p": 3.954517458694498e-42
+    },
+    {
+      "condition_id": "nested_L11-14",
+      "binding": 0.8302125952516994,
+      "random_mean": 0.005666104455788922,
+      "random_std": 0.0,
+      "z_score": null,
+      "z_standard_error": null,
+      "n_control_sets": 1,
+      "empirical_p": 0.5,
+      "empirical_p_floor": 0.5,
+      "control_regime": {
+        "10": "matched_activation_mean",
+        "11": "matched_activation_mean",
+        "12": "matched_activation_mean",
+        "13": "matched_activation_mean",
+        "14": "matched_activation_mean"
+      },
+      "wilcoxon_p": 3.249788455376251e-42
+    },
+    {
+      "condition_id": "nested_L12-14",
+      "binding": 0.5006609667713443,
+      "random_mean": 0.013834461880226943,
+      "random_std": 0.0,
+      "z_score": null,
+      "z_standard_error": null,
+      "n_control_sets": 1,
+      "empirical_p": 0.5,
+      "empirical_p_floor": 0.5,
+      "control_regime": {
+        "10": "matched_activation_mean",
+        "11": "matched_activation_mean",
+        "12": "matched_activation_mean",
+        "13": "matched_activation_mean",
+        "14": "matched_activation_mean"
+      },
+      "wilcoxon_p": 1.866930791522531e-38
+    },
+    {
+      "condition_id": "nested_L13-14",
+      "binding": 0.26788233856981,
+      "random_mean": -0.0108542557184895,
+      "random_std": 0.0,
+      "z_score": null,
+      "z_standard_error": null,
+      "n_control_sets": 1,
+      "empirical_p": 0.5,
+      "empirical_p_floor": 0.5,
+      "control_regime": {
+        "10": "matched_activation_mean",
+        "11": "matched_activation_mean",
+        "12": "matched_activation_mean",
+        "13": "matched_activation_mean",
+        "14": "matched_activation_mean"
+      },
+      "wilcoxon_p": 1.135588087311144e-33
+    },
+    {
+      "condition_id": "nested_L14",
+      "binding": 0.24319078012680007,
+      "random_mean": 0.0036949760590990373,
+      "random_std": 0.0,
+      "z_score": null,
+      "z_standard_error": null,
+      "n_control_sets": 1,
+      "empirical_p": 0.5,
+      "empirical_p_floor": 0.5,
+      "control_regime": {
+        "10": "matched_activation_mean",
+        "11": "matched_activation_mean",
+        "12": "matched_activation_mean",
+        "13": "matched_activation_mean",
+        "14": "matched_activation_mean"
+      },
+      "wilcoxon_p": 1.7155901260877003e-37
+    },
+    {
+      "condition_id": "nonnested_L10,12,14",
+      "binding": 0.5631354519476494,
+      "random_mean": 0.06080365165447197,
+      "random_std": 0.0,
+      "z_score": null,
+      "z_standard_error": null,
+      "n_control_sets": 1,
+      "empirical_p": 0.5,
+      "empirical_p_floor": 0.5,
+      "control_regime": {
+        "10": "matched_activation_mean",
+        "11": "matched_activation_mean",
+        "12": "matched_activation_mean",
+        "13": "matched_activation_mean",
+        "14": "matched_activation_mean"
+      },
+      "wilcoxon_p": 1.8659428417770054e-39
+    },
+    {
+      "condition_id": "nonnested_L10-12",
+      "binding": 0.7589914258569479,
+      "random_mean": 0.07198883158465226,
+      "random_std": 0.0,
+      "z_score": null,
+      "z_standard_error": null,
+      "n_control_sets": 1,
+      "empirical_p": 0.5,
+      "empirical_p_floor": 0.5,
+      "control_regime": {
+        "10": "matched_activation_mean",
+        "11": "matched_activation_mean",
+        "12": "matched_activation_mean",
+        "13": "matched_activation_mean",
+        "14": "matched_activation_mean"
+      },
+      "wilcoxon_p": 3.260088203400498e-41
+    }
+  ]
+}
