@@ -44,6 +44,36 @@ except ImportError:
     curve_fit = None
 
 
+def load_condition(directory):
+    """Read one condition, preferring the committed summary over the gitignored raw file.
+
+    `summary.json` carries the per-sample margin drops under `per_sample_distilled`, so a
+    fresh clone can reproduce every number here. `results.json` is only consulted for runs
+    that predate that fold, or when a summary somehow lacks the block.
+    """
+    summary_path = os.path.join(directory, "summary.json")
+    results_path = os.path.join(directory, "results.json")
+
+    payload = None
+    if os.path.exists(summary_path):
+        with open(summary_path) as handle:
+            payload = json.load(handle)
+        folded = payload.get("per_sample_distilled") or {}
+        if folded.get("margin_drops") is not None:
+            payload["margin_drops"] = [float(v) for v in folded["margin_drops"]]
+            return payload
+
+    if os.path.exists(results_path):
+        with open(results_path) as handle:
+            payload = json.load(handle)
+        payload["margin_drops"] = margin_drops(payload.get("per_sample", []))
+        return payload
+
+    if payload is not None:
+        payload["margin_drops"] = []
+    return payload
+
+
 def load_conditions(experiment_dir):
     """Load every completed condition, keyed by id, with per-sample margin drops."""
     root = os.path.join(experiment_dir, "conditions")
@@ -52,17 +82,15 @@ def load_conditions(experiment_dir):
 
     conditions = {}
     for condition_id in sorted(os.listdir(root)):
-        path = os.path.join(root, condition_id, "results.json")
-        if not os.path.exists(path):
+        payload = load_condition(os.path.join(root, condition_id))
+        if payload is None:
             continue
-        with open(path) as handle:
-            payload = json.load(handle)
         conditions[condition_id] = {
             "summary": payload.get("summary", {}),
             "significance": payload.get("significance", {}),
             "meta": payload.get("meta", {}),
             "control_summaries": payload.get("control_summaries", []),
-            "margin_drops": margin_drops(payload.get("per_sample", [])),
+            "margin_drops": payload["margin_drops"],
         }
     return conditions
 

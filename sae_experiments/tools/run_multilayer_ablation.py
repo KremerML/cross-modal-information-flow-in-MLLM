@@ -53,6 +53,7 @@ from sae_experiments.ablation.sample_cache import (  # noqa: E402
 )
 from sae_experiments.core.config import load_config  # noqa: E402
 from sae_experiments.core.sparse_autoencoder import SparseAutoencoder  # noqa: E402
+from sae_experiments.tools.distill_results import distill_condition_samples  # noqa: E402
 from sae_experiments.utils.config_utils import resolve_dtype  # noqa: E402
 from sae_experiments.utils.script_utils import (  # noqa: E402
     load_llava_components,
@@ -733,12 +734,20 @@ def main():
 
 
 def write_condition(experiment_dir, condition_id, rows, payload):
+    """Write the raw per-sample records and the committed summary beside them.
+
+    `results.json` is gitignored bulk — 16 MB across a 47-condition matrix. `summary.json`
+    is what the repo carries, so it also folds in the per-sample margin drops the analysis
+    pairs across conditions; without them a fresh clone could not recompute a CI. Written
+    at the same indent `distill_results.py` uses, so a later distil pass is a no-op.
+    """
     target = os.path.join(experiment_dir, "conditions", condition_id)
     os.makedirs(target, exist_ok=True)
     with open(os.path.join(target, "results.json"), "w") as handle:
         json.dump({"per_sample": rows, **payload}, handle, indent=2)
+    summary = {**payload, "per_sample_distilled": distill_condition_samples(rows)}
     with open(os.path.join(target, "summary.json"), "w") as handle:
-        json.dump(payload, handle, indent=2)
+        json.dump(summary, handle, indent=1)
 
 
 def build_dataset(config, tokenizer, image_processor, model):

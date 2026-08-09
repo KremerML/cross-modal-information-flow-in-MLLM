@@ -16,6 +16,7 @@ Stdlib only, so it runs without the LLaVA venv.
 """
 
 import argparse
+import hashlib
 import json
 import math
 import os
@@ -23,6 +24,11 @@ import sys
 
 # Per-sample lists longer than this are replaced by summary statistics.
 SAMPLE_LIST_THRESHOLD = 20
+
+# Rounding applied to the per-sample margin drops kept verbatim in condition summaries.
+# The margins themselves are log-probabilities of order 1, so six decimals is far below
+# any difference the analysis can resolve.
+CONDITION_DROP_DECIMALS = 6
 
 # How many top features each distilled catalog retains.
 DEFAULT_TOP_K = 500
@@ -187,6 +193,84 @@ def derive_ablation_fields(data):
     return data
 
 
+def distill_condition_samples(rows):
+    """Reduce one multi-layer condition's per-sample records to what survives in git.
+
+    `analyze_multilayer_ablation.load_conditions` reads exactly one quantity out of
+    `per_sample` — `baseline_margin - ablated_margin` per question — because the control
+    arm is already aggregated into `control_summaries`. So the vector of drops, plus the
+    prediction flips that nothing else records, is the whole of what the raw file is for.
+
+    The drops are kept verbatim rather than described, because the analysis *pairs* them
+    across conditions (the redundancy index R = A/K takes a paired bootstrap CI over
+    ablation and knockout measured on the same questions), and a pairing cannot be
+    rebuilt from means. Rows keep their order, which is `sample_cache.json` order and
+    identical across every condition; `question_ids_sha1` is the guard on that assumption.
+    At 256 samples the whole 47-condition matrix costs ~150 KB against 16 MB of raw records.
+    """
+    drops = []
+    ids = []
+    flips = heals = 0
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        ids.append(str(row.get("question_id")))
+        base, abl = row.get("baseline_margin"), row.get("ablated_margin")
+        if isinstance(base, (int, float)) and isinstance(abl, (int, float)):
+            drops.append(round(base - abl, CONDITION_DROP_DECIMALS))
+        answer = row.get("answer")
+        bp, ap = row.get("baseline_pred"), row.get("ablated_pred")
+        if answer is not None and bp is not None and ap is not None:
+            if bp == answer and ap != answer:
+                flips += 1
+            elif bp != answer and ap == answer:
+                heals += 1
+
+    return {
+        "n_samples": len(rows),
+        "sample_order": "sample_cache.json",
+        "question_ids_sha1": hashlib.sha1("\n".join(ids).encode()).hexdigest(),
+        "margin_drops": drops,
+        "margin_drop_distribution": _describe(drops),
+        "prediction_changes": {
+            "n": len(rows),
+            "correct_to_wrong": flips,
+            "wrong_to_correct": heals,
+        },
+    }
+
+
+def is_condition_result(path):
+    """True for `<experiment>/conditions/<condition_id>/results.json`.
+
+    Matched by shape rather than by name: `results.json` is generic enough that a
+    filename test alone would sweep up unrelated files elsewhere in the tree.
+    """
+    parts = os.path.normpath(path).split(os.sep)
+    return (
+        len(parts) >= 3
+        and parts[-1] == "results.json"
+        and parts[-3] == "conditions"
+    )
+
+
+def distill_condition_result(path, data):
+    """Fold the per-sample block into the condition's existing `summary.json`.
+
+    Unlike every other source here, this one already has a committed sibling — the runner
+    writes `summary.json` as `results.json` minus `per_sample`. So the distillation merges
+    into that file instead of minting a `results.summary.json` nobody would read.
+    """
+    out_path = os.path.join(os.path.dirname(path), "summary.json")
+    if os.path.exists(out_path):
+        with open(out_path) as fh:
+            summary = json.load(fh)
+    else:
+        summary = {k: v for k, v in data.items() if k != "per_sample"}
+    summary["per_sample_distilled"] = distill_condition_samples(data.get("per_sample", []))
+    return summary, out_path
+
+
 def distill_file(path, top_k):
     """Dispatch on filename. Returns (summary_dict, output_path) or None to skip."""
     base = os.path.basename(path)
@@ -196,7 +280,9 @@ def distill_file(path, top_k):
     stem = path[: -len(".json")] if path.endswith(".json") else path
     out_path = stem + ".summary.json"
 
-    if base == "causal_feature_stats.json":
+    if is_condition_result(path):
+        summary, out_path = distill_condition_result(path, data)
+    elif base == "causal_feature_stats.json":
         summary = distill_feature_dict(
             data,
             score_key="causal_score",
@@ -238,10 +324,10 @@ def main():
         for name in filenames:
             if not name.endswith(".json") or name.endswith(".summary.json"):
                 continue
+            path = os.path.join(dirpath, name)
             if name in ("causal_feature_stats.json", "feature_stats.json") or (
                 "ablation" in name and "results" in name
-            ):
-                path = os.path.join(dirpath, name)
+            ) or is_condition_result(path):
                 if os.path.getsize(path) >= args.min_bytes:
                     targets.append(path)
 
