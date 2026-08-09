@@ -137,7 +137,10 @@ def distill_sample_lists(node):
             isinstance(x, dict) for x in node
         ):
             fields = {}
-            for key in {k for rec in node for k in rec}:
+            # Sorted, not set order: string hashing is salted per process, so an
+            # unsorted set makes every re-run rewrite these files with the same
+            # numbers in a different order and show up as a diff.
+            for key in sorted({k for rec in node for k in rec}):
                 desc = _describe([rec.get(key) for rec in node])
                 if desc is not None:
                     fields[key] = desc
