@@ -1,7 +1,7 @@
 {
- "generated": "2026-08-06",
+ "generated": "2026-08-07",
  "supersedes": "2026-02-10 version, whose null-result conclusion was overturned by v2",
- "project_phase": "writeup; no further experiments planned",
+ "project_phase": "writeup; the layer-14 ablation (2026-08-06) and the 47-condition multi-layer program (2026-08-07) ran after the writeup phase began and are folded in here",
  "prose_companion": "output/sae_experiments/LLM_TECHNICAL_SUMMARY.md",
  "dataset": "CLEVR-Lite (synthetic, open-ended; 186638 train / 7790 val questions)",
  "model": "LLaVA-v1.5-7b, 32 layers, d_model=4096",
@@ -202,7 +202,19 @@
     "mean_l0": 1446.4913882752012,
     "dead_feature_fraction": 0.001556396484375
    },
-   "ablation_v2": null,
+   "ablation_v2": {
+    "source": "sae_clevr_lite_layer14_attn_out_question_causal/results/ablation_v2_results.json",
+    "n_samples": 256,
+    "mean_margin_drop": 0.24327474304785338,
+    "accuracy_drop": 0.00390625,
+    "random_mean": 0.0007641913576258585,
+    "random_sd": 0.0034662809471556985,
+    "z_score": 69.96275125627733,
+    "frac_samples_positive": 0.90234375,
+    "flips_correct_to_wrong": 2,
+    "n_random_sets": 15,
+    "pct_of_knockout_ceiling": 0.6108270108378951
+   },
    "feature_concentration": {
     "n_nonzero": 27918,
     "score_mass_frac_top50": 0.16324640943116342,
@@ -213,12 +225,67 @@
    "activation_all_median": 6.499478999353151e-08
   }
  },
+ "multilayer": {
+  "generated": "2026-08-07",
+  "prose_companion": "docs/multilayer_ablation_findings.md",
+  "experiment_dir": "output/sae_experiments/multilayer_clevr_lite_l10-14_attn_out_question",
+  "analysis": "analysis/multilayer_summary.json",
+  "span": [10, 11, 12, 13, 14],
+  "n_conditions": 47,
+  "n_samples": 256,
+  "question": "does single-layer ablation capture only half the knockout ceiling because the model re-reads the image downstream?",
+  "answer": "no; the features are distributed across layers, and the shortfall is a constant fraction at every span size",
+  "redundancy_index": {
+   "ablation_condition": "joint_L10-14",
+   "knockout_condition": "span_knockout_L10-14",
+   "ablation_mean": 1.0028024140625,
+   "knockout_mean": 1.3934086210937502,
+   "ratio": 0.7196757640808584,
+   "ci_low": 0.6890384939957019,
+   "ci_high": 0.7527898904414516,
+   "note": "numerator and denominator measured on the same 256 samples, unlike the per-layer pct_of_knockout_ceiling above"
+  },
+  "downstream_knockout_test": {
+   "note": "ablate at the anchor, then block Image->Question at every downstream layer. Re-reading predicts a large excess over additivity; there is essentially none at layer 14.",
+   "11": {
+    "ablation": 0.2131,
+    "downstream_knockout": 0.911,
+    "downstream_layers": "12-31",
+    "additive": 1.1241,
+    "combined": 1.2068,
+    "excess": 0.0828
+   },
+   "14": {
+    "ablation": 0.2432,
+    "downstream_knockout": 0.3533,
+    "downstream_layers": "15-31",
+    "additive": 0.5964,
+    "combined": 0.5989,
+    "excess": 0.0024
+   }
+  },
+  "budget_matched": {
+   "note": "equal budget of 200 features; spreading beats concentrating while perturbing the residual stream less",
+   "spread_40x5_L10-14": {"mean_margin_drop": 0.6182, "mean_relative_perturbation": 0.01},
+   "concentrated_L11_k200": {"mean_margin_drop": 0.2131, "mean_relative_perturbation": 0.0186},
+   "ratio_spread_over_concentrated": 2.9,
+   "concentrated_L11_count_curve": {"40": 0.19, "100": 0.192, "200": 0.213, "400": 0.236, "800": 0.194},
+   "ratio_spread_over_k800": 3.19
+  },
+  "saturation": {
+   "note": "neither curve saturates over spans of 1-5 layers; both fits collapse to straight lines, so b - d is not identified and only the slope ratio is",
+   "ablation_slope_per_layer": 0.193,
+   "knockout_slope_per_layer": 0.269,
+   "slope_ratio": 0.718
+  },
+  "leave_one_out": "runs the wrong way for redundancy at layers 10-12, whose in-context marginals are 1.14x, 1.57x and 1.79x their standalone effects"
+ },
  "caveats": [
   "Layer 0 SAE has dead_feature_fraction=0.742; its low ablation effect is a dictionary-training failure, not a claim about the model.",
   "Layer 13 knockout is inhibitory (negative) while its feature ablation is positive; pct_of_knockout_ceiling is undefined there.",
-  "Layer 14 has feature identification but no ablation run.",
   "Mean L0 of 1100-1600 is high; reconstruction is excellent but dictionaries are not very sparse.",
-  "Single-layer ablation only; the model can re-read the image at layers L+1..31.",
+  "The per-layer pct_of_knockout_ceiling values compare an n=256 ablation against an n=7084 knockout. The multilayer redundancy_index is the like-for-like version.",
+  "Any single-layer SAE analysis systematically understates the circuit: the features are distributed across layers, so a per-layer number is a floor, not the effect.",
   "v1 (ratio-based) runs under output/sae_experiments/ are null results caused by ghost-feature selection; evidence about the method, not the model."
  ]
 }

@@ -41,6 +41,8 @@ findings; regenerate only to re-run experiments.
 | `output/**/knockout_results.json` (per-sample) | 58 MB | `pipeline/00_knockout_sweep.py` | 33h for the n=7084 sweep |
 | `output/**/_activation_cache/` | varies | `tools/collect_activations.py` | hours |
 | `output/**/feature_<N>.png` (220 files) | 247 MB | `04_analyze_results.py` | minutes; all v1-era, superseded |
+| `output/**/conditions/*/results.json` (47 files) | 16 MB | `tools/run_multilayer_ablation.py` | ~14h for the 47-condition matrix |
+| `output/**/run_log.txt` | 1.3 MB | re-run the multi-layer runner | 1.2 MB of it is tqdm redraw |
 
 **Distilled, not lost.** The bulk result JSONs are gitignored but each has a committed
 `*.summary.json` sibling carrying the top-500 features, the full score distribution, and
@@ -48,6 +50,18 @@ aggregate statistics — ~4% of the size, and the form the writeup actually cite
 with `tools/distill_results.py --root output` after any new run. Two fields in those summaries
 exist *only* there, because the runner never stored them: per-sample `margin_drop` (derived
 from `baseline_margin − ablated_margin`) and `*_prediction_changes` (flip counts).
+
+The multi-layer conditions are the one place where a distilled summary keeps a per-sample
+list *verbatim*. `conditions/*/summary.json` is the runner's own `results.json`-minus-
+`per_sample`, plus a `per_sample_distilled` block holding the 256 margin drops in
+`sample_cache.json` order. They are not collapsed to a mean because
+`analyze_multilayer_ablation.py` **pairs** them across conditions — the redundancy index
+R = A/K takes a paired bootstrap CI over ablation and knockout measured on the same
+questions, and no pairing survives averaging. That costs ~104 KB across all 47 conditions
+and makes the analysis reproducible from a clone; the drops are rounded to 6 decimals, which
+moves the reported ratios by <1e-7. `question_ids_sha1` guards the shared-ordering
+assumption. The analyzer reads `summary.json` first and falls back to `results.json` only
+for runs predating the fold.
 
 `knockout_results.json` is the exception — it already had a complete `knockout_summary.json`
 sibling (n, means, t-stat, p, Cohen's d) before any of this, so it was simply untracked.
@@ -62,7 +76,7 @@ sibling (n, means, t-stat, p, Cohen's d) before any of this, so it was simply un
 ## Commands
 
 ```bash
-# Tests (23 unittest-style tests, run under pytest; CPU-only, no model download, ~4s)
+# Tests (70 unittest-style tests, run under pytest; CPU-only, no model download, ~4s)
 LLaVA-NeXT/.venv/bin/python -m pytest tests/ -q
 LLaVA-NeXT/.venv/bin/python -m pytest tests/test_sae.py::TestSparseAutoencoder::test_loss_and_grad -q
 
@@ -253,5 +267,7 @@ original structure — read it for history, don't wire new code to it.
 `docs/CLAUDE.md` is the research log — knockout result tables, the v1 null-result post-mortem, dataset quality
 analysis, and methodology decisions. Read it before designing an experiment; it is the reason the current
 pipeline looks the way it does. Companion writeups: `docs/feature_id_v2_breakthrough_report.md`,
+`docs/multilayer_ablation_findings.md` (the 2026-08-07 multi-layer program — redundancy falsified,
+features shown to be distributed across layers; also documents the uniform-vs-matched control bug),
 `docs/ablation_methodology_review.md`, `docs/REPORT_SAE_EXPERIMENT.md`.
 `docs/README_SAE_EXPERIMENT.md` documents the archived Gen 1–2 GQA pipeline and its paths are stale.

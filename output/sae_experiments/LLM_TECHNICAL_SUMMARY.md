@@ -7,12 +7,15 @@ document in this repo dated before 2026-05 on the question of whether SAE ablati
 
 ## Project phase
 
-The project is in **writeup**. No further experiments are planned. This file exists so a
-reader — human or model — can reconstruct what was run, what it showed, and which numbers
-are safe to cite, without loading the raw result files.
+The project is in **writeup**. This file exists so a reader — human or model — can reconstruct
+what was run, what it showed, and which numbers are safe to cite, without loading the raw
+result files.
 
-All numbers below were recomputed from the on-disk results on 2026-08-06, not copied from
-earlier prose.
+Two experiments ran after the writeup phase began: the layer-14 ablation (2026-08-06) and the
+multi-layer ablation program (2026-08-07, 47 conditions). Both are folded in below.
+
+Numbers were recomputed from the on-disk results on 2026-08-06, and the multi-layer section on
+2026-08-07 — not copied from earlier prose.
 
 ## The two techniques
 
@@ -98,13 +101,42 @@ Re-runs with `matched_metric: "activation_mean"` and `strict_matching: true` wil
 compared the CLEVR-Lite ablation (0.213) against the *GQA* knockout drop (0.540). Against
 CLEVR-Lite's own layer-11 knockout drop (0.4273) the correct figure is **49.9%**.
 
-### Why the ablation captures only half the ceiling
+### Why the ablation captures only half the ceiling — answered 2026-08-07
 
-Single-layer ablation leaves the model free to re-read the image at layers L+1…31. This is
-the most likely explanation for the gap. **A multi-layer ablation harness to test it is under
-construction** (branch `multilayer-ablation`): joint ablation across layers 10–14 against a
-knockout ceiling measured on the same samples, plus a downstream-knockout arm that tests the
-re-reading mechanism directly. No results yet.
+The standing explanation was that single-layer ablation leaves the model free to re-read the
+image at layers L+1…31. **That is now tested and false.** Full record:
+`docs/multilayer_ablation_findings.md`; 47 conditions in
+`output/sae_experiments/multilayer_clevr_lite_l10-14_attn_out_question/`.
+
+**The direct test.** Ablate at L, then knock out `Image->Question` at *every* downstream layer
+so the model cannot re-read the image at all. If re-reading were the mechanism, the same
+ablation should bite far harder. It does not:
+
+| anchor | ablation | downstream knockout | additive | actual combined | excess |
+|---|---|---|---|---|---|
+| 11 | 0.2131 | 0.9110 (L12–31) | 1.1241 | 1.2068 | +0.0828 |
+| 14 | 0.2432 | 0.3533 (L15–31) | 0.5964 | 0.5989 | **+0.0024** |
+
+**What is true instead — the features are distributed across layers.** At an equal budget of
+200 features, spreading 40 across each of layers 10–14 gives a margin drop of **0.6182**
+against **0.2131** for 200 concentrated at layer 11 (**2.90×**) and 0.1940 for 800 at layer 11
+(**3.19×**) — while perturbing the residual stream *less* (0.0100 vs 0.0186). The concentrated
+count curve is flat (0.190 / 0.192 / 0.213 / 0.236 / 0.194 for k = 40/100/200/400/800): a
+single layer has a hard ceiling near 0.24 that no number of features breaks.
+
+**And the shortfall is a constant fraction.** Joint ablation over layers 10–14 gives 1.0028
+against a span-knockout ceiling of 1.3934 measured on the same 256 samples — R = **72.0%**
+(95% CI 68.9–75.3). Across span sizes 1–5 neither curve saturates; both are linear, ablation
+0.193/layer against knockout 0.269/layer, ratio 0.718. So ablation recovers ~72% of the flow
+at *every* span size, which points at the feature method — incomplete feature sets, SAE
+reconstruction, position selection — rather than at compensation by other layers.
+
+Note R = 72.0% sits *inside* the single-layer range (49.9–78.2%): layer 12 alone recovers
+78.2%. And leave-one-out runs the wrong way for redundancy at layers 10–12, whose in-context
+marginals are 1.14×, 1.57× and 1.79× their standalone effects.
+
+**Methodological consequence worth stating in the writeup: any single-layer SAE analysis
+systematically understates the circuit.**
 
 ## Two results that need care in the writeup
 
