@@ -136,7 +136,18 @@ def saturation_fit(span_sizes, values):
         )
     except (RuntimeError, ValueError):
         return None
-    return {"a": float(params[0]), "b": float(params[1])}
+
+    a, b = float(params[0]), float(params[1])
+    # As b -> 0 the model degenerates to the straight line y = (a*b)k: a and b individually
+    # run away while only their product is identified. Quoting b then means nothing, so flag
+    # it and report the slope instead.
+    degenerate = b * max(span_sizes) < 0.1
+    return {
+        "a": a,
+        "b": b,
+        "degenerate": degenerate,
+        "initial_slope": a * b,
+    }
 
 
 def nested_curves(conditions):
@@ -165,37 +176,100 @@ def nested_curves(conditions):
     }
     if out["ablation_fit"] and out["knockout_fit"]:
         out["b_minus_d"] = out["ablation_fit"]["b"] - out["knockout_fit"]["b"]
-        out["interpretation"] = (
-            "ablation saturates faster than the flow does (redundancy)"
-            if out["b_minus_d"] > 0
-            else "ablation and knockout saturate alike; the shortfall looks like a constant fraction"
-        )
+        if out["ablation_fit"]["degenerate"] or out["knockout_fit"]["degenerate"]:
+            slope_a = out["ablation_fit"]["initial_slope"]
+            slope_k = out["knockout_fit"]["initial_slope"]
+            out["degenerate"] = True
+            out["slope_ratio"] = slope_a / slope_k if slope_k else None
+            out["interpretation"] = (
+                "NEITHER curve saturates over this range -- both fits collapsed to straight "
+                f"lines (ablation {slope_a:.3f}/layer, knockout {slope_k:.3f}/layer), so b and "
+                "d are not identified and b - d carries no information. What is identified is "
+                f"the slope ratio, {out['slope_ratio']:.3f}: over spans of 1-5 layers the "
+                "ablation recovers a constant fraction of the flow, with no sign of the "
+                "ablation curve turning over sooner. Wider spans would be needed to see "
+                "saturation at all."
+            )
+        else:
+            out["degenerate"] = False
+            out["interpretation"] = (
+                "ablation saturates faster than the flow does (redundancy)"
+                if out["b_minus_d"] > 0
+                else "ablation and knockout saturate alike; the shortfall looks like a constant fraction"
+            )
     return out
+
+
+def single_layer_ablation(conditions, layer, features_per_layer=None):
+    """Find a standalone SAE ablation of exactly `layer`, by shape rather than by condition-id.
+
+    Several ids can describe the same intervention (A0_regression_L11, downstream_ablate_L11,
+    budget_concentrated_L11_k200), so match structurally and require the survivors to agree.
+    """
+    candidates = []
+    for condition_id, payload in sorted(conditions.items()):
+        summary = payload.get("summary", {})
+        if summary.get("kind") != "sae" or summary.get("knockout_layers"):
+            continue
+        if list(summary.get("layers") or []) != [layer]:
+            continue
+        if features_per_layer is not None and summary.get("total_features") != features_per_layer:
+            continue
+        candidates.append((condition_id, summary.get("mean_margin_drop")))
+
+    if not candidates:
+        return None, None
+    values = [v for _, v in candidates if v is not None]
+    if values and max(values) - min(values) > 1e-6:
+        raise ValueError(
+            f"single-layer ablations of L{layer} disagree: "
+            + ", ".join(f"{cid}={v:.6f}" for cid, v in candidates)
+        )
+    return candidates[0]
 
 
 def interaction_index(conditions, span, joint_id, span_knockout_id):
     """A(S) vs the sum of single-layer effects, calibrated by the knockout's own sub-additivity."""
-    single_ablation, single_knockout = [], []
+    joint_summary = conditions.get(joint_id, {}).get("summary", {})
+    per_layer = joint_summary.get("features_per_layer") or {}
+    canonical_k = next(iter(per_layer.values()), None)
+
+    single_ablation, single_knockout, missing = {}, {}, []
     for layer in span:
-        nested = conditions.get(f"nested_L{layer}")
-        if nested:
-            single_ablation.append(nested["summary"].get("mean_margin_drop"))
+        condition_id, value = single_layer_ablation(conditions, layer, canonical_k)
+        if value is None:
+            missing.append(layer)
+        else:
+            single_ablation[layer] = {"condition_id": condition_id, "margin_drop": value}
         knockout = conditions.get(f"knockout_L{layer}")
         if knockout:
-            single_knockout.append(knockout["summary"].get("mean_margin_drop"))
+            single_knockout[layer] = knockout["summary"].get("mean_margin_drop")
 
     result = {"span": list(span)}
-    joint = conditions.get(joint_id, {}).get("summary", {}).get("mean_margin_drop")
+    joint = joint_summary.get("mean_margin_drop")
     span_knockout = conditions.get(span_knockout_id, {}).get("summary", {}).get("mean_margin_drop")
 
-    if joint is not None and all(v is not None for v in single_ablation) and single_ablation:
-        total = float(sum(single_ablation))
+    # A partial sum would silently understate the denominator and inflate rho, so refuse it.
+    if missing:
+        result["ablation_status"] = "incomplete"
+        result["missing_single_layer_ablations"] = missing
+    elif joint is not None:
+        total = float(sum(v["margin_drop"] for v in single_ablation.values()))
+        result["ablation_status"] = "ok"
+        result["single_ablation_sources"] = {
+            str(k): v["condition_id"] for k, v in single_ablation.items()
+        }
         result["joint_ablation"] = float(joint)
         result["sum_single_ablation"] = total
         result["rho_ablation"] = float(joint) / total if total else None
 
-    if span_knockout is not None and all(v is not None for v in single_knockout) and single_knockout:
-        total = float(sum(single_knockout))
+    missing_knockout = [l for l in span if l not in single_knockout]
+    if missing_knockout:
+        result["knockout_status"] = "incomplete"
+        result["missing_single_layer_knockouts"] = missing_knockout
+    elif span_knockout is not None:
+        total = float(sum(single_knockout.values()))
+        result["knockout_status"] = "ok"
         result["span_knockout"] = float(span_knockout)
         result["sum_single_knockout"] = total
         result["rho_knockout"] = float(span_knockout) / total if total else None
@@ -211,14 +285,16 @@ def interaction_index(conditions, span, joint_id, span_knockout_id):
 
 def leave_one_out(conditions, span, joint_id):
     """In-context marginal contribution of each layer, against its standalone effect."""
-    joint = conditions.get(joint_id, {}).get("summary", {}).get("mean_margin_drop")
+    joint_summary = conditions.get(joint_id, {}).get("summary", {})
+    joint = joint_summary.get("mean_margin_drop")
     if joint is None:
         return []
+    canonical_k = next(iter((joint_summary.get("features_per_layer") or {}).values()), None)
 
     rows = []
     for layer in span:
         without = conditions.get(f"loo_drop{layer}", {}).get("summary", {}).get("mean_margin_drop")
-        standalone = conditions.get(f"nested_L{layer}", {}).get("summary", {}).get("mean_margin_drop")
+        _, standalone = single_layer_ablation(conditions, layer, canonical_k)
         if without is None:
             continue
         marginal = float(joint) - float(without)
@@ -360,12 +436,13 @@ def render_markdown(report):
     if saturation.get("b_minus_d") is not None:
         lines.append("## Comparative saturation")
         lines.append("")
-        lines.append(
-            f"Ablation b = {saturation['ablation_fit']['b']:.4f}, "
-            f"knockout d = {saturation['knockout_fit']['b']:.4f}, "
-            f"b - d = {saturation['b_minus_d']:+.4f}."
-        )
-        lines.append("")
+        if not saturation.get("degenerate"):
+            lines.append(
+                f"Ablation b = {saturation['ablation_fit']['b']:.4f}, "
+                f"knockout d = {saturation['knockout_fit']['b']:.4f}, "
+                f"b - d = {saturation['b_minus_d']:+.4f}."
+            )
+            lines.append("")
         lines.append(saturation["interpretation"])
         lines.append("")
 
@@ -386,6 +463,18 @@ def render_markdown(report):
                 f"metric saturation even under independence; the calibrated ratio is the "
                 f"part that carries information."
             )
+        lines.append("")
+    elif interaction.get("ablation_status") == "incomplete":
+        lines.append("## Interaction index")
+        lines.append("")
+        lines.append(
+            "Not computed: this run contains no standalone ablation for layer(s) "
+            + ", ".join(str(l) for l in interaction["missing_single_layer_ablations"])
+            + ". Summing only the layers present would understate the denominator and "
+            "inflate rho_A, so it is withheld. Supply the missing single-layer conditions, "
+            "or compute rho_A against the published single-layer drops by hand -- the "
+            "binding arm does not depend on the control regime, so those remain comparable."
+        )
         lines.append("")
 
     if report["leave_one_out"]:
@@ -416,13 +505,16 @@ def render_markdown(report):
         lines.append("")
         lines.append("| condition | binding | z | z SE | control sets | p floor | Wilcoxon p | control regime |")
         lines.append("|---|---|---|---|---|---|---|---|")
+        def cell(value, spec):
+            # A single control set gives no spread, so z and its SE are undefined there.
+            return "--" if value is None else format(value, spec)
+
         for row in report["significance"]:
-            z = row["z_score"]
             lines.append(
-                f"| {row['condition_id']} | {row['binding']:.4f} | "
-                f"{z:.0f} | {row['z_standard_error']:.0f} | {row['n_control_sets']} | "
-                f"{row['empirical_p_floor']:.4f} | "
-                f"{row.get('wilcoxon_p', float('nan')):.2e} | {row['control_regime']} |"
+                f"| {row['condition_id']} | {cell(row['binding'], '.4f')} | "
+                f"{cell(row['z_score'], '.0f')} | {cell(row['z_standard_error'], '.0f')} | "
+                f"{row['n_control_sets']} | {cell(row['empirical_p_floor'], '.4f')} | "
+                f"{cell(row.get('wilcoxon_p'), '.2e')} | {row['control_regime']} |"
             )
         lines.append("")
         lines.append(
