@@ -7,6 +7,10 @@ output/**/checkpoint.jsonl
 **/_activation_cache/
 output/**/pipeline_log.txt
 output/**/pipeline_pid.txt
+# Multi-layer runner log. Mostly tqdm carriage-return redraws -- 1.2 MB of the 1.3 MB
+# is a progress bar rewriting itself. What it records that matters (per-condition
+# timings, control means, z) is in the condition summaries.
+output/**/run_log.txt
 .claude/scheduled_tasks.lock
 
 # Bulk result artifacts. These are distilled by tools/distill_results.py into
@@ -17,6 +21,10 @@ output/**/feature_stats.json
 output/**/ablation_results.json
 output/**/ablation_results_fixed.json
 output/**/ablation_v2_results.json
+# Multi-layer condition records: 16 MB of per-sample rows across a 47-condition matrix.
+# The sibling summary.json is committed and carries everything the analysis reads,
+# including the per-sample margin drops it pairs across conditions.
+output/**/conditions/*/results.json
 
 # Per-feature SAE visualizations (~1.1 MB each, 220 files). Generated art, not
 # analysis; the writeup figures live in output/sae_experiments/report_assets/.
