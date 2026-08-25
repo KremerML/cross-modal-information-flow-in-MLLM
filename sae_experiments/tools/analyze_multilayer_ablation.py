@@ -9,9 +9,12 @@ denominator from the same sample set. The hypothesis predicts R(S) well above th
 single layers reach. It assumes no additivity model at all, which is why it leads.
 
 **Comparative saturation** -- fit A(S_k) and K(S_k) over span size k. If ablation and
-knockout saturate at the same rate the shortfall is a constant fraction rather than
+knockout grow at the same rate the shortfall is a fixed proportion of the flow rather than
 redundancy; if ablation saturates faster, features become redundant faster than the flow
 does. The null here is fitted to the knockout data itself, so no arbitrary curve is assumed.
+Note this is an *aggregate* statement about the two slopes. It does not license the stronger
+claim that R is constant span by span -- `redundancy_by_span` measures that directly, and on
+this run it is not: the per-span ratios disperse well beyond their own intervals.
 
 **Interaction index** -- A(S) against the sum of single-layer drops. Sub-additivity alone
 proves nothing, because the metric saturates even under true independence; so the ratio is
@@ -61,12 +64,16 @@ def load_condition(directory):
         folded = payload.get("per_sample_distilled") or {}
         if folded.get("margin_drops") is not None:
             payload["margin_drops"] = [float(v) for v in folded["margin_drops"]]
+            # Carried so paired statistics can verify the two arms are the same questions in
+            # the same order. distill_results writes it; until now nothing read it back.
+            payload["question_ids_sha1"] = folded.get("question_ids_sha1")
             return payload
 
     if os.path.exists(results_path):
         with open(results_path) as handle:
             payload = json.load(handle)
         payload["margin_drops"] = margin_drops(payload.get("per_sample", []))
+        payload["question_ids_sha1"] = None  # raw records predate the folded hash
         return payload
 
     if payload is not None:
@@ -91,6 +98,7 @@ def load_conditions(experiment_dir):
             "meta": payload.get("meta", {}),
             "control_summaries": payload.get("control_summaries", []),
             "margin_drops": payload["margin_drops"],
+            "question_ids_sha1": payload.get("question_ids_sha1"),
         }
     return conditions
 
@@ -119,6 +127,20 @@ def redundancy_index(conditions, ablation_id, knockout_id, seed=42):
     if len(ablation) != len(knockout):
         return {"status": "sample_count_mismatch"}
 
+    # The bootstrap resamples one index vector and applies it to both arms, which is only a
+    # paired test if both arms are the same questions in the same order. Equal length is not
+    # enough. Both hashes are present for every condition in the folded format.
+    sha_ablation = conditions[ablation_id].get("question_ids_sha1")
+    sha_knockout = conditions[knockout_id].get("question_ids_sha1")
+    if sha_ablation and sha_knockout and sha_ablation != sha_knockout:
+        return {
+            "status": "sha1_mismatch",
+            "ablation_condition": ablation_id,
+            "knockout_condition": knockout_id,
+            "ablation_question_ids_sha1": sha_ablation,
+            "knockout_question_ids_sha1": sha_knockout,
+        }
+
     mean_knockout = float(np.mean(knockout))
     result = {
         "ablation_condition": ablation_id,
@@ -126,6 +148,7 @@ def redundancy_index(conditions, ablation_id, knockout_id, seed=42):
         "ablation_mean": float(np.mean(ablation)),
         "knockout_mean": mean_knockout,
         "n_samples": len(ablation),
+        "question_ids_sha1": sha_ablation or sha_knockout,
     }
 
     # A negative ceiling makes the ratio meaningless, not merely noisy. Layer 13's knockout
@@ -144,6 +167,181 @@ def redundancy_index(conditions, ablation_id, knockout_id, seed=42):
         {"status": "ok", "ratio": point, "ci_low": low, "ci_high": high}
     )
     return result
+
+
+
+# Ablation/knockout pairs measured over the same span, on the same 256 questions. The runner's
+# ids are irregular (the full span is joint_/span_knockout_, not nested_/nested_knockout_), so
+# they are named here rather than derived. "{14}" is simultaneously the size-1 nested span and
+# the layer-14 single. Layers 10, 12 and 13 have no single-layer entry: their ablations predate
+# this harness and carry no per-sample record that can be paired against a knockout arm.
+SPAN_PAIRS = (
+    ("nested", "{14}", "nested_L14", "nested_knockout_L14", (14,)),
+    ("nested", "{13,14}", "nested_L13-14", "nested_knockout_L13-14", (13, 14)),
+    ("nested", "{12,13,14}", "nested_L12-14", "nested_knockout_L12-14", (12, 13, 14)),
+    ("nested", "{11-14}", "nested_L11-14", "nested_knockout_L11-14", (11, 12, 13, 14)),
+    ("nested", "{10-14}", "joint_L10-14", "span_knockout_L10-14", (10, 11, 12, 13, 14)),
+    ("single", "{11}", "A0_regression_L11", "knockout_L11", (11,)),
+    ("non-nested", "{10,11,12}", "nonnested_L10-12", "nonnested_knockout_L10-12", (10, 11, 12)),
+    ("non-nested", "{10,12,14}", "nonnested_L10,12,14", "nonnested_knockout_L10,12,14", (10, 12, 14)),
+    ("sensitivity", "{10,11,12,14}", "sensitivity_joint_L10,11,12,14",
+     "sensitivity_knockout_L10,11,12,14", (10, 11, 12, 14)),
+)
+
+
+def redundancy_by_span(conditions, seed=42, pairs=SPAN_PAIRS):
+    """R = A/K with a paired bootstrap CI for every span the matrix measures both arms of.
+
+    The joint-span R alone cannot distinguish "ablation recovers a fixed share of the flow"
+    from "ablation recovers a share that grows as the span covers more of it" -- the second is
+    what a redundancy account predicts. Reporting R per span separates them.
+    """
+    rows = []
+    for kind, label, ablation_id, knockout_id, layers in pairs:
+        entry = {
+            "kind": kind,
+            "label": label,
+            "span_size": len(layers),
+            "layers": list(layers),
+        }
+        entry.update(redundancy_index(conditions, ablation_id, knockout_id, seed))
+        rows.append(entry)
+    return rows
+
+
+def redundancy_trend(conditions, seed=42, n_bootstrap=10000, pairs=SPAN_PAIRS):
+    """Does R change with span size? One resample of questions, applied to every span.
+
+    Each bootstrap draw resamples the question set once and recomputes R for all nested spans
+    from that same draw, so the spans stay paired with each other as well as internally. That
+    is what makes the differences and the trend slope testable: the spans share their sampling
+    noise, and only what differs between them survives.
+
+    Reports the slope of R on span size (a redundancy account predicts a positive slope), the
+    pooled ratio, the observed spread, and whether any single value lies inside every span's
+    interval -- the direct test of a "constant fraction" reading.
+    """
+    nested = [p for p in pairs if p[0] == "nested"]
+    arms = []
+    for _, label, ablation_id, knockout_id, layers in nested:
+        if ablation_id not in conditions or knockout_id not in conditions:
+            return {"status": "missing_condition", "condition": ablation_id}
+        a = conditions[ablation_id]["margin_drops"]
+        k = conditions[knockout_id]["margin_drops"]
+        if not a or not k or len(a) != len(k):
+            return {"status": "no_per_sample_data", "condition": ablation_id}
+        arms.append((label, len(layers), np.asarray(a, float), np.asarray(k, float)))
+
+    hashes = {
+        conditions[cid].get("question_ids_sha1")
+        for _, _, ab, ko, _ in nested
+        for cid in (ab, ko)
+    }
+    hashes.discard(None)
+    if len(hashes) > 1:
+        return {"status": "sha1_mismatch", "hashes": sorted(hashes)}
+
+    n_samples = len(arms[0][2])
+    if any(len(a) != n_samples for _, _, a, _ in arms):
+        return {"status": "sample_count_mismatch"}
+
+    rng = np.random.default_rng(seed)
+    index = rng.integers(0, n_samples, size=(n_bootstrap, n_samples))
+
+    sizes = np.array([size for _, size, _, _ in arms], dtype=float)
+    draws = np.stack([a[index].mean(1) / k[index].mean(1) for _, _, a, k in arms])
+    point = np.array([a.mean() / k.mean() for _, _, a, k in arms])
+
+    centred = sizes - sizes.mean()
+    denominator = float((centred ** 2).sum())
+    slope_draws = (centred[:, None] * (draws - draws.mean(0))).sum(0) / denominator
+    slope_point = float((centred * (point - point.mean())).sum() / denominator)
+
+    pooled_draws = np.stack([a[index].mean(1) for _, _, a, _ in arms]).sum(0) / np.stack(
+        [k[index].mean(1) for _, _, _, k in arms]
+    ).sum(0)
+    pooled_point = float(sum(a.mean() for _, _, a, _ in arms) / sum(k.mean() for _, _, _, k in arms))
+
+    spread_draws = draws.max(0) - draws.min(0)
+
+    def interval(values):
+        low, high = np.percentile(values, [2.5, 97.5])
+        return float(low), float(high)
+
+    per_span = []
+    for (label, size, _, _), value, row in zip(arms, point, draws):
+        low, high = interval(row)
+        per_span.append(
+            {"label": label, "span_size": size, "ratio": float(value), "ci_low": low, "ci_high": high}
+        )
+
+    highest_low = max(row["ci_low"] for row in per_span)
+    lowest_high = min(row["ci_high"] for row in per_span)
+
+    slope_low, slope_high = interval(slope_draws)
+    pooled_low, pooled_high = interval(pooled_draws)
+    spread_low, spread_high = interval(spread_draws)
+
+    # A redundancy account predicts R rises as the span covers more of the compensating layers.
+    trending = not (slope_low <= 0 <= slope_high)
+    constant = highest_low <= lowest_high
+
+    return {
+        "status": "ok",
+        "seed": seed,
+        "n_bootstrap": n_bootstrap,
+        "n_samples": n_samples,
+        "question_ids_sha1": next(iter(hashes)) if hashes else None,
+        "per_span": per_span,
+        "slope_per_layer": slope_point,
+        "slope_ci_low": slope_low,
+        "slope_ci_high": slope_high,
+        "slope_excludes_zero": bool(trending),
+        "pooled_ratio": pooled_point,
+        "pooled_ci_low": pooled_low,
+        "pooled_ci_high": pooled_high,
+        "spread": float(point.max() - point.min()),
+        "spread_ci_low": spread_low,
+        "spread_ci_high": spread_high,
+        "common_value": bool(constant),
+        "highest_ci_low": float(highest_low),
+        "lowest_ci_high": float(lowest_high),
+        "interpretation": _trend_interpretation(
+            slope_point, slope_low, slope_high, pooled_point, pooled_low, pooled_high,
+            point.min(), point.max(), constant, trending,
+        ),
+    }
+
+
+def _trend_interpretation(slope, slope_low, slope_high, pooled, pooled_low, pooled_high,
+                          lowest, highest, constant, trending):
+    parts = [
+        f"Pooled recovery over the nested spans is {pooled:.1%} "
+        f"(95% CI {pooled_low:.1%} - {pooled_high:.1%})."
+    ]
+    if constant:
+        parts.append(
+            f"Every span's interval contains a common value, so a single fixed share "
+            f"({lowest:.1%} - {highest:.1%}) is consistent with all of them."
+        )
+    else:
+        parts.append(
+            f"The per-span ratios run {lowest:.1%} to {highest:.1%} with NO value inside every "
+            "interval, so R is not constant across spans and must not be reported as such."
+        )
+    if trending:
+        parts.append(
+            f"R trends with span size at {slope:+.4f} per layer "
+            f"(95% CI {slope_low:+.4f} - {slope_high:+.4f}), which excludes zero."
+        )
+    else:
+        parts.append(
+            f"R shows no trend with span size ({slope:+.4f} per layer, 95% CI "
+            f"{slope_low:+.4f} - {slope_high:+.4f}, containing zero). A redundancy account "
+            "predicts R rises as the span covers more of the layers said to compensate; it "
+            "does not rise."
+        )
+    return " ".join(parts)
 
 
 def saturation_fit(span_sizes, values):
@@ -213,17 +411,19 @@ def nested_curves(conditions):
                 "NEITHER curve saturates over this range -- both fits collapsed to straight "
                 f"lines (ablation {slope_a:.3f}/layer, knockout {slope_k:.3f}/layer), so b and "
                 "d are not identified and b - d carries no information. What is identified is "
-                f"the slope ratio, {out['slope_ratio']:.3f}: over spans of 1-5 layers the "
-                "ablation recovers a constant fraction of the flow, with no sign of the "
-                "ablation curve turning over sooner. Wider spans would be needed to see "
-                "saturation at all."
+                f"the slope ratio, {out['slope_ratio']:.3f}: over spans of 1-5 layers the two "
+                "curves grow in a fixed proportion, with no sign of the ablation curve turning "
+                "over sooner. Wider spans would be needed to see saturation at all. This is a "
+                "statement about the two slopes and NOT about R span by span -- see "
+                "redundancy_by_span, where the ratios disperse beyond their own intervals."
             )
         else:
             out["degenerate"] = False
             out["interpretation"] = (
                 "ablation saturates faster than the flow does (redundancy)"
                 if out["b_minus_d"] > 0
-                else "ablation and knockout saturate alike; the shortfall looks like a constant fraction"
+                else "ablation and knockout saturate alike; the shortfall is a fixed proportion "
+                "of the flow in aggregate (see redundancy_by_span for the span-by-span picture)"
             )
     return out
 
@@ -405,6 +605,8 @@ def main():
             )
             for layer in span
         },
+        "redundancy_by_span": redundancy_by_span(conditions, args.seed),
+        "redundancy_trend": redundancy_trend(conditions, args.seed),
         "saturation": nested_curves(conditions),
         "interaction": interaction_index(conditions, span, joint_id, span_knockout_id),
         "leave_one_out": leave_one_out(conditions, span, joint_id),
@@ -424,6 +626,47 @@ def main():
 
     print(markdown)
     print(f"\nWrote {json_path}\n      {md_path}")
+
+
+
+def render_redundancy_by_span(report):
+    """The span-by-span table plus the trend test, which is what the constancy claim rests on."""
+    rows = report.get("redundancy_by_span") or []
+    trend = report.get("redundancy_trend") or {}
+    if not rows:
+        return []
+
+    lines = ["## Redundancy by span", ""]
+    lines.append("| kind | span | size | A | K | R | 95% CI |")
+    lines.append("|---|---|---|---|---|---|---|")
+    for row in rows:
+        if row.get("status") == "ok":
+            lines.append(
+                f"| {row['kind']} | `{row['label']}` | {row['span_size']} | "
+                f"{row['ablation_mean']:.4f} | {row['knockout_mean']:.4f} | "
+                f"{row['ratio']:.1%} | {row['ci_low']:.1%} - {row['ci_high']:.1%} |"
+            )
+        else:
+            lines.append(
+                f"| {row['kind']} | `{row['label']}` | {row['span_size']} | — | — | "
+                f"undefined | {row.get('status')} |"
+            )
+    lines.append("")
+
+    if trend.get("status") == "ok":
+        lines.append(trend["interpretation"])
+        lines.append("")
+        lines.append(
+            f"Observed spread across the nested spans is {trend['spread']:.1%} "
+            f"(95% CI {trend['spread_ci_low']:.1%} - {trend['spread_ci_high']:.1%}); "
+            f"highest lower bound {trend['highest_ci_low']:.1%} against lowest upper bound "
+            f"{trend['lowest_ci_high']:.1%}. "
+            f"{trend['n_bootstrap']} draws, seed {trend['seed']}, n = {trend['n_samples']}."
+        )
+    else:
+        lines.append(f"Trend test not available: `{trend.get('status')}`.")
+    lines.append("")
+    return lines
 
 
 def render_markdown(report):
@@ -459,6 +702,8 @@ def render_markdown(report):
         else:
             lines.append(f"| {layer} | — | — | undefined | {entry.get('status')} |")
     lines.append("")
+
+    lines.extend(render_redundancy_by_span(report))
 
     saturation = report["saturation"]
     if saturation.get("b_minus_d") is not None:

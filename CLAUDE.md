@@ -264,10 +264,15 @@ original structure — read it for history, don't wire new code to it.
 
 ## Research context
 
-`docs/CLAUDE.md` is the research log — knockout result tables, the v1 null-result post-mortem, dataset quality
-analysis, and methodology decisions. Read it before designing an experiment; it is the reason the current
-pipeline looks the way it does. Companion writeups: `docs/feature_id_v2_breakthrough_report.md`,
-`docs/multilayer_ablation_findings.md` (the 2026-08-07 multi-layer program — redundancy falsified,
-features shown to be distributed across layers; also documents the uniform-vs-matched control bug),
-`docs/ablation_methodology_review.md`, `docs/REPORT_SAE_EXPERIMENT.md`.
-`docs/README_SAE_EXPERIMENT.md` documents the archived Gen 1–2 GQA pipeline and its paths are stale.
+`docs/CLAUDE.md` is the research log — the six phases from the GQA null streak to the multi-layer program,
+with the reasoning behind each pipeline decision and the GQA dataset quality analysis. Read it before
+designing an experiment; it is the reason the current pipeline looks the way it does.
+
+`docs/` holds only current material: the research log, `docs/MEMORY.md`, `docs/multilayer_ablation_findings.md`
+(the 2026-08-07 multi-layer program — redundancy falsified, features shown to be distributed across layers),
+and `docs/project_timeline.html`. Superseded reports were moved to `archive/docs/` on 2026-08-20; they are
+kept for traceability of the record, and several reach conclusions the research log documents as overturned.
+Do not cite them.
+
+The paper draft is `overleaf/main_final.tex`, with figures in `output/paper_figures/` (fig1–fig9), mirrored
+in `overleaf/paper_figures/`.

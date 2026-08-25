@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cross-Modal Information Flow — Project Timeline</title>
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; -webkit-text-size-adjust: 100%; }
+  img, svg { max-width: 100%; }
+
+  :root {
+    --bg:        #F5F7F6;
+    --surface:   #FFFFFF;
+    --surface-2: #EDF1EF;
+    --ink:       #141D1A;
+    --ink-2:     #3C4B46;
+    --muted:     #64756F;
+    --rule:      #D9E0DC;
+    --rule-soft: #E7ECE9;
+    --accent:    #0D6B60;
+    --accent-dim:#0D6B6018;
+    --amber:     #8F5613;
+    --amber-dim: #8F561314;
+    --crimson:   #93262B;
+    --crimson-dim:#93262B12;
+    --shadow:    0 1px 2px rgba(20,29,26,.05), 0 8px 24px -16px rgba(20,29,26,.18);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:        #0E1412;
+      --surface:   #151D1A;
+      --surface-2: #1B2421;
+      --ink:       #E4EBE7;
+      --ink-2:     #B9C6C1;
+      --muted:     #8B9A94;
+      --rule:      #26322E;
+      --rule-soft: #1E2825;
+      --accent:    #57C3B3;
+      --accent-dim:#57C3B31A;
+      --amber:     #D9A05B;
+      --amber-dim: #D9A05B16;
+      --crimson:   #E08585;
+      --crimson-dim:#E0858514;
+      --shadow:    0 1px 2px rgba(0,0,0,.3), 0 8px 24px -16px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:        #0E1412;
+    --surface:   #151D1A;
+    --surface-2: #1B2421;
+    --ink:       #E4EBE7;
+    --ink-2:     #B9C6C1;
+    --muted:     #8B9A94;
+    --rule:      #26322E;
+    --rule-soft: #1E2825;
+    --accent:    #57C3B3;
+    --accent-dim:#57C3B31A;
+    --amber:     #D9A05B;
+    --amber-dim: #D9A05B16;
+    --crimson:   #E08585;
+    --crimson-dim:#E0858514;
+    --shadow:    0 1px 2px rgba(0,0,0,.3), 0 8px 24px -16px rgba(0,0,0,.6);
+  }
+
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: Charter, "Iowan Old Style", "Source Serif 4", Georgia, serif;
+    font-size: 17px;
+    line-height: 1.62;
+    margin: 0;
+    padding: 0 20px 96px;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; }
+
+  h1, h2, h3, .label, .chip, .date, table, .num {
+    font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  .mono, code, .date, .label, .chip, th, td.num {
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  }
+
+  /* ---------- masthead ---------- */
+  header.masthead {
+    padding: 68px 0 34px;
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 8px;
+  }
+  .eyebrow {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 11.5px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 18px;
+  }
+  h1 {
+    font-size: clamp(30px, 5vw, 44px);
+    line-height: 1.1;
+    letter-spacing: -.022em;
+    font-weight: 640;
+    margin: 0 0 14px;
+    text-wrap: balance;
+  }
+  .standfirst {
+    font-size: 19px;
+    color: var(--ink-2);
+    margin: 0 0 26px;
+    max-width: 62ch;
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    font-size: 11.5px;
+    letter-spacing: .04em;
+    color: var(--muted);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: 4px 9px;
+    background: var(--surface);
+    white-space: nowrap;
+  }
+
+  /* ---------- thesis ---------- */
+  .thesis {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-dim);
+    padding: 20px 24px;
+    margin: 36px 0 8px;
+  }
+  .thesis p { margin: 0 0 12px; }
+  .thesis p:last-child { margin-bottom: 0; }
+
+  /* ---------- sections ---------- */
+  h2 {
+    font-size: 13px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--muted);
+    margin: 64px 0 4px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  /* ---------- phase entries ---------- */
+  .phase {
+    display: grid;
+    grid-template-columns: 132px 1fr;
+    gap: 0 28px;
+    padding: 30px 0 4px;
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  .phase:last-of-type { border-bottom: none; }
+  .rail { padding-top: 4px; }
+  .date {
+    font-size: 12px;
+    letter-spacing: .02em;
+    color: var(--accent);
+    font-weight: 500;
+    display: block;
+    margin-bottom: 6px;
+  }
+  .refs {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.7;
+    word-break: break-word;
+  }
+  h3 {
+    font-size: 21px;
+    line-height: 1.25;
+    letter-spacing: -.012em;
+    font-weight: 620;
+    margin: 0 0 10px;
+    text-wrap: balance;
+  }
+  .phase p { margin: 0 0 12px; }
+  .phase p:last-child { margin-bottom: 14px; }
+
+  .assume {
+    display: grid;
+    gap: 10px;
+    margin: 16px 0 18px;
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    box-shadow: var(--shadow);
+  }
+  .assume div { display: grid; grid-template-columns: 96px 1fr; gap: 14px; align-items: baseline; }
+  .label {
+    font-size: 10.5px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    font-weight: 600;
+    padding-top: 3px;
+  }
+  .label.hold { color: var(--accent); }
+  .label.broke { color: var(--amber); }
+  .assume .body { font-size: 15.5px; line-height: 1.55; color: var(--ink-2); }
+
+  /* ---------- tables ---------- */
+  .tablewrap { overflow-x: auto; margin: 18px 0 22px; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 13.5px;
+    font-variant-numeric: tabular-nums;
+  }
+  th {
+    text-align: left;
+    font-size: 10.5px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+    padding: 0 14px 8px 0;
+    border-bottom: 1px solid var(--rule);
+    white-space: nowrap;
+  }
+  td {
+    padding: 8px 14px 8px 0;
+    border-bottom: 1px solid var(--rule-soft);
+    vertical-align: top;
+    color: var(--ink-2);
+  }
+  td:first-child { color: var(--ink); font-weight: 500; white-space: nowrap; }
+  td.num { text-align: right; padding-right: 20px; white-space: nowrap; }
+  tr.hi td { background: var(--accent-dim); }
+
+  .ledger td:first-child { white-space: normal; min-width: 150px; }
+  .ledger td { font-size: 13.5px; }
+  .status { font-size: 11px; letter-spacing: .03em; white-space: nowrap; }
+  .status.live { color: var(--accent); }
+  .status.dead { color: var(--crimson); }
+
+  /* ---------- callouts ---------- */
+  .flag {
+    border-left: 3px solid var(--crimson);
+    background: var(--crimson-dim);
+    padding: 16px 20px;
+    margin: 22px 0;
+    font-size: 15.5px;
+    line-height: 1.55;
+  }
+  .flag strong { color: var(--crimson); }
+  .note {
+    border-left: 3px solid var(--amber);
+    background: var(--amber-dim);
+    padding: 16px 20px;
+    margin: 22px 0;
+    font-size: 15.5px;
+    line-height: 1.55;
+  }
+  .flag p, .note p { margin: 0 0 10px; }
+  .flag p:last-child, .note p:last-child { margin-bottom: 0; }
+
+  code {
+    font-size: .88em;
+    background: var(--surface-2);
+    padding: 1px 5px;
+    border-radius: 2px;
+    color: var(--ink);
+  }
+  ul { padding-left: 20px; margin: 0 0 16px; }
+  li { margin-bottom: 8px; }
+  strong { font-weight: 640; color: var(--ink); }
+  a { color: var(--accent); }
+
+  footer {
+    margin-top: 72px;
+    padding-top: 20px;
+    border-top: 1px solid var(--rule);
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  @media (max-width: 720px) {
+    body { font-size: 16px; }
+    .phase { grid-template-columns: 1fr; gap: 0; }
+    .rail { padding-bottom: 12px; }
+    .date { display: inline-block; margin-right: 12px; }
+    .refs { display: inline; }
+    .assume div { grid-template-columns: 1fr; gap: 3px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <p class="eyebrow">Project chronology · reconstructed from git, docs, and result files</p>
+  <h1>Cross-modal information flow in LLaVA-1.5-7b</h1>
+  <p class="standfirst">Nine months of attention knockout and SAE ablation, told as the sequence of assumptions that were made, tested, and — five times — overturned.</p>
+  <div class="chips">
+    <span class="chip">19 Jan 2026 → 9 Aug 2026</span>
+    <span class="chip">129 commits</span>
+    <span class="chip">7 branches</span>
+    <span class="chip">18 null experiments, then a positive one</span>
+    <span class="chip">2 published claims retracted</span>
+  </div>
+</header>
+
+<div class="thesis">
+  <p><strong>The shape of the project.</strong> The knockout half worked from February onward and never really changed. Everything else is a chain of falsified assumptions about <em>where</em> to intervene, <em>which</em> features to pick, and <em>what</em> to compare against. Each error was only visible once the previous one was fixed, which is why the null streak ran to 18 experiments before anything moved.</p>
+  <p>Two of the five corrections came <em>after</em> the writeup phase had begun. Both changed conclusions that were already written down.</p>
+</div>
+
+<h2>Phase 0 — inherited baseline</h2>
+
+<div class="phase">
+  <div class="rail">
+    <span class="date">Mar 2025</span>
+    <div class="refs">upstream/main<br>c9a1111</div>
+  </div>
+  <div>
+    <h3>Fork of the CVPR attention-knockout repo</h3>
+    <p>The starting point is the published codebase: <code>InformationFlow.py</code> and <code>methods.py</code>, GQA <code>ChooseAttr</code> forced-choice VQA, and <code>set_block_attn_hooks_llava</code> — which replaces <code>self_attn.forward</code> outright rather than registering a hook, so the block persists for the whole forward pass. That detail becomes load-bearing much later, when it turns out to be the only reason knockout and SAE ablation are not the same kind of intervention.</p>
+  </div>
+</div>
+
+<h2>Phase 1 — the SAE extension</h2>
+
+<div class="phase">
+  <div class="rail">
+    <span class="date">19–26 Jan 2026</span>
+    <div class="refs">ebb3363 · e08be25<br>8f11d2d · 1037e59<br>0d50059 · 06a6d34</div>
+  </div>
+  <div>
+    <h3>First SAE experiment, and the design that would produce 18 nulls</h3>
+    <p>A config-driven SAE pipeline is bolted onto the knockout code: train a 32,768-feature SAE on layer activations, rank features by how differently they fire on correct vs. incorrect samples, zero the top-<em>k</em>, measure the margin drop against random controls. Output-saving and config plumbing get rebuilt twice in the first week.</p>
+    <div class="assume">
+      <div><span class="label hold">Assumed</span><span class="body">Visual attribute information lands on the <strong>attribute words in the question</strong> ("red", "blue"), in the <strong>residual stream</strong>, and the features carrying it are the ones that <strong>fire more on correctly-answered samples</strong>.</span></div>
+      <div><span class="label broke">Overturned</span><span class="body">All three parts. Position was wrong (Mar), site was wrong (Feb), and the selection metric was the single biggest error (May).</span></div>
+    </div>
+    <p class="note" style="margin-bottom:14px"><strong>Naming trap for the writeup:</strong> the output directory <code>sae_q_layer11</code> from this era is actually layer <strong>12</strong>, residual site, attribute positions, GQA. Don't cite it as layer 11.</p>
+  </div>
+</div>
+
+<h2>Phase 2 — the indexing fix, then the null streak</h2>
+
+<div class="phase">
+  <div class="rail">
+    <span class="date">3–7 Feb 2026</span>
+    <div class="refs">736dbe2 · 9b52136<br>knockout_run2_fixed<br>docs/REPORT_SAE_EXPERIMENT.md</div>
+  </div>
+  <div>
+    <h3>The multimodal token-expansion bug, and the two-peak structure</h3>
+    <p>The log-probability indexing ignored that LLaVA's <code>prepare_inputs_labels_for_multimodal</code> replaces the single <code>IMAGE_TOKEN_INDEX = -200</code> placeholder with 576 patch embeddings — so <code>input_ids</code> indices and hidden-state indices are offset. Fixing it turned a noisy sweep into a clean one (n=810):</p>
+    <div class="tablewrap"><table>
+      <tr><th>GQA, Image→Question</th><th class="num">margin drop</th><th class="num">Cohen's d</th><th>read</th></tr>
+      <tr class="hi"><td>Layer 0</td><td class="num">0.5085</td><td class="num">0.806</td><td>early cross-modal registration</td></tr>
+      <tr class="hi"><td>Layer 11</td><td class="num">0.1688</td><td class="num">0.605</td><td>higher-level semantic binding</td></tr>
+      <tr><td>Layer 10</td><td class="num">0.0676</td><td class="num">0.381</td><td>—</td></tr>
+      <tr><td>Layer 8</td><td class="num">0.0639</td><td class="num">0.414</td><td>—</td></tr>
+    </table></div>
+    <div class="assume">
+      <div><span class="label hold">Decision</span><span class="body"><strong>Layers 0 and 11 become the SAE training sites</strong>, on the reasoning that the two knockout peaks mark two distinct integration phases. This choice held until the CLEVR-Lite sweep replaced it in April.</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="phase">
+  <div class="rail">
+    <span class="date">8–21 Feb 2026</span>
+    <div class="refs">ab979d5 · 3941e57<br>949b162 · 3f64479<br>3417d6b · f1c1595<br>6e58904</div>
+  </div>
+  <div>
+    <h3>Four attempts to rescue the null, none of which touch the real cause</h3>
+    <p>In order: a <strong>hyperparameter grid sweep</strong> (Codex branch, PR #1 — on the theory that the SAE was mistrained); <strong>reproducibility scaffolding and unit tests</strong> plus "a major fix to sae targets"; a <strong>failed run where the matched sampler emitted the same random set repeatedly</strong>; a pivot from <strong>residual → <code>attn_out</code></strong>, reasoning that since the knockout blocks attention, the SAE should model the attention output; <strong>splitting the dataset by attribute type</strong> (color/material/shape/size/state) so a single SAE isn't asked to span all of them; and a second selection metric, <strong>absolute activation difference</strong>, to dodge the ratio's instability.</p>
+    <p>Every one produces binding ≈ random. The most rigorously controlled run of the era (<code>rerun_layer11_attn_out</code>, n=877, 15 control sets) returns empirical p = 1.0 on both accuracy and margin.</p>
+    <div class="assume">
+      <div><span class="label hold">Assumed</span><span class="body">The null is a <strong>tuning</strong> problem — wrong hyperparameters, wrong site, wrong attribute mix, or a slightly wrong scoring formula.</span></div>
+      <div><span class="label broke">Overturned</span><span class="body">March's ceiling experiment showed the intervention was <em>physically undetectable</em> at the chosen positions, so no amount of tuning inside that design could have worked.</span></div>
+    </div>
+    <p class="flag" style="margin-bottom:14px"><strong>Worth noting for the writeup:</strong> the random-control sampler misbehaved as early as 9 Feb and was patched. The <em>same subsystem</em> silently failed again for the entire published run, undetected until August (Phase 8).</p>
+  </div>
+</div>
+
+<h2>Phase 3 — the ceiling diagnostic</h2>
+
+<div class="phase">
+  <div class="rail">
+    <span class="date">7–14 Mar 2026</span>
+    <div class="refs">331f9e9 · 5e726d9<br>feac4cc (CLAUDE.md)<br>fda5cb1 · 5344842<br>branch: methodology-improvements</div>
+  </div>
+  <div>
+    <h3>Ask what the maximum possible effect is, before asking why the effect is zero</h3>
+    <p>The pivotal methodological move of the project: <code>10_full_latent_ablation.py</code> zeroes <em>all</em> features to establish an upper bound on how much the SAE can possibly perturb the model.</p>
+    <div class="tablewrap"><table>
+      <tr><th>Layer / positions</th><th class="num">rel. perturbation</th><th class="num">margin drop</th><th class="num">knockout</th></tr>
+      <tr><td>11 / attribute</td><td class="num">0.003</td><td class="num">0.046</td><td class="num">0.17</td></tr>
+      <tr class="hi"><td>11 / all</td><td class="num">0.999</td><td class="num">0.169</td><td class="num">0.17</td></tr>
+      <tr><td>0 / attribute</td><td class="num">0.003</td><td class="num">0.022</td><td class="num">0.54</td></tr>
+      <tr class="hi"><td>0 / all</td><td class="num">1.016</td><td class="num">0.314</td><td class="num">0.54</td></tr>
+    </table></div>
+    <p>At attribute positions the SAE reconstruction is 0.3% of the activation norm — ablating there is invisible <em>by construction</em>. At all positions the SAE captures essentially the whole norm and reproduces the knockout's margin drop. <strong>The dictionary was never the problem; the position was.</strong></p>
+    <p>The same week produces the six-cause post-mortem in <code>CLAUDE.md</code> (position mismatch · single-layer vs. persistent barrier · ~6–8k training vectors for 32,768 features · selection confounded with task difficulty · language-side bypass in ChooseAttr · missing SAE best practices) and the GQA dataset audit that finds only <strong>color</strong> (602 rows) usable — shape has 15 rows, state is 77% generic "choose X|Y" items, 20.6% of color objects cover under 1% of the image.</p>
+    <p><strong>Plans A, C, D</strong> follow: standardise every config to <code>replace</code> mode; add an <code>image</code> position type; and fix the SAE architecture (learnable <code>b_pre</code>, decoder column normalisation, dead-feature tracking, cosine LR, 32768→4096 features, l1 1e-3→5e-4).</p>
+    <div class="assume">
+      <div><span class="label hold">New assumption</span><span class="body">Intervene at <strong>image token positions</strong> — the source. Corrupt the signal there and no downstream layer can re-read it, which is the only way to match the knockout's persistent barrier.</span></div>
+      <div><span class="label broke">Overturned</span><span class="body">Three weeks later, and exactly backwards — see Phase 4.</span></div>
+    </div>
+  </div>
+</div>
+
+<h2>Phase 4 — the position logic inverts</h2>
+
+<div class="phase">
+  <div class="rail">
+    <span class="date">4–6 Apr 2026</span>
+    <div class="refs">5ce254e (Plan E)<br>30b4b86 (Plan F)<br>aca8503 · 3c1e8d4<br>c23fe5e (paligemma-2)<br>f18944d · fc935b4</div>
+  </div>
+  <div>
+    <h3>Two well-designed experiments that were null by construction</h3>
+    <p><strong>Plan E</strong> (<code>knockout_guided_features.py</code>) drops correctness-based selection entirely and ranks features by how much the layer-0 knockout <em>changes</em> them — supervision straight from the causal intervention. <strong>Plan F</strong> (activation patching) replaces zeroing with patching in counterfactual knockout values, so downstream layers receive the corrupted signal rather than a hole they can route around.</p>
+    <p>Both return exactly zero. Feature scores at image positions: <code>max = mean = p95 = 0.00000</code>.</p>
+    <div class="assume">
+      <div><span class="label broke">The inversion</span><span class="body">LLaVA is decoder-only with image tokens prepended, so the causal mask means <strong>image tokens never receive anything from the question</strong>. An Image→Question knockout changes only what the <em>question</em> tokens receive; image-token activations propagate through all 32 layers untouched. Measuring at image positions was measuring the wrong side of the transfer. Patching zeros into zeros changes nothing.</span></div>
+      <div><span class="label hold">Replaced by</span><span class="body">Intervene at <strong>question token positions</strong> — the destination is the only place the transferred signal exists. The radio-signal framing in the May update: you analyse at the antenna, not the transmitter.</span></div>
+    </div>
+    <p>A second finding compounds it: the V2 SAE had been trained on <code>all</code> positions, which are ~90% image tokens, so it could barely reconstruct question-token activations at all (0.14% relative perturbation). The training position and the intervention position had drifted apart.</p>
+    <p>Two branches open here. <strong><code>paligemma-2</code></strong> (4 Apr, never merged) ports the whole pipeline to PaliGemma-2 3B so it can use pretrained GemmaScope SAEs — the reasoning being that SAEs trained on billions of tokens sidestep both the training-scale and dead-feature problems at once. And <strong>CLEVR-Lite</strong> (6 Apr) replaces GQA: synthetic 6 colors × 3 shapes, open-ended queries. One change fixes three diagnosed causes — no language-side bypass, unlimited clean data, and no tiny-object ambiguity.</p>
+  </div>
+</div>
+
+<h2>Phase 5 — the breakthrough</h2>
+
+<div class="phase">
+  <div class="rail">
+    <span class="date">30 Apr 2026</span>
+    <div class="refs">676129b · 7864bc5<br>exp_default/knockout/</div>
+  </div>
+  <div>
+    <h3>CLEVR-Lite knockout sweep — 33 hours, n=7,084</h3>
+    <div class="tablewrap"><table>
+      <tr><th>Layer</th><th class="num">margin drop</th><th class="num">d</th><th>role</th></tr>
+      <tr><td>0</td><td class="num">0.4575</td><td class="num">1.042</td><td>immediate cross-modal registration</td></tr>
+      <tr><td>10</td><td class="num">0.2683</td><td class="num">1.135</td><td>mid-depth cluster onset</td></tr>
+      <tr><td>11</td><td class="num">0.4273</td><td class="num">0.915</td><td>much stronger than on GQA</td></tr>
+      <tr><td>12</td><td class="num">0.2452</td><td class="num">0.764</td><td>cluster</td></tr>
+      <tr><td>13</td><td class="num">−0.0483</td><td class="num">−0.364</td><td>inhibitory, flanked by positives</td></tr>
+      <tr class="hi"><td>14</td><td class="num">0.3983</td><td class="num">1.205</td><td>strongest effect size</td></tr>
+      <tr><td>29</td><td class="num">−0.0170</td><td class="num">−1.218</td><td>late-layer inhibition</td></tr>
+    </table></div>
+    <p>Effect sizes run 25–50% larger than GQA across the board — direct confirmation that the ChooseAttr language-side bypass had been diluting everything. The two-peak picture becomes a three-region one, and the SAE layer set is reset to <strong>{0, 10, 11, 12, 13, 14}</strong>, <code>attn_out</code>, <code>question</code> positions, back to 32,768 features now that data is no longer scarce.</p>
+    <p class="note" style="margin-bottom:14px">Same day, unrelated: <code>docs/01–06_*.md</code> and <code>boreal_forest_pipeline_prompt.md</code> land — a six-stage research-ideation exercise on boreal forest ecology. Nothing to do with this project; don't let it into the writeup's file inventory.</p>
+  </div>
+</div>
+
+<div class="phase">
+  <div class="rail">
+    <span class="date">4 May 2026</span>
+    <div class="refs">7416ee5<br>causal_feature_identifier.py<br>docs/feature_id_v2_*.md</div>
+  </div>
+  <div>
+    <h3>v2: gradient × activation — the 18-null streak breaks</h3>
+    <p>The diagnosis that finally lands is about the <em>metric</em>, not the plumbing. The v1 ratio <code>(correct_mean + 1e-8)/(incorrect_mean + 1e-8)</code> is maximised by features that barely fire: 176 of 200 selected features had <code>incorrect_mean = 0</code>, and the top-ranked feature had <code>correct_mean = 1.22e-05</code> against a residual-stream norm of ~5.5. <strong>Ghost features.</strong> Ablating them perturbs the model by ~0.0001%.</p>
+    <p>v2 inserts the SAE into the forward pass, detaches feature activations into a leaf tensor (<code>detach().requires_grad_(True)</code>), backprops the logit margin, and scores <code>|grad| × |activation|</code> — attribution patching over SAE features, grounded in Marks et al. (Sparse Feature Circuits) and Agrawal et al. (input vs. output features, which predicts precisely that correlational selection finds the wrong class).</p>
+    <div class="tablewrap"><table>
+      <tr><th>Layer 11, n=256</th><th class="num">margin drop</th><th class="num">z</th><th class="num">% positive</th></tr>
+      <tr><td>v1 ratio features</td><td class="num">~0</td><td class="num">—</td><td class="num">—</td></tr>
+      <tr class="hi"><td>v2 causal features</td><td class="num">0.2131</td><td class="num">81.6</td><td class="num">84.8%</td></tr>
+    </table></div>
+    <p>200 of 32,768 features — 0.6% — carry about half the layer's knockout ceiling.</p>
+    <div class="assume">
+      <div><span class="label hold">Assumed next</span><span class="body">The missing half is <strong>cross-layer redundancy</strong>: the model re-reads the image at layers L+1…31 and restores what was ablated. Stated as the leading explanation in every document from May to August.</span></div>
+      <div><span class="label broke">Overturned</span><span class="body">Falsified in August by direct test — Phase 8.</span></div>
+    </div>
+  </div>
+</div>
+
+<h2>Phase 6 — consolidation</h2>
+
+<div class="phase">
+  <div class="rail">
+    <span class="date">12–19 May 2026</span>
+    <div class="refs">87488d3 · cd589b2<br>docs/ablation_methodology_review.md<br>0bc7ace…14f3668 (18 commits)</div>
+  </div>
+  <div>
+    <h3>Ablation methodology review, and the repo reorganisation</h3>
+    <p>v2 ablation runs across layers 0, 10, 11, 12, 13. A literature review checks the intervention against the field's known confounds and flags one real risk: <code>replace</code> mode discards the SAE reconstruction error ε, which Marks et al. keep as an explicit node. The test settles it — a pass-through baseline (SAE inserted, nothing zeroed) gives <strong>exactly 0.0000</strong>, and error-preserving delta mode gives 0.208 against replace mode's 0.213. Reconstruction error was not inflating the result, so <code>replace</code> stays.</p>
+    <p>Then an 18-commit reorganisation: <code>core/ hooks/ training/ data/ feature_analysis/ ablation/</code>, numbered <code>pipeline/00–04</code>, unnumbered <code>tools/</code>, Gen 0–2 code moved to <code>archive/</code> intact. <strong>Any doc written before this cites dead paths</strong> — including <code>README_SAE_EXPERIMENT.md</code> and the LaTeX progress report.</p>
+  </div>
+</div>
+
+<h2>Phase 7 — writeup phase begins</h2>
+
+<div class="phase">
+  <div class="rail">
+    <span class="date">6 Aug 2026</span>
+    <div class="refs">226194a · cb99b07<br>4aaaa48<br>LLM_TECHNICAL_SUMMARY.{md,json}</div>
+  </div>
+  <div>
+    <h3>Distillation, re-verification, and layer 14</h3>
+    <p>Every result number is recomputed from the on-disk files rather than copied from prose, and the artifact policy is set: bulk results stay local, a committed <code>*.summary.json</code> sibling carries what the writeup actually cites. The technical summary opens with a warning that <strong>no document dated before 2026-05 can be trusted on whether SAE ablation works</strong>.</p>
+    <p>Layer 14 — never ablated, despite being the strongest knockout site — is finally run.</p>
+    <div class="tablewrap"><table>
+      <tr><th>Layer</th><th class="num">margin drop</th><th class="num">z (inflated)</th><th class="num">% positive</th><th class="num">% of ceiling</th></tr>
+      <tr><td>0</td><td class="num">0.0200</td><td class="num">73.1</td><td class="num">56.6%</td><td class="num">4.4%</td></tr>
+      <tr><td>10</td><td class="num">0.1514</td><td class="num">66.5</td><td class="num">81.2%</td><td class="num">56.4%</td></tr>
+      <tr><td>11</td><td class="num">0.2131</td><td class="num">81.6</td><td class="num">84.8%</td><td class="num">49.9%</td></tr>
+      <tr><td>12</td><td class="num">0.1670</td><td class="num">56.0</td><td class="num">82.8%</td><td class="num">68.1%</td></tr>
+      <tr><td>13</td><td class="num">0.1220</td><td class="num">47.7</td><td class="num">64.8%</td><td class="num">undefined</td></tr>
+      <tr class="hi"><td>14</td><td class="num">0.2433</td><td class="num">70.0</td><td class="num">90.2%</td><td class="num">61.1%</td></tr>
+    </table></div>
+    <p><strong>Layer 14, not layer 11, is the strongest result</strong> — largest drop, highest positive fraction, largest knockout d, healthy dictionary. Layer 11's higher z reflected quieter control sets, not a bigger effect, which was the first hint of what Phase 8 found.</p>
+    <p>A correction lands here too: the widely-quoted "39% of the knockout ceiling" had compared a CLEVR-Lite ablation against a <em>GQA</em> knockout drop — against CLEVR-Lite's own layer-11 value it is <strong>49.9%</strong>.</p>
+    <p class="note"><strong>Superseded 18 Aug.</strong> A second "correction" made here — that the v1/v2 top-200 overlap is 2 rather than zero — was itself wrong, and by the same fault it was meant to catch. It compared the v2 catalog against <code>sae_q_layer11/</code>, the GQA-era v1 run at a different layer, site and position set. Like-for-like, against the CLEVR-Lite layer-11 <code>attn_out</code>/question v1 run, the overlap is <strong>0</strong> and the two sets are five orders of magnitude apart in activation. The original claim of zero was right. The same contaminated path had reached the paper's ghost-feature figure; both are now fixed.</p>
+  </div>
+</div>
+
+<h2>Phase 8 — two conclusions overturned after the writeup began</h2>
+
+<div class="phase">
+  <div class="rail">
+    <span class="date">7 Aug 2026</span>
+    <div class="refs">4aaaa48<br>retraction in<br>ablation_methodology_review.md §5</div>
+  </div>
+  <div>
+    <h3>The random controls were uniform, not matched</h3>
+    <p>Configs asked for controls matched on <code>matched_metric: "correct_mean"</code> — a key that exists nowhere in the v2 stats files, which carry only <code>causal_score</code>, <code>activation_mean</code>, <code>gradient_mean</code>. <code>_extract_metric_value</code> returned <code>None</code>, fell through its whole chain, and <code>_sample_matched_random_features</code> silently took its uniform branch. Corroboration: 0 of 45 stored control features sat in the causal top-500, where matching predicts nearly all of them.</p>
+    <div class="tablewrap"><table>
+      <tr><th>Layer 11, k=200, control arm only</th><th class="num">control mean</th><th class="num">perturbation</th><th class="num">z</th></tr>
+      <tr><td>uniform (as published)</td><td class="num">−0.0004</td><td class="num">0.0019</td><td class="num">81.6</td></tr>
+      <tr class="hi"><td>matched on activation_mean</td><td class="num">−0.0217</td><td class="num">0.0225</td><td class="num">63.5</td></tr>
+    </table></div>
+    <p>Every published z compared top-causal features against near-dead ones. Matched controls now perturb the residual stream <em>more</em> than the binding set and still produce a tenth of the effect, so the finding survives easily (Wilcoxon p = 2.2e-35), but <strong>every z in every pre-August document is inflated and must be restated</strong>. Margin drops and positive fractions are unaffected. The fix is <code>matched_metric: "activation_mean"</code> plus <code>random_control.strict_matching: true</code>, which raises instead of falling back.</p>
+  </div>
+</div>
+
+<div class="phase">
+  <div class="rail">
+    <span class="date">7–9 Aug 2026</span>
+    <div class="refs">branch: multilayer-ablation<br>22c4263 … 457875c<br>47 conditions, ~14h<br>docs/multilayer_ablation_findings.md</div>
+  </div>
+  <div>
+    <h3>Redundancy falsified; distribution found instead</h3>
+    <p>A 47-condition matrix — joint, nested, leave-one-out, non-nested triples, budget-matched, downstream-knockout combinations, gates — all n=256 on the same question set, with matched controls throughout. The redundancy hypothesis had to be restated before it could be tested: nothing "relearns" at inference, so the only mechanism available is downstream layers re-reading the image. That is directly testable.</p>
+    <p><strong>Test:</strong> ablate at layer 14, then knock out Image→Question at <em>every</em> layer downstream so re-reading is impossible. Additive prediction 0.5964; actual 0.5989. The ablation bites <strong>0.2% harder</strong> with all re-reading blocked. Three further lines agree — the redundancy index sits <em>inside</em> the single-layer range (joint 72.0%, but layer 12 alone recovers 78.2%), the span's super-additivity is fully accounted for by the flow's own (ρ_A/ρ_K = 0.975), and leave-one-out points the wrong way for three of five layers.</p>
+    <p><strong>What replaced it:</strong></p>
+    <div class="tablewrap"><table>
+      <tr><th>Fixed feature budget</th><th class="num">features</th><th class="num">margin drop</th><th class="num">perturbation</th></tr>
+      <tr class="hi"><td>spread: 40 × 5 layers</td><td class="num">200</td><td class="num">0.6182</td><td class="num">0.0100</td></tr>
+      <tr><td>concentrated at L11</td><td class="num">200</td><td class="num">0.2131</td><td class="num">0.0186</td></tr>
+      <tr><td>concentrated at L11</td><td class="num">400</td><td class="num">0.2364</td><td class="num">0.0274</td></tr>
+      <tr><td>concentrated at L11</td><td class="num">800</td><td class="num">0.1940</td><td class="num">0.0330</td></tr>
+    </table></div>
+    <p>Spreading a budget across layers is <strong>2.9× the same budget concentrated</strong> and <strong>3.2× four times that budget</strong>, at half the perturbation. The single-layer curve is flat from k=40 to k=800 — a layer has a hard ceiling near 0.24 that no feature count breaks. Across spans of 1–5 layers, ablation recovers a <strong>constant ~72%</strong> of the flow, so the missing third is a property of the feature method, not of the other layers.</p>
+    <div class="assume">
+      <div><span class="label broke">Also corrected here</span><span class="body">The saturation fit <code>y = a(1 − e^{−bk})</code> degenerates to a straight line as b → 0 — a and b run away with only their product identified. The analysis had been reporting "ablation saturates faster than the flow does (redundancy)" <strong>off the sign of numerical noise</strong>. It now flags degeneracy and reports the identified slope ratio, 0.718.</span></div>
+    </div>
+  </div>
+</div>
+
+<h2>Phase 9 — current state</h2>
+
+<div class="phase">
+  <div class="rail">
+    <span class="date">now</span>
+    <div class="refs">uncommitted:<br>notebooks/paper_figures.ipynb<br>output/paper_figures/fig6–9</div>
+  </div>
+  <div>
+    <h3>Nine figures, built only from committed summaries</h3>
+    <p>Figures 1–5 cover the knockout landscape, ablation vs. controls, fraction of ceiling, the v1 ghost-feature diagnosis, and causal-score concentration. Figures 6–9 — uncommitted — cover the multi-layer program: budget distribution, redundancy falsified, span growth, and the control-regime correction. The notebook reads nothing gitignored, and its header documents the two source-path traps: layer 11 has an n=50 run and an n=256 run (cite the latter), and layer 10 has a flat and a nested results file that are <em>different runs of the same config</em> (0.15141 / z=66.5 vs 0.15097 / z=56.2).</p>
+  </div>
+</div>
+
+<h2>Decision ledger</h2>
+
+<div class="tablewrap"><table class="ledger">
+  <tr><th>Choice</th><th>When</th><th>Reasoning at the time</th><th>Status</th></tr>
+  <tr><td>Layers 0 &amp; 11</td><td>Feb</td><td>The two GQA knockout peaks; read as two integration phases</td><td class="status dead">superseded by {0,10–14}</td></tr>
+  <tr><td><code>residual</code> site</td><td>Jan</td><td>Default; SAE literature convention</td><td class="status dead">→ <code>attn_out</code>, Feb</td></tr>
+  <tr><td><code>attn_out</code> site</td><td>Feb</td><td>Knockout blocks attention, so model the attention output</td><td class="status live">current</td></tr>
+  <tr><td><code>attribute</code> positions</td><td>Jan</td><td>Attribute words are where the attribute must live</td><td class="status dead">0.3% perturbation, Mar</td></tr>
+  <tr><td><code>image</code> positions</td><td>Mar</td><td>Corrupt at the source so downstream can't re-read</td><td class="status dead">zero KO effect there, Apr</td></tr>
+  <tr><td><code>question</code> positions</td><td>Apr</td><td>Causal mask ⇒ the transferred signal exists only at the destination</td><td class="status live">current</td></tr>
+  <tr><td><code>replace</code> mode</td><td>Mar</td><td>Harder, more interpretable intervention than delta</td><td class="status live">validated May (passthrough = 0)</td></tr>
+  <tr><td>ratio / abs_diff selection</td><td>Jan–Feb</td><td>Features that separate correct from incorrect are the binding features</td><td class="status dead">ghost features, May</td></tr>
+  <tr><td><code>&#124;grad&#124; × &#124;act&#124;</code> selection</td><td>May</td><td>Correlational ≠ causal; attribution patching over SAE features</td><td class="status live">current</td></tr>
+  <tr><td>GQA ChooseAttr</td><td>inherited</td><td>The published task</td><td class="status dead">bypass + data quality, Apr</td></tr>
+  <tr><td>CLEVR-Lite</td><td>Apr</td><td>Kills the language bypass, the data-scale problem, and tiny objects at once</td><td class="status live">current; seed 32, reproducible</td></tr>
+  <tr><td>32,768 features</td><td>Jan, again Apr</td><td>Dropped to 4,096 in Mar when data was scarce; restored once CLEVR-Lite made data free</td><td class="status live">current</td></tr>
+  <tr><td>Matched random controls</td><td>intended from Jan</td><td>A control set with the same activation profile, not uniform indices</td><td class="status dead">silently uniform until Aug</td></tr>
+  <tr><td>n = 256 ablation</td><td>May</td><td>Cost; feature ID still runs on the full n=7,790</td><td class="status live">current</td></tr>
+  <tr><td>PaliGemma-2 + GemmaScope</td><td>Apr</td><td>Pretrained SAEs sidestep training scale and dead features</td><td class="status dead">branched, never merged</td></tr>
+</table></div>
+
+<h2>Caveats that must survive into the report</h2>
+
+<ul>
+  <li><strong>Every pre-August z is inflated.</strong> Uniform controls, not matched. Margin drops and positive fractions are unaffected; restate the z-scores or cite the Wilcoxon values.</li>
+  <li><strong>Layer 0 is a dictionary failure, not a negative result.</strong> <code>dead_feature_fraction = 0.742</code> against 0.06–0.4% everywhere else. Its 4.4%-of-ceiling number says nothing about the model.</li>
+  <li><strong>Layer 13 is a genuine puzzle.</strong> Knockout is inhibitory (−0.048) but ablating its causal features hurts (+0.122). The two interventions disagree in sign and "% of ceiling" is undefined. Worth a sentence, not a quiet omission.</li>
+  <li><strong>Mean L0 is 1,100–1,600</strong> across all six SAEs. Reconstruction is near-perfect (EV &gt; 0.998) but the dictionaries are not very sparse — that limits claims about individual features being clean interpretable units.</li>
+  <li><strong>Thin control arm in the multi-layer matrix.</strong> Only <code>A0</code> and <code>joint_L10-14</code> ran 15 control sets; the nested, non-nested and budget conditions used 1 and carry no z.</li>
+  <li><strong>Saturation is unresolved, not absent.</strong> Spans of 1–5 layers are all in the linear regime; locating a knee needs wider spans.</li>
+  <li><strong>The six-layer matched-control re-run was never done.</strong> Only layer 11 has a matched number; the per-layer table is still on the old uniform standard.</li>
+</ul>
+
+<div class="flag">
+  <p><strong>Documents that are wrong in ways that look right.</strong> <code>docs/REPORT_SAE_EXPERIMENT.md</code> (Feb) concludes SAE ablation doesn't work. <code>docs/CLAUDE.md</code> and <code>progress_report.tex</code> are the null-era post-mortems and predate v2 entirely. <code>context_cross_layer_redundancy.md</code> argues for a hypothesis since falsified. <code>README_SAE_EXPERIMENT.md</code> cites paths the May reorg deleted. All are useful as history and dangerous as citation.</p>
+  <p>The current sources of truth: <code>output/sae_experiments/LLM_TECHNICAL_SUMMARY.{md,json}</code>, <code>docs/MEMORY.md</code>, and <code>docs/multilayer_ablation_findings.md</code>.</p>
+</div>
+
+<footer>
+  Reconstructed from 129 commits across 7 branches, 11 documents in <code>docs/</code>, and the committed result summaries under <code>output/sae_experiments/</code>. Branch <code>multilayer-ablation</code> at 457875c, with the paper-figures notebook uncommitted.
+</footer>
+
+</div>
+</body>
+</html>

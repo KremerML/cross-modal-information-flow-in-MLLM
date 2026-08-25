@@ -1,291 +1,309 @@
 {
- "generated": "2026-08-07",
- "supersedes": "2026-02-10 version, whose null-result conclusion was overturned by v2",
- "project_phase": "writeup; the layer-14 ablation (2026-08-06) and the 47-condition multi-layer program (2026-08-07) ran after the writeup phase began and are folded in here",
- "prose_companion": "output/sae_experiments/LLM_TECHNICAL_SUMMARY.md",
- "dataset": "CLEVR-Lite (synthetic, open-ended; 186638 train / 7790 val questions)",
- "model": "LLaVA-v1.5-7b, 32 layers, d_model=4096",
- "method": {
-  "site": "attn_out",
-  "position_type": "question",
-  "ablation_mode": "replace",
-  "sae_n_features": 32768,
-  "feature_id": "v2 gradient x activation (causal_feature_identifier.py), n=7790",
-  "ablation_n": 256,
-  "n_random_control_sets": 15,
-  "random_sampling": "matched"
- },
- "layers": {
-  "0": {
-   "knockout": {
-    "mean_margin_drop": 0.4574917789156684,
-    "effect_size": 1.0424429389773522,
-    "samples": 7084
-   },
-   "sae": {
-    "rows": 4898438,
-    "mse": 3.162681491190224e-08,
-    "normalized_mse": 0.00016629114030297103,
-    "explained_variance": 0.999833708859697,
-    "mean_l0": 1416.1103886585888,
-    "dead_feature_fraction": 0.74188232421875
-   },
-   "ablation_v2": {
-    "source": "sae_clevr_lite_layer0_attn_out_question_causal/results/ablation_v2_results.json",
-    "n_samples": 256,
-    "mean_margin_drop": 0.019957038263479877,
-    "accuracy_drop": -0.00390625,
-    "random_mean": -0.000283920195781513,
-    "random_sd": 0.00027671329956655027,
-    "z_score": 73.14776156754036,
-    "frac_samples_positive": 0.56640625,
-    "flips_correct_to_wrong": 0,
-    "n_random_sets": 15,
-    "pct_of_knockout_ceiling": 0.04362272544171477
-   },
-   "feature_concentration": {
-    "n_nonzero": 4485,
-    "score_mass_frac_top50": 0.373716436951399,
-    "score_mass_frac_top200": 0.6309106412335035,
-    "score_mass_frac_top500": 0.7985596446777938
-   },
-   "activation_top500_mean": 0.003373749284695488,
-   "activation_all_median": 0.0
-  },
-  "10": {
-   "knockout": {
-    "mean_margin_drop": 0.2683023558584239,
-    "effect_size": 1.1352599226560909,
-    "samples": 7084
-   },
-   "sae": {
-    "rows": 4898438,
-    "mse": 6.754018444662071e-06,
-    "normalized_mse": 0.0011188860508000505,
-    "explained_variance": 0.9988811139492,
-    "mean_l0": 1128.0367760090053,
-    "dead_feature_fraction": 0.00201416015625
-   },
-   "ablation_v2": {
-    "source": "sae_clevr_lite_layer10_attn_out_question_causal/results/ablation_results.json",
-    "n_samples": 256,
-    "mean_margin_drop": 0.15141100653757653,
-    "accuracy_drop": 0.0078125,
-    "random_mean": 4.209609081348084e-05,
-    "random_sd": 0.002276825022340354,
-    "z_score": 66.48245208196569,
-    "frac_samples_positive": 0.8125,
-    "flips_correct_to_wrong": 3,
-    "n_random_sets": 15,
-    "pct_of_knockout_ceiling": 0.5643297691261129
-   }
-  },
-  "11": {
-   "knockout": {
-    "mean_margin_drop": 0.4272842982686802,
-    "effect_size": 0.9149295702362569,
-    "samples": 7084
-   },
-   "sae": {
-    "rows": 4898438,
-    "mse": 1.0737108489934485e-05,
-    "normalized_mse": 0.001487281694531175,
-    "explained_variance": 0.9985127183054688,
-    "mean_l0": 1180.1057181901658,
-    "dead_feature_fraction": 0.00384521484375
-   },
-   "ablation_v2": {
-    "source": "sae_clevr_lite_layer11_attn_out_question_causal/results/ablation_results.json",
-    "n_samples": 256,
-    "mean_margin_drop": 0.21307707345113158,
-    "accuracy_drop": 0.015625,
-    "random_mean": -0.00039484781316584416,
-    "random_sd": 0.00261455932818028,
-    "z_score": 81.64738086585045,
-    "frac_samples_positive": 0.84765625,
-    "flips_correct_to_wrong": 4,
-    "n_random_sets": 15,
-    "pct_of_knockout_ceiling": 0.49867751825775447
-   },
-   "feature_concentration": {
-    "n_nonzero": 27810,
-    "score_mass_frac_top50": 0.17167305115872317,
-    "score_mass_frac_top200": 0.4573037803269785,
-    "score_mass_frac_top500": 0.799440443166201
-   },
-   "activation_top500_mean": 0.11679172174201466,
-   "activation_all_median": 6.067985618341743e-08
-  },
-  "12": {
-   "knockout": {
-    "mean_margin_drop": 0.24521969689300632,
-    "effect_size": 0.7638282491881371,
-    "samples": 7084
-   },
-   "sae": {
-    "rows": 4898438,
-    "mse": 5.07106922300532e-06,
-    "normalized_mse": 0.000641177101091439,
-    "explained_variance": 0.9993588228989085,
-    "mean_l0": 1587.1672410674587,
-    "dead_feature_fraction": 0.0006103515625
-   },
-   "ablation_v2": {
-    "source": "sae_clevr_lite_layer12_attn_out_question_causal/results/ablation_v2_results.json",
-    "n_samples": 256,
-    "mean_margin_drop": 0.16700315754860645,
-    "accuracy_drop": 0.0078125,
-    "random_mean": 0.0005851452238857804,
-    "random_sd": 0.00297023539589856,
-    "z_score": 56.02856007793808,
-    "frac_samples_positive": 0.828125,
-    "flips_correct_to_wrong": 3,
-    "n_random_sets": 15,
-    "pct_of_knockout_ceiling": 0.6810348420807031
-   },
-   "feature_concentration": {
-    "n_nonzero": 27298,
-    "score_mass_frac_top50": 0.12331583490305414,
-    "score_mass_frac_top200": 0.3595001395485207,
-    "score_mass_frac_top500": 0.661226438754358
-   },
-   "activation_top500_mean": 0.10690318160687544,
-   "activation_all_median": 3.7169126146919824e-08
-  },
-  "13": {
-   "knockout": {
-    "mean_margin_drop": -0.048344413775992044,
-    "effect_size": -0.36439133544190977,
-    "samples": 7084
-   },
-   "sae": {
-    "rows": 4898438,
-    "mse": 1.0347284146348468e-05,
-    "normalized_mse": 0.0014083425009091537,
-    "explained_variance": 0.9985916574990908,
-    "mean_l0": 1256.0398406594102,
-    "dead_feature_fraction": 0.001495361328125
-   },
-   "ablation_v2": {
-    "source": "sae_clevr_lite_layer13_attn_out_question_causal/results/ablation_v2_results.json",
-    "n_samples": 256,
-    "mean_margin_drop": 0.1219867984764278,
-    "accuracy_drop": 0.01171875,
-    "random_mean": 0.00022842322165767676,
-    "random_sd": 0.002554830150465728,
-    "z_score": 47.658109574358356,
-    "frac_samples_positive": 0.6484375,
-    "flips_correct_to_wrong": 3,
-    "n_random_sets": 15,
-    "pct_of_knockout_ceiling": null
-   },
-   "feature_concentration": {
-    "n_nonzero": 26649,
-    "score_mass_frac_top50": 0.16402177349722094,
-    "score_mass_frac_top200": 0.43903885780290697,
-    "score_mass_frac_top500": 0.7645229755319759
-   },
-   "activation_top500_mean": 0.11721484049240294,
-   "activation_all_median": 4.379441478948404e-08
-  },
-  "14": {
-   "knockout": {
-    "mean_margin_drop": 0.398271095959139,
-    "effect_size": 1.2052904497502763,
-    "samples": 7084
-   },
-   "sae": {
-    "rows": 4898438,
-    "mse": 1.4728843898438978e-05,
-    "normalized_mse": 0.0013046246438654019,
-    "explained_variance": 0.9986953753561346,
-    "mean_l0": 1446.4913882752012,
-    "dead_feature_fraction": 0.001556396484375
-   },
-   "ablation_v2": {
-    "source": "sae_clevr_lite_layer14_attn_out_question_causal/results/ablation_v2_results.json",
-    "n_samples": 256,
-    "mean_margin_drop": 0.24327474304785338,
-    "accuracy_drop": 0.00390625,
-    "random_mean": 0.0007641913576258585,
-    "random_sd": 0.0034662809471556985,
-    "z_score": 69.96275125627733,
-    "frac_samples_positive": 0.90234375,
-    "flips_correct_to_wrong": 2,
-    "n_random_sets": 15,
-    "pct_of_knockout_ceiling": 0.6108270108378951
-   },
-   "feature_concentration": {
-    "n_nonzero": 27918,
-    "score_mass_frac_top50": 0.16324640943116342,
-    "score_mass_frac_top200": 0.4369385822338774,
-    "score_mass_frac_top500": 0.7622609738885002
-   },
-   "activation_top500_mean": 0.15646567916948423,
-   "activation_all_median": 6.499478999353151e-08
-  }
- },
- "multilayer": {
   "generated": "2026-08-07",
-  "prose_companion": "docs/multilayer_ablation_findings.md",
-  "experiment_dir": "output/sae_experiments/multilayer_clevr_lite_l10-14_attn_out_question",
-  "analysis": "analysis/multilayer_summary.json",
-  "span": [10, 11, 12, 13, 14],
-  "n_conditions": 47,
-  "n_samples": 256,
-  "question": "does single-layer ablation capture only half the knockout ceiling because the model re-reads the image downstream?",
-  "answer": "no; the features are distributed across layers, and the shortfall is a constant fraction at every span size",
-  "redundancy_index": {
-   "ablation_condition": "joint_L10-14",
-   "knockout_condition": "span_knockout_L10-14",
-   "ablation_mean": 1.0028024140625,
-   "knockout_mean": 1.3934086210937502,
-   "ratio": 0.7196757640808584,
-   "ci_low": 0.6890384939957019,
-   "ci_high": 0.7527898904414516,
-   "note": "numerator and denominator measured on the same 256 samples, unlike the per-layer pct_of_knockout_ceiling above"
+  "supersedes": "2026-02-10 version, whose null-result conclusion was overturned by v2",
+  "project_phase": "writeup; the layer-14 ablation (2026-08-06) and the 47-condition multi-layer program (2026-08-07) ran after the writeup phase began and are folded in here",
+  "prose_companion": "output/sae_experiments/LLM_TECHNICAL_SUMMARY.md",
+  "dataset": "CLEVR-Lite (synthetic, open-ended; 186638 train / 7790 val questions)",
+  "model": "LLaVA-v1.5-7b, 32 layers, d_model=4096",
+  "method": {
+    "site": "attn_out",
+    "position_type": "question",
+    "ablation_mode": "replace",
+    "sae_n_features": 32768,
+    "feature_id": "v2 gradient x activation (causal_feature_identifier.py), n=7790",
+    "ablation_n": 256,
+    "n_random_control_sets": 15,
+    "random_sampling": "matched"
   },
-  "downstream_knockout_test": {
-   "note": "ablate at the anchor, then block Image->Question at every downstream layer. Re-reading predicts a large excess over additivity; there is essentially none at layer 14.",
-   "11": {
-    "ablation": 0.2131,
-    "downstream_knockout": 0.911,
-    "downstream_layers": "12-31",
-    "additive": 1.1241,
-    "combined": 1.2068,
-    "excess": 0.0828
-   },
-   "14": {
-    "ablation": 0.2432,
-    "downstream_knockout": 0.3533,
-    "downstream_layers": "15-31",
-    "additive": 0.5964,
-    "combined": 0.5989,
-    "excess": 0.0024
-   }
+  "layers": {
+    "0": {
+      "knockout": {
+        "mean_margin_drop": 0.4574917789156684,
+        "effect_size": 1.0424429389773522,
+        "samples": 7084
+      },
+      "sae": {
+        "rows": 4898438,
+        "mse": 3.162681491190224e-08,
+        "normalized_mse": 0.00016629114030297103,
+        "explained_variance": 0.999833708859697,
+        "mean_l0": 1416.1103886585888,
+        "dead_feature_fraction": 0.74188232421875
+      },
+      "ablation_v2": {
+        "source": "sae_clevr_lite_layer0_attn_out_question_causal/results/ablation_v2_results.json",
+        "n_samples": 256,
+        "mean_margin_drop": 0.019957038263479877,
+        "accuracy_drop": -0.00390625,
+        "random_mean": -0.000283920195781513,
+        "random_sd": 0.00027671329956655027,
+        "z_score": 73.14776156754036,
+        "frac_samples_positive": 0.56640625,
+        "flips_correct_to_wrong": 0,
+        "n_random_sets": 15,
+        "pct_of_knockout_ceiling": 0.04362272544171477
+      },
+      "feature_concentration": {
+        "n_nonzero": 4485,
+        "score_mass_frac_top50": 0.373716436951399,
+        "score_mass_frac_top200": 0.6309106412335035,
+        "score_mass_frac_top500": 0.7985596446777938
+      },
+      "activation_top500_mean": 0.003373749284695488,
+      "activation_all_median": 0.0
+    },
+    "10": {
+      "knockout": {
+        "mean_margin_drop": 0.2683023558584239,
+        "effect_size": 1.1352599226560909,
+        "samples": 7084
+      },
+      "sae": {
+        "rows": 4898438,
+        "mse": 6.754018444662071e-06,
+        "normalized_mse": 0.0011188860508000505,
+        "explained_variance": 0.9988811139492,
+        "mean_l0": 1128.0367760090053,
+        "dead_feature_fraction": 0.00201416015625
+      },
+      "ablation_v2": {
+        "source": "sae_clevr_lite_layer10_attn_out_question_causal/results/ablation_results.json",
+        "n_samples": 256,
+        "mean_margin_drop": 0.15141100653757653,
+        "accuracy_drop": 0.0078125,
+        "random_mean": 4.209609081348084e-05,
+        "random_sd": 0.002276825022340354,
+        "z_score": 66.48245208196569,
+        "frac_samples_positive": 0.8125,
+        "flips_correct_to_wrong": 3,
+        "n_random_sets": 15,
+        "pct_of_knockout_ceiling": 0.5643297691261129
+      }
+    },
+    "11": {
+      "knockout": {
+        "mean_margin_drop": 0.4272842982686802,
+        "effect_size": 0.9149295702362569,
+        "samples": 7084
+      },
+      "sae": {
+        "rows": 4898438,
+        "mse": 1.0737108489934485e-05,
+        "normalized_mse": 0.001487281694531175,
+        "explained_variance": 0.9985127183054688,
+        "mean_l0": 1180.1057181901658,
+        "dead_feature_fraction": 0.00384521484375
+      },
+      "ablation_v2": {
+        "source": "sae_clevr_lite_layer11_attn_out_question_causal/results/ablation_results.json",
+        "n_samples": 256,
+        "mean_margin_drop": 0.21307707345113158,
+        "accuracy_drop": 0.015625,
+        "random_mean": -0.00039484781316584416,
+        "random_sd": 0.00261455932818028,
+        "z_score": 81.64738086585045,
+        "frac_samples_positive": 0.84765625,
+        "flips_correct_to_wrong": 4,
+        "n_random_sets": 15,
+        "pct_of_knockout_ceiling": 0.49867751825775447
+      },
+      "feature_concentration": {
+        "n_nonzero": 27810,
+        "score_mass_frac_top50": 0.17167305115872317,
+        "score_mass_frac_top200": 0.4573037803269785,
+        "score_mass_frac_top500": 0.799440443166201
+      },
+      "activation_top500_mean": 0.11679172174201466,
+      "activation_all_median": 6.067985618341743e-08
+    },
+    "12": {
+      "knockout": {
+        "mean_margin_drop": 0.24521969689300632,
+        "effect_size": 0.7638282491881371,
+        "samples": 7084
+      },
+      "sae": {
+        "rows": 4898438,
+        "mse": 5.07106922300532e-06,
+        "normalized_mse": 0.000641177101091439,
+        "explained_variance": 0.9993588228989085,
+        "mean_l0": 1587.1672410674587,
+        "dead_feature_fraction": 0.0006103515625
+      },
+      "ablation_v2": {
+        "source": "sae_clevr_lite_layer12_attn_out_question_causal/results/ablation_v2_results.json",
+        "n_samples": 256,
+        "mean_margin_drop": 0.16700315754860645,
+        "accuracy_drop": 0.0078125,
+        "random_mean": 0.0005851452238857804,
+        "random_sd": 0.00297023539589856,
+        "z_score": 56.02856007793808,
+        "frac_samples_positive": 0.828125,
+        "flips_correct_to_wrong": 3,
+        "n_random_sets": 15,
+        "pct_of_knockout_ceiling": 0.6810348420807031
+      },
+      "feature_concentration": {
+        "n_nonzero": 27298,
+        "score_mass_frac_top50": 0.12331583490305414,
+        "score_mass_frac_top200": 0.3595001395485207,
+        "score_mass_frac_top500": 0.661226438754358
+      },
+      "activation_top500_mean": 0.10690318160687544,
+      "activation_all_median": 3.7169126146919824e-08
+    },
+    "13": {
+      "knockout": {
+        "mean_margin_drop": -0.048344413775992044,
+        "effect_size": -0.36439133544190977,
+        "samples": 7084
+      },
+      "sae": {
+        "rows": 4898438,
+        "mse": 1.0347284146348468e-05,
+        "normalized_mse": 0.0014083425009091537,
+        "explained_variance": 0.9985916574990908,
+        "mean_l0": 1256.0398406594102,
+        "dead_feature_fraction": 0.001495361328125
+      },
+      "ablation_v2": {
+        "source": "sae_clevr_lite_layer13_attn_out_question_causal/results/ablation_v2_results.json",
+        "n_samples": 256,
+        "mean_margin_drop": 0.1219867984764278,
+        "accuracy_drop": 0.01171875,
+        "random_mean": 0.00022842322165767676,
+        "random_sd": 0.002554830150465728,
+        "z_score": 47.658109574358356,
+        "frac_samples_positive": 0.6484375,
+        "flips_correct_to_wrong": 3,
+        "n_random_sets": 15,
+        "pct_of_knockout_ceiling": null
+      },
+      "feature_concentration": {
+        "n_nonzero": 26649,
+        "score_mass_frac_top50": 0.16402177349722094,
+        "score_mass_frac_top200": 0.43903885780290697,
+        "score_mass_frac_top500": 0.7645229755319759
+      },
+      "activation_top500_mean": 0.11721484049240294,
+      "activation_all_median": 4.379441478948404e-08
+    },
+    "14": {
+      "knockout": {
+        "mean_margin_drop": 0.398271095959139,
+        "effect_size": 1.2052904497502763,
+        "samples": 7084
+      },
+      "sae": {
+        "rows": 4898438,
+        "mse": 1.4728843898438978e-05,
+        "normalized_mse": 0.0013046246438654019,
+        "explained_variance": 0.9986953753561346,
+        "mean_l0": 1446.4913882752012,
+        "dead_feature_fraction": 0.001556396484375
+      },
+      "ablation_v2": {
+        "source": "sae_clevr_lite_layer14_attn_out_question_causal/results/ablation_v2_results.json",
+        "n_samples": 256,
+        "mean_margin_drop": 0.24327474304785338,
+        "accuracy_drop": 0.00390625,
+        "random_mean": 0.0007641913576258585,
+        "random_sd": 0.0034662809471556985,
+        "z_score": 69.96275125627733,
+        "frac_samples_positive": 0.90234375,
+        "flips_correct_to_wrong": 2,
+        "n_random_sets": 15,
+        "pct_of_knockout_ceiling": 0.6108270108378951
+      },
+      "feature_concentration": {
+        "n_nonzero": 27918,
+        "score_mass_frac_top50": 0.16324640943116342,
+        "score_mass_frac_top200": 0.4369385822338774,
+        "score_mass_frac_top500": 0.7622609738885002
+      },
+      "activation_top500_mean": 0.15646567916948423,
+      "activation_all_median": 6.499478999353151e-08
+    }
   },
-  "budget_matched": {
-   "note": "equal budget of 200 features; spreading beats concentrating while perturbing the residual stream less",
-   "spread_40x5_L10-14": {"mean_margin_drop": 0.6182, "mean_relative_perturbation": 0.01},
-   "concentrated_L11_k200": {"mean_margin_drop": 0.2131, "mean_relative_perturbation": 0.0186},
-   "ratio_spread_over_concentrated": 2.9,
-   "concentrated_L11_count_curve": {"40": 0.19, "100": 0.192, "200": 0.213, "400": 0.236, "800": 0.194},
-   "ratio_spread_over_k800": 3.19
+  "multilayer": {
+    "generated": "2026-08-07",
+    "prose_companion": "docs/multilayer_ablation_findings.md",
+    "experiment_dir": "output/sae_experiments/multilayer_clevr_lite_l10-14_attn_out_question",
+    "analysis": "analysis/multilayer_summary.json",
+    "span": [
+      10,
+      11,
+      12,
+      13,
+      14
+    ],
+    "n_conditions": 47,
+    "n_samples": 256,
+    "question": "does single-layer ablation capture only half the knockout ceiling because the model re-reads the image downstream?",
+    "answer": "no; the features are distributed across layers, and the recovered share shows no trend with span size (slope -0.010/layer, 95% CI -0.024 to +0.003); it is NOT constant per span, which runs 65-88% at every span size",
+    "redundancy_index": {
+      "ablation_condition": "joint_L10-14",
+      "knockout_condition": "span_knockout_L10-14",
+      "ablation_mean": 1.0028024140625,
+      "knockout_mean": 1.3934086210937502,
+      "ratio": 0.7196757640808584,
+      "ci_low": 0.6890384939957019,
+      "ci_high": 0.7527898904414516,
+      "note": "numerator and denominator measured on the same 256 samples, unlike the per-layer pct_of_knockout_ceiling above"
+    },
+    "downstream_knockout_test": {
+      "note": "ablate at the anchor, then block Image->Question at every downstream layer. Re-reading predicts a large excess over additivity; there is essentially none at layer 14.",
+      "11": {
+        "ablation": 0.2131,
+        "downstream_knockout": 0.911,
+        "downstream_layers": "12-31",
+        "additive": 1.1241,
+        "combined": 1.2068,
+        "excess": 0.0828
+      },
+      "14": {
+        "ablation": 0.2432,
+        "downstream_knockout": 0.3533,
+        "downstream_layers": "15-31",
+        "additive": 0.5964,
+        "combined": 0.5989,
+        "excess": 0.0024
+      }
+    },
+    "budget_matched": {
+      "note": "equal budget of 200 features; spreading beats concentrating while perturbing the residual stream less",
+      "spread_40x5_L10-14": {
+        "mean_margin_drop": 0.6182,
+        "mean_relative_perturbation": 0.01
+      },
+      "concentrated_L11_k200": {
+        "mean_margin_drop": 0.2131,
+        "mean_relative_perturbation": 0.0186
+      },
+      "ratio_spread_over_concentrated": 2.9,
+      "concentrated_L11_count_curve": {
+        "40": 0.19,
+        "100": 0.192,
+        "200": 0.213,
+        "400": 0.236,
+        "800": 0.194
+      },
+      "ratio_spread_over_k800": 3.19
+    },
+    "saturation": {
+      "note": "neither curve saturates over spans of 1-5 layers; both fits collapse to straight lines, so b - d is not identified and only the slope ratio is",
+      "ablation_slope_per_layer": 0.193,
+      "knockout_slope_per_layer": 0.269,
+      "slope_ratio": 0.718
+    },
+    "leave_one_out": "runs the wrong way for redundancy at layers 10-12, whose in-context marginals are 1.14x, 1.57x and 1.79x their standalone effects"
   },
-  "saturation": {
-   "note": "neither curve saturates over spans of 1-5 layers; both fits collapse to straight lines, so b - d is not identified and only the slope ratio is",
-   "ablation_slope_per_layer": 0.193,
-   "knockout_slope_per_layer": 0.269,
-   "slope_ratio": 0.718
-  },
-  "leave_one_out": "runs the wrong way for redundancy at layers 10-12, whose in-context marginals are 1.14x, 1.57x and 1.79x their standalone effects"
- },
- "caveats": [
-  "Layer 0 SAE has dead_feature_fraction=0.742; its low ablation effect is a dictionary-training failure, not a claim about the model.",
-  "Layer 13 knockout is inhibitory (negative) while its feature ablation is positive; pct_of_knockout_ceiling is undefined there.",
-  "Mean L0 of 1100-1600 is high; reconstruction is excellent but dictionaries are not very sparse.",
-  "The per-layer pct_of_knockout_ceiling values compare an n=256 ablation against an n=7084 knockout. The multilayer redundancy_index is the like-for-like version.",
-  "Any single-layer SAE analysis systematically understates the circuit: the features are distributed across layers, so a per-layer number is a floor, not the effect.",
-  "v1 (ratio-based) runs under output/sae_experiments/ are null results caused by ghost-feature selection; evidence about the method, not the model."
- ]
+  "caveats": [
+    "Layer 0 SAE has dead_feature_fraction=0.742; its low ablation effect is a dictionary-training failure, not a claim about the model.",
+    "Layer 13 knockout is inhibitory (negative) while its feature ablation is positive; pct_of_knockout_ceiling is undefined there.",
+    "Mean L0 of 1100-1600 is high; reconstruction is excellent but dictionaries are not very sparse.",
+    "The per-layer pct_of_knockout_ceiling values compare an n=256 ablation against an n=7084 knockout. The multilayer redundancy_index is the like-for-like version.",
+    "Any single-layer SAE analysis systematically understates the circuit: the features are distributed across layers, so a per-layer number is a floor, not the effect.",
+    "v1 (ratio-based) runs under output/sae_experiments/ are null results caused by ghost-feature selection; evidence about the method, not the model."
+  ]
 }

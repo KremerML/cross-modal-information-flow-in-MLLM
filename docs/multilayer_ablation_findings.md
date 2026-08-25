@@ -130,29 +130,46 @@ redundant.
 
 ---
 
-## 4. Neither curve saturates — the shortfall is a constant fraction
+## 4. Neither curve saturates, and the recovered share does not trend with span
 
 Nested spans, ablation against its knockout null:
 
-| span size | span | ablation | knockout | R |
-|---|---|---|---|---|
-| 1 | {14} | 0.2432 | 0.3593 | 67.7% |
-| 2 | {13,14} | 0.2679 | 0.3191 | 83.9% |
-| 3 | {12,13,14} | 0.5007 | 0.5721 | 87.5% |
-| 4 | {11,…,14} | 0.8302 | 1.2762 | 65.1% |
-| 5 | {10,…,14} | 1.0028 | 1.3934 | 72.0% |
+| span size | span | ablation | knockout | R | 95% CI |
+|---|---|---|---|---|---|
+| 1 | {14} | 0.2432 | 0.3593 | 67.7% | 63.3–72.2 |
+| 2 | {13,14} | 0.2679 | 0.3191 | 83.9% | 77.9–90.0 |
+| 3 | {12,13,14} | 0.5007 | 0.5721 | 87.5% | 81.5–94.4 |
+| 4 | {11,…,14} | 0.8302 | 1.2762 | 65.1% | 61.9–68.5 |
+| 5 | {10,…,14} | 1.0028 | 1.3934 | 72.0% | 68.9–75.3 |
+
+Intervals are paired bootstraps: one resample of the 256 questions applied to both arms and to
+every span at once, so the spans stay paired with each other as well as internally
+(`tools/analyze_multilayer_ablation.py`, `redundancy_by_span` / `redundancy_trend`, seed 42).
 
 Both exponential fits `y = a(1 − e^{−bk})` **degenerate to straight lines** over this range —
 `a` and `b` run away with only their product identified, so `b − d` carries no information. What is
 identified is the slope: **ablation 0.193/layer against knockout 0.269/layer, ratio 0.718.**
 
-So over spans of 1–5 layers ablation recovers a **constant ~72%** of the flow, with no sign of the
-ablation curve turning over sooner than the knockout curve. Seeing saturation at all would need
-wider spans.
+That is an aggregate statement about the two slopes, with no sign of the ablation curve turning
+over sooner than the knockout curve. Seeing saturation at all would need wider spans.
 
-**A constant fraction is the interesting part.** It points at the feature method itself —
-incomplete feature sets, SAE reconstruction error, or position selection — rather than at anything
-the other layers are doing. That is a sharper and more testable target than redundancy was.
+**It does not mean R is constant, and the intervals say it is not.** Per span R runs 65.1–87.5%
+with **no value inside all five intervals** (highest lower bound 81.5% against lowest upper bound
+68.5%); the spread is 22.5 points, 95% CI 17.7–28.4. Pooled over the nested spans R is 72.6%
+(95% CI 69.6–75.8). Earlier drafts of this document reported a "constant ~72%" — that was the
+slope-ratio result promoted into a per-span claim it does not support.
+
+**What survives is the direction, and it is the part that refutes redundancy.** R shows no trend
+with span size: slope **−0.010 per layer, 95% CI −0.024 to +0.003**, containing zero (Spearman
+−0.164). A redundancy account needs R to *rise* as the span covers more of the layers said to be
+compensating. It does not rise. The dispersion tracks span composition instead — the same thing
+§2's "depth beats count" measures, seen on the ratio.
+
+Two cautions on reading the table. Span 2's 83.9% is an artefact of the denominator: adding
+inhibitory layer 13 drops the knockout ceiling from 0.3593 to 0.3191 while the ablation rises, so
+R climbs without any gain in what the features recover. And the residual third still points at the
+feature method — incomplete feature sets, SAE reconstruction error, position selection — rather
+than at anything the other layers are doing; that remains a sharper target than redundancy was.
 
 ---
 
@@ -239,8 +256,11 @@ effects survive easily (Wilcoxon over questions, p = 2.2e-35 at L11, 4.0e-42 for
 2. The causal features are **distributed** across layers: at equal budget, spreading 200 features
    over five layers is 2.9× a concentrated 200 and 3.2× a concentrated 800, at half the
    perturbation. Each layer has a bounded contribution that more features cannot exceed.
-3. Ablation recovers a **constant ~72%** of the attention-knockout flow at every span size from 1 to
-   5 layers. The missing third is a property of the feature method, not of the other layers.
+3. Ablation recovers **72.6%** of the attention-knockout flow pooled over spans of 1–5 layers
+   (95% CI 69.6–75.8), and that share shows **no trend with span size** (−0.010/layer, 95% CI
+   −0.024 to +0.003) where redundancy predicts it should rise. Do *not* call it constant: per
+   span it runs 65–88% with no common value. The missing third is a property of the feature
+   method, not of the other layers.
 4. **Any single-layer SAE analysis systematically understates the circuit.** This is the
    methodological point with the broadest reach beyond this paper.
 5. All previously published z-scores used uniform, not matched, random controls (§6). Restate them.

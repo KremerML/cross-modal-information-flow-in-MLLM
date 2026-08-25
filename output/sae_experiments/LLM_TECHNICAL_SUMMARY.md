@@ -124,12 +124,21 @@ against **0.2131** for 200 concentrated at layer 11 (**2.90×**) and 0.1940 for 
 count curve is flat (0.190 / 0.192 / 0.213 / 0.236 / 0.194 for k = 40/100/200/400/800): a
 single layer has a hard ceiling near 0.24 that no number of features breaks.
 
-**And the shortfall is a constant fraction.** Joint ablation over layers 10–14 gives 1.0028
-against a span-knockout ceiling of 1.3934 measured on the same 256 samples — R = **72.0%**
-(95% CI 68.9–75.3). Across span sizes 1–5 neither curve saturates; both are linear, ablation
-0.193/layer against knockout 0.269/layer, ratio 0.718. So ablation recovers ~72% of the flow
-at *every* span size, which points at the feature method — incomplete feature sets, SAE
-reconstruction, position selection — rather than at compensation by other layers.
+**And the recovered share does not trend with span.** Joint ablation over layers 10–14 gives
+1.0028 against a span-knockout ceiling of 1.3934 measured on the same 256 samples — R = **72.0%**
+(95% CI 68.9–75.3); pooled over spans of 1–5 layers, **72.6%** (95% CI 69.6–75.8). Across span
+sizes 1–5 neither curve saturates; both are linear, ablation 0.193/layer against knockout
+0.269/layer, ratio 0.718.
+
+**Do not call R constant.** That slope ratio is an aggregate; per span R runs 65.1–87.5% with no
+value inside all five paired-bootstrap intervals (highest lower bound 81.5% vs lowest upper bound
+68.5%, spread 22.5 points, CI 17.7–28.4). What holds is the *direction*: R shows no trend with
+span size (**−0.010/layer, 95% CI −0.024 to +0.003**), where a redundancy account predicts it
+should rise as the span covers more of the compensating layers. Span 2's 83.9% is a denominator
+artefact — inhibitory layer 13 lowers the ceiling. The residual third still points at the feature
+method — incomplete feature sets, SAE reconstruction, position selection — rather than at
+compensation by other layers. Regenerate with `tools/analyze_multilayer_ablation.py`
+(`redundancy_by_span`, `redundancy_trend`).
 
 Note R = 72.0% sits *inside* the single-layer range (49.9–78.2%): layer 12 alone recovers
 78.2%. And leave-one-out runs the wrong way for redundancy at layers 10–12, whose in-context

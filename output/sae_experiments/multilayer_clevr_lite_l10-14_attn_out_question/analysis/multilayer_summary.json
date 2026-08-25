@@ -14,6 +14,7 @@
     "ablation_mean": 1.0028024140625,
     "knockout_mean": 1.3934086210937502,
     "n_samples": 256,
+    "question_ids_sha1": "a74b46cc150aecbe315ebe2cdf7cbe02d1fee24f",
     "status": "ok",
     "ratio": 0.7196757640808584,
     "ci_low": 0.6890384939957019,
@@ -38,11 +39,251 @@
       "ablation_mean": 0.24319078515625,
       "knockout_mean": 0.35927636328125,
       "n_samples": 256,
+      "question_ids_sha1": "a74b46cc150aecbe315ebe2cdf7cbe02d1fee24f",
       "status": "ok",
       "ratio": 0.6768905778693671,
       "ci_low": 0.632577919317602,
       "ci_high": 0.7222039822589357
     }
+  },
+  "redundancy_by_span": [
+    {
+      "kind": "nested",
+      "label": "{14}",
+      "span_size": 1,
+      "layers": [
+        14
+      ],
+      "ablation_condition": "nested_L14",
+      "knockout_condition": "nested_knockout_L14",
+      "ablation_mean": 0.24319078515625,
+      "knockout_mean": 0.35927636328125,
+      "n_samples": 256,
+      "question_ids_sha1": "a74b46cc150aecbe315ebe2cdf7cbe02d1fee24f",
+      "status": "ok",
+      "ratio": 0.6768905778693671,
+      "ci_low": 0.632577919317602,
+      "ci_high": 0.7222039822589357
+    },
+    {
+      "kind": "nested",
+      "label": "{13,14}",
+      "span_size": 2,
+      "layers": [
+        13,
+        14
+      ],
+      "ablation_condition": "nested_L13-14",
+      "knockout_condition": "nested_knockout_L13-14",
+      "ablation_mean": 0.26788234765624996,
+      "knockout_mean": 0.3191224375,
+      "n_samples": 256,
+      "question_ids_sha1": "a74b46cc150aecbe315ebe2cdf7cbe02d1fee24f",
+      "status": "ok",
+      "ratio": 0.8394343868605288,
+      "ci_low": 0.7786609690193039,
+      "ci_high": 0.9001118309027271
+    },
+    {
+      "kind": "nested",
+      "label": "{12,13,14}",
+      "span_size": 3,
+      "layers": [
+        12,
+        13,
+        14
+      ],
+      "ablation_condition": "nested_L12-14",
+      "knockout_condition": "nested_knockout_L12-14",
+      "ablation_mean": 0.500660953125,
+      "knockout_mean": 0.5721089492187501,
+      "n_samples": 256,
+      "question_ids_sha1": "a74b46cc150aecbe315ebe2cdf7cbe02d1fee24f",
+      "status": "ok",
+      "ratio": 0.8751147029052478,
+      "ci_low": 0.814869338540182,
+      "ci_high": 0.943787733930393
+    },
+    {
+      "kind": "nested",
+      "label": "{11-14}",
+      "span_size": 4,
+      "layers": [
+        11,
+        12,
+        13,
+        14
+      ],
+      "ablation_condition": "nested_L11-14",
+      "knockout_condition": "nested_knockout_L11-14",
+      "ablation_mean": 0.8302126015625,
+      "knockout_mean": 1.27620332421875,
+      "n_samples": 256,
+      "question_ids_sha1": "a74b46cc150aecbe315ebe2cdf7cbe02d1fee24f",
+      "status": "ok",
+      "ratio": 0.6505331758720571,
+      "ci_low": 0.6189720499248395,
+      "ci_high": 0.6846868791039197
+    },
+    {
+      "kind": "nested",
+      "label": "{10-14}",
+      "span_size": 5,
+      "layers": [
+        10,
+        11,
+        12,
+        13,
+        14
+      ],
+      "ablation_condition": "joint_L10-14",
+      "knockout_condition": "span_knockout_L10-14",
+      "ablation_mean": 1.0028024140625,
+      "knockout_mean": 1.3934086210937502,
+      "n_samples": 256,
+      "question_ids_sha1": "a74b46cc150aecbe315ebe2cdf7cbe02d1fee24f",
+      "status": "ok",
+      "ratio": 0.7196757640808584,
+      "ci_low": 0.6890384939957019,
+      "ci_high": 0.7527898904414516
+    },
+    {
+      "kind": "single",
+      "label": "{11}",
+      "span_size": 1,
+      "layers": [
+        11
+      ],
+      "ablation_condition": "A0_regression_L11",
+      "knockout_condition": "knockout_L11",
+      "ablation_mean": 0.21306933984374998,
+      "knockout_mean": 0.42678405078125004,
+      "n_samples": 256,
+      "question_ids_sha1": "a74b46cc150aecbe315ebe2cdf7cbe02d1fee24f",
+      "status": "ok",
+      "ratio": 0.49924391376321503,
+      "ci_low": 0.44807193951672175,
+      "ci_high": 0.5533459186102067
+    },
+    {
+      "kind": "non-nested",
+      "label": "{10,11,12}",
+      "span_size": 3,
+      "layers": [
+        10,
+        11,
+        12
+      ],
+      "ablation_condition": "nonnested_L10-12",
+      "knockout_condition": "nonnested_knockout_L10-12",
+      "ablation_mean": 0.75899144140625,
+      "knockout_mean": 1.2974642031249999,
+      "n_samples": 256,
+      "question_ids_sha1": "a74b46cc150aecbe315ebe2cdf7cbe02d1fee24f",
+      "status": "ok",
+      "ratio": 0.5849806411446155,
+      "ci_low": 0.5524714564860558,
+      "ci_high": 0.6209494138287271
+    },
+    {
+      "kind": "non-nested",
+      "label": "{10,12,14}",
+      "span_size": 3,
+      "layers": [
+        10,
+        12,
+        14
+      ],
+      "ablation_condition": "nonnested_L10,12,14",
+      "knockout_condition": "nonnested_knockout_L10,12,14",
+      "ablation_mean": 0.56313543359375,
+      "knockout_mean": 0.7647802812500001,
+      "n_samples": 256,
+      "question_ids_sha1": "a74b46cc150aecbe315ebe2cdf7cbe02d1fee24f",
+      "status": "ok",
+      "ratio": 0.7363362359099134,
+      "ci_low": 0.6990812680089831,
+      "ci_high": 0.7753125944289615
+    },
+    {
+      "kind": "sensitivity",
+      "label": "{10,11,12,14}",
+      "span_size": 4,
+      "layers": [
+        10,
+        11,
+        12,
+        14
+      ],
+      "ablation_condition": "sensitivity_joint_L10,11,12,14",
+      "knockout_condition": "sensitivity_knockout_L10,11,12,14",
+      "ablation_mean": 0.916617890625,
+      "knockout_mean": 1.36732938671875,
+      "n_samples": 256,
+      "question_ids_sha1": "a74b46cc150aecbe315ebe2cdf7cbe02d1fee24f",
+      "status": "ok",
+      "ratio": 0.6703709431892302,
+      "ci_low": 0.639749240287437,
+      "ci_high": 0.7035343169863036
+    }
+  ],
+  "redundancy_trend": {
+    "status": "ok",
+    "seed": 42,
+    "n_bootstrap": 10000,
+    "n_samples": 256,
+    "question_ids_sha1": "a74b46cc150aecbe315ebe2cdf7cbe02d1fee24f",
+    "per_span": [
+      {
+        "label": "{14}",
+        "span_size": 1,
+        "ratio": 0.6768905778693671,
+        "ci_low": 0.632577919317602,
+        "ci_high": 0.7222039822589357
+      },
+      {
+        "label": "{13,14}",
+        "span_size": 2,
+        "ratio": 0.8394343868605288,
+        "ci_low": 0.7786609690193039,
+        "ci_high": 0.9001118309027271
+      },
+      {
+        "label": "{12,13,14}",
+        "span_size": 3,
+        "ratio": 0.8751147029052478,
+        "ci_low": 0.814869338540182,
+        "ci_high": 0.943787733930393
+      },
+      {
+        "label": "{11-14}",
+        "span_size": 4,
+        "ratio": 0.6505331758720571,
+        "ci_low": 0.6189720499248395,
+        "ci_high": 0.6846868791039197
+      },
+      {
+        "label": "{10-14}",
+        "span_size": 5,
+        "ratio": 0.7196757640808584,
+        "ci_low": 0.6890384939957019,
+        "ci_high": 0.7527898904414516
+      }
+    ],
+    "slope_per_layer": -0.010333083856548918,
+    "slope_ci_low": -0.023560783530324897,
+    "slope_ci_high": 0.0032829086172791104,
+    "slope_excludes_zero": false,
+    "pooled_ratio": 0.725679143155787,
+    "pooled_ci_low": 0.6960297317611541,
+    "pooled_ci_high": 0.757745619218405,
+    "spread": 0.2245815270331908,
+    "spread_ci_low": 0.1768477770124387,
+    "spread_ci_high": 0.28409473630581683,
+    "common_value": false,
+    "highest_ci_low": 0.814869338540182,
+    "lowest_ci_high": 0.6846868791039197,
+    "interpretation": "Pooled recovery over the nested spans is 72.6% (95% CI 69.6% - 75.8%). The per-span ratios run 65.1% to 87.5% with NO value inside every interval, so R is not constant across spans and must not be reported as such. R shows no trend with span size (-0.0103 per layer, 95% CI -0.0236 - +0.0033, containing zero). A redundancy account predicts R rises as the span covers more of the layers said to compensate; it does not rise."
   },
   "saturation": {
     "ablation": [
@@ -104,7 +345,7 @@
     "b_minus_d": -5.5075998461733835e-06,
     "degenerate": true,
     "slope_ratio": 0.7179726253069174,
-    "interpretation": "NEITHER curve saturates over this range -- both fits collapsed to straight lines (ablation 0.193/layer, knockout 0.269/layer), so b and d are not identified and b - d carries no information. What is identified is the slope ratio, 0.718: over spans of 1-5 layers the ablation recovers a constant fraction of the flow, with no sign of the ablation curve turning over sooner. Wider spans would be needed to see saturation at all."
+    "interpretation": "NEITHER curve saturates over this range -- both fits collapsed to straight lines (ablation 0.193/layer, knockout 0.269/layer), so b and d are not identified and b - d carries no information. What is identified is the slope ratio, 0.718: over spans of 1-5 layers the two curves grow in a fixed proportion, with no sign of the ablation curve turning over sooner. Wider spans would be needed to see saturation at all. This is a statement about the two slopes and NOT about R span by span -- see redundancy_by_span, where the ratios disperse beyond their own intervals."
   },
   "interaction": {
     "span": [
