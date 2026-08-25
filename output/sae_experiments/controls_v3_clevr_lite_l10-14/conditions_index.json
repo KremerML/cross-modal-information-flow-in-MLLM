@@ -1,0 +1,218 @@
+[
+ {
+  "condition_id": "subset_top200_L11_00",
+  "label": "L11: random 40 of causal ranks 1-200",
+  "kind": "sae",
+  "features_per_layer": {
+   "11": 40
+  },
+  "total_features": 40
+ },
+ {
+  "condition_id": "subset_top200_L11_01",
+  "label": "L11: random 40 of causal ranks 1-200",
+  "kind": "sae",
+  "features_per_layer": {
+   "11": 40
+  },
+  "total_features": 40
+ },
+ {
+  "condition_id": "subset_top200_L11_02",
+  "label": "L11: random 40 of causal ranks 1-200",
+  "kind": "sae",
+  "features_per_layer": {
+   "11": 40
+  },
+  "total_features": 40
+ },
+ {
+  "condition_id": "subset_top200_L11_03",
+  "label": "L11: random 40 of causal ranks 1-200",
+  "kind": "sae",
+  "features_per_layer": {
+   "11": 40
+  },
+  "total_features": 40
+ },
+ {
+  "condition_id": "subset_top200_L11_04",
+  "label": "L11: random 40 of causal ranks 1-200",
+  "kind": "sae",
+  "features_per_layer": {
+   "11": 40
+  },
+  "total_features": 40
+ },
+ {
+  "condition_id": "subset_top200_L11_05",
+  "label": "L11: random 40 of causal ranks 1-200",
+  "kind": "sae",
+  "features_per_layer": {
+   "11": 40
+  },
+  "total_features": 40
+ },
+ {
+  "condition_id": "subset_top200_L11_06",
+  "label": "L11: random 40 of causal ranks 1-200",
+  "kind": "sae",
+  "features_per_layer": {
+   "11": 40
+  },
+  "total_features": 40
+ },
+ {
+  "condition_id": "subset_top200_L11_07",
+  "label": "L11: random 40 of causal ranks 1-200",
+  "kind": "sae",
+  "features_per_layer": {
+   "11": 40
+  },
+  "total_features": 40
+ },
+ {
+  "condition_id": "subset_top200_L11_08",
+  "label": "L11: random 40 of causal ranks 1-200",
+  "kind": "sae",
+  "features_per_layer": {
+   "11": 40
+  },
+  "total_features": 40
+ },
+ {
+  "condition_id": "subset_top200_L11_09",
+  "label": "L11: random 40 of causal ranks 1-200",
+  "kind": "sae",
+  "features_per_layer": {
+   "11": 40
+  },
+  "total_features": 40
+ },
+ {
+  "condition_id": "subset_top200_L11_10",
+  "label": "L11: random 40 of causal ranks 1-200",
+  "kind": "sae",
+  "features_per_layer": {
+   "11": 40
+  },
+  "total_features": 40
+ },
+ {
+  "condition_id": "subset_top200_L11_11",
+  "label": "L11: random 40 of causal ranks 1-200",
+  "kind": "sae",
+  "features_per_layer": {
+   "11": 40
+  },
+  "total_features": 40
+ },
+ {
+  "condition_id": "subset_tail_L11_00",
+  "label": "L11: random 40 of causal ranks 201-1000",
+  "kind": "sae",
+  "features_per_layer": {
+   "11": 40
+  },
+  "total_features": 40
+ },
+ {
+  "condition_id": "subset_tail_L11_01",
+  "label": "L11: random 40 of causal ranks 201-1000",
+  "kind": "sae",
+  "features_per_layer": {
+   "11": 40
+  },
+  "total_features": 40
+ },
+ {
+  "condition_id": "subset_tail_L11_02",
+  "label": "L11: random 40 of causal ranks 201-1000",
+  "kind": "sae",
+  "features_per_layer": {
+   "11": 40
+  },
+  "total_features": 40
+ },
+ {
+  "condition_id": "subset_tail_L11_03",
+  "label": "L11: random 40 of causal ranks 201-1000",
+  "kind": "sae",
+  "features_per_layer": {
+   "11": 40
+  },
+  "total_features": 40
+ },
+ {
+  "condition_id": "subset_tail_L11_04",
+  "label": "L11: random 40 of causal ranks 201-1000",
+  "kind": "sae",
+  "features_per_layer": {
+   "11": 40
+  },
+  "total_features": 40
+ },
+ {
+  "condition_id": "subset_tail_L11_05",
+  "label": "L11: random 40 of causal ranks 201-1000",
+  "kind": "sae",
+  "features_per_layer": {
+   "11": 40
+  },
+  "total_features": 40
+ },
+ {
+  "condition_id": "subset_tail_L11_06",
+  "label": "L11: random 40 of causal ranks 201-1000",
+  "kind": "sae",
+  "features_per_layer": {
+   "11": 40
+  },
+  "total_features": 40
+ },
+ {
+  "condition_id": "subset_tail_L11_07",
+  "label": "L11: random 40 of causal ranks 201-1000",
+  "kind": "sae",
+  "features_per_layer": {
+   "11": 40
+  },
+  "total_features": 40
+ },
+ {
+  "condition_id": "subset_tail_L11_08",
+  "label": "L11: random 40 of causal ranks 201-1000",
+  "kind": "sae",
+  "features_per_layer": {
+   "11": 40
+  },
+  "total_features": 40
+ },
+ {
+  "condition_id": "subset_tail_L11_09",
+  "label": "L11: random 40 of causal ranks 201-1000",
+  "kind": "sae",
+  "features_per_layer": {
+   "11": 40
+  },
+  "total_features": 40
+ },
+ {
+  "condition_id": "subset_tail_L11_10",
+  "label": "L11: random 40 of causal ranks 201-1000",
+  "kind": "sae",
+  "features_per_layer": {
+   "11": 40
+  },
+  "total_features": 40
+ },
+ {
+  "condition_id": "subset_tail_L11_11",
+  "label": "L11: random 40 of causal ranks 201-1000",
+  "kind": "sae",
+  "features_per_layer": {
+   "11": 40
+  },
+  "total_features": 40
+ }
+]
