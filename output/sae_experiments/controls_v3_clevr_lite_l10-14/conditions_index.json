@@ -1,217 +1,352 @@
 [
  {
-  "condition_id": "subset_top200_L11_00",
-  "label": "L11: random 40 of causal ranks 1-200",
+  "condition_id": "grad_causal_only_L10",
+  "label": "L10: 42 features causal-only",
   "kind": "sae",
   "features_per_layer": {
-   "11": 40
+   "10": 42
+  },
+  "total_features": 42
+ },
+ {
+  "condition_id": "grad_act_only_L10",
+  "label": "L10: 42 features activation-only",
+  "kind": "sae",
+  "features_per_layer": {
+   "10": 42
+  },
+  "total_features": 42
+ },
+ {
+  "condition_id": "grad_shared_L10",
+  "label": "L10: 158 features in both rankings",
+  "kind": "sae",
+  "features_per_layer": {
+   "10": 158
+  },
+  "total_features": 158
+ },
+ {
+  "condition_id": "grad_causal_only_L12",
+  "label": "L12: 57 features causal-only",
+  "kind": "sae",
+  "features_per_layer": {
+   "12": 57
+  },
+  "total_features": 57
+ },
+ {
+  "condition_id": "grad_act_only_L12",
+  "label": "L12: 57 features activation-only",
+  "kind": "sae",
+  "features_per_layer": {
+   "12": 57
+  },
+  "total_features": 57
+ },
+ {
+  "condition_id": "grad_shared_L12",
+  "label": "L12: 143 features in both rankings",
+  "kind": "sae",
+  "features_per_layer": {
+   "12": 143
+  },
+  "total_features": 143
+ },
+ {
+  "condition_id": "grad_causal_only_L13",
+  "label": "L13: 53 features causal-only",
+  "kind": "sae",
+  "features_per_layer": {
+   "13": 53
+  },
+  "total_features": 53
+ },
+ {
+  "condition_id": "grad_act_only_L13",
+  "label": "L13: 53 features activation-only",
+  "kind": "sae",
+  "features_per_layer": {
+   "13": 53
+  },
+  "total_features": 53
+ },
+ {
+  "condition_id": "grad_shared_L13",
+  "label": "L13: 147 features in both rankings",
+  "kind": "sae",
+  "features_per_layer": {
+   "13": 147
+  },
+  "total_features": 147
+ },
+ {
+  "condition_id": "dose_L10_r0_40",
+  "label": "L10 causal ranks 1-40",
+  "kind": "sae",
+  "features_per_layer": {
+   "10": 40
   },
   "total_features": 40
  },
  {
-  "condition_id": "subset_top200_L11_01",
-  "label": "L11: random 40 of causal ranks 1-200",
+  "condition_id": "dose_L10_r40_80",
+  "label": "L10 causal ranks 41-80",
   "kind": "sae",
   "features_per_layer": {
-   "11": 40
+   "10": 40
   },
   "total_features": 40
  },
  {
-  "condition_id": "subset_top200_L11_02",
-  "label": "L11: random 40 of causal ranks 1-200",
+  "condition_id": "dose_L10_r80_120",
+  "label": "L10 causal ranks 81-120",
   "kind": "sae",
   "features_per_layer": {
-   "11": 40
+   "10": 40
   },
   "total_features": 40
  },
  {
-  "condition_id": "subset_top200_L11_03",
-  "label": "L11: random 40 of causal ranks 1-200",
+  "condition_id": "dose_L10_r120_160",
+  "label": "L10 causal ranks 121-160",
   "kind": "sae",
   "features_per_layer": {
-   "11": 40
+   "10": 40
   },
   "total_features": 40
  },
  {
-  "condition_id": "subset_top200_L11_04",
-  "label": "L11: random 40 of causal ranks 1-200",
+  "condition_id": "dose_L10_r160_200",
+  "label": "L10 causal ranks 161-200",
   "kind": "sae",
   "features_per_layer": {
-   "11": 40
+   "10": 40
   },
   "total_features": 40
  },
  {
-  "condition_id": "subset_top200_L11_05",
-  "label": "L11: random 40 of causal ranks 1-200",
+  "condition_id": "dose_L10_r200_240",
+  "label": "L10 causal ranks 201-240",
   "kind": "sae",
   "features_per_layer": {
-   "11": 40
+   "10": 40
   },
   "total_features": 40
  },
  {
-  "condition_id": "subset_top200_L11_06",
-  "label": "L11: random 40 of causal ranks 1-200",
+  "condition_id": "dose_L10_r240_280",
+  "label": "L10 causal ranks 241-280",
   "kind": "sae",
   "features_per_layer": {
-   "11": 40
+   "10": 40
   },
   "total_features": 40
  },
  {
-  "condition_id": "subset_top200_L11_07",
-  "label": "L11: random 40 of causal ranks 1-200",
+  "condition_id": "dose_L10_r280_320",
+  "label": "L10 causal ranks 281-320",
   "kind": "sae",
   "features_per_layer": {
-   "11": 40
+   "10": 40
   },
   "total_features": 40
  },
  {
-  "condition_id": "subset_top200_L11_08",
-  "label": "L11: random 40 of causal ranks 1-200",
+  "condition_id": "dose_L10_r320_360",
+  "label": "L10 causal ranks 321-360",
   "kind": "sae",
   "features_per_layer": {
-   "11": 40
+   "10": 40
   },
   "total_features": 40
  },
  {
-  "condition_id": "subset_top200_L11_09",
-  "label": "L11: random 40 of causal ranks 1-200",
+  "condition_id": "dose_L10_r360_400",
+  "label": "L10 causal ranks 361-400",
   "kind": "sae",
   "features_per_layer": {
-   "11": 40
+   "10": 40
   },
   "total_features": 40
  },
  {
-  "condition_id": "subset_top200_L11_10",
-  "label": "L11: random 40 of causal ranks 1-200",
+  "condition_id": "dose_L12_r0_40",
+  "label": "L12 causal ranks 1-40",
   "kind": "sae",
   "features_per_layer": {
-   "11": 40
+   "12": 40
   },
   "total_features": 40
  },
  {
-  "condition_id": "subset_top200_L11_11",
-  "label": "L11: random 40 of causal ranks 1-200",
+  "condition_id": "dose_L12_r40_80",
+  "label": "L12 causal ranks 41-80",
   "kind": "sae",
   "features_per_layer": {
-   "11": 40
+   "12": 40
   },
   "total_features": 40
  },
  {
-  "condition_id": "subset_tail_L11_00",
-  "label": "L11: random 40 of causal ranks 201-1000",
+  "condition_id": "dose_L12_r80_120",
+  "label": "L12 causal ranks 81-120",
   "kind": "sae",
   "features_per_layer": {
-   "11": 40
+   "12": 40
   },
   "total_features": 40
  },
  {
-  "condition_id": "subset_tail_L11_01",
-  "label": "L11: random 40 of causal ranks 201-1000",
+  "condition_id": "dose_L12_r120_160",
+  "label": "L12 causal ranks 121-160",
   "kind": "sae",
   "features_per_layer": {
-   "11": 40
+   "12": 40
   },
   "total_features": 40
  },
  {
-  "condition_id": "subset_tail_L11_02",
-  "label": "L11: random 40 of causal ranks 201-1000",
+  "condition_id": "dose_L12_r160_200",
+  "label": "L12 causal ranks 161-200",
   "kind": "sae",
   "features_per_layer": {
-   "11": 40
+   "12": 40
   },
   "total_features": 40
  },
  {
-  "condition_id": "subset_tail_L11_03",
-  "label": "L11: random 40 of causal ranks 201-1000",
+  "condition_id": "dose_L12_r200_240",
+  "label": "L12 causal ranks 201-240",
   "kind": "sae",
   "features_per_layer": {
-   "11": 40
+   "12": 40
   },
   "total_features": 40
  },
  {
-  "condition_id": "subset_tail_L11_04",
-  "label": "L11: random 40 of causal ranks 201-1000",
+  "condition_id": "dose_L12_r240_280",
+  "label": "L12 causal ranks 241-280",
   "kind": "sae",
   "features_per_layer": {
-   "11": 40
+   "12": 40
   },
   "total_features": 40
  },
  {
-  "condition_id": "subset_tail_L11_05",
-  "label": "L11: random 40 of causal ranks 201-1000",
+  "condition_id": "dose_L12_r280_320",
+  "label": "L12 causal ranks 281-320",
   "kind": "sae",
   "features_per_layer": {
-   "11": 40
+   "12": 40
   },
   "total_features": 40
  },
  {
-  "condition_id": "subset_tail_L11_06",
-  "label": "L11: random 40 of causal ranks 201-1000",
+  "condition_id": "dose_L12_r320_360",
+  "label": "L12 causal ranks 321-360",
   "kind": "sae",
   "features_per_layer": {
-   "11": 40
+   "12": 40
   },
   "total_features": 40
  },
  {
-  "condition_id": "subset_tail_L11_07",
-  "label": "L11: random 40 of causal ranks 201-1000",
+  "condition_id": "dose_L12_r360_400",
+  "label": "L12 causal ranks 361-400",
   "kind": "sae",
   "features_per_layer": {
-   "11": 40
+   "12": 40
   },
   "total_features": 40
  },
  {
-  "condition_id": "subset_tail_L11_08",
-  "label": "L11: random 40 of causal ranks 201-1000",
+  "condition_id": "dose_L13_r0_40",
+  "label": "L13 causal ranks 1-40",
   "kind": "sae",
   "features_per_layer": {
-   "11": 40
+   "13": 40
   },
   "total_features": 40
  },
  {
-  "condition_id": "subset_tail_L11_09",
-  "label": "L11: random 40 of causal ranks 201-1000",
+  "condition_id": "dose_L13_r40_80",
+  "label": "L13 causal ranks 41-80",
   "kind": "sae",
   "features_per_layer": {
-   "11": 40
+   "13": 40
   },
   "total_features": 40
  },
  {
-  "condition_id": "subset_tail_L11_10",
-  "label": "L11: random 40 of causal ranks 201-1000",
+  "condition_id": "dose_L13_r80_120",
+  "label": "L13 causal ranks 81-120",
   "kind": "sae",
   "features_per_layer": {
-   "11": 40
+   "13": 40
   },
   "total_features": 40
  },
  {
-  "condition_id": "subset_tail_L11_11",
-  "label": "L11: random 40 of causal ranks 201-1000",
+  "condition_id": "dose_L13_r120_160",
+  "label": "L13 causal ranks 121-160",
   "kind": "sae",
   "features_per_layer": {
-   "11": 40
+   "13": 40
+  },
+  "total_features": 40
+ },
+ {
+  "condition_id": "dose_L13_r160_200",
+  "label": "L13 causal ranks 161-200",
+  "kind": "sae",
+  "features_per_layer": {
+   "13": 40
+  },
+  "total_features": 40
+ },
+ {
+  "condition_id": "dose_L13_r200_240",
+  "label": "L13 causal ranks 201-240",
+  "kind": "sae",
+  "features_per_layer": {
+   "13": 40
+  },
+  "total_features": 40
+ },
+ {
+  "condition_id": "dose_L13_r240_280",
+  "label": "L13 causal ranks 241-280",
+  "kind": "sae",
+  "features_per_layer": {
+   "13": 40
+  },
+  "total_features": 40
+ },
+ {
+  "condition_id": "dose_L13_r280_320",
+  "label": "L13 causal ranks 281-320",
+  "kind": "sae",
+  "features_per_layer": {
+   "13": 40
+  },
+  "total_features": 40
+ },
+ {
+  "condition_id": "dose_L13_r320_360",
+  "label": "L13 causal ranks 321-360",
+  "kind": "sae",
+  "features_per_layer": {
+   "13": 40
+  },
+  "total_features": 40
+ },
+ {
+  "condition_id": "dose_L13_r360_400",
+  "label": "L13 causal ranks 361-400",
+  "kind": "sae",
+  "features_per_layer": {
+   "13": 40
   },
   "total_features": 40
  }

@@ -330,14 +330,17 @@ def multi_layer_conditions(rankings):
     return conditions
 
 
-def build_conditions(rankings, stats, phases):
+def build_conditions(rankings, stats, phases, layers=None):
+    """``layers`` restricts the gradient and dose-response families; the
+    single-layer and multi-layer families always span every available layer."""
+    layers = tuple(layers) if layers else (11, 14)
     conditions = []
     if "single" in phases:
         conditions += single_layer_conditions(rankings, stats)
     if "gradient" in phases:
-        conditions += gradient_isolation_conditions(rankings)
+        conditions += gradient_isolation_conditions(rankings, layers=layers)
     if "doseresponse" in phases:
-        conditions += dose_response_conditions(rankings)
+        conditions += dose_response_conditions(rankings, layers=layers)
     if "subsets" in phases:
         conditions += subset_conditions(rankings)
     if "multi" in phases:
@@ -385,6 +388,8 @@ def main():
     parser.add_argument("--phases", default="single",
                         help=f"comma-separated from {list(PHASES)}, or 'all'")
     parser.add_argument("--conditions", default=None, help="comma-separated condition ids")
+    parser.add_argument("--layers", default=None,
+                        help="comma-separated layers for the gradient and doseresponse phases")
     parser.add_argument("--max_samples", type=int, default=256)
     parser.add_argument("--experiment_dir", default=None)
     parser.add_argument("--experiment_name", default="controls_v3_clevr_lite_l10-14")
@@ -409,7 +414,9 @@ def main():
     if missing:
         log(f"WARNING: no stats for layers {missing}; their conditions are skipped")
 
-    conditions = build_conditions(rankings, stats, phases)
+    wanted_layers = ([int(x) for x in args.layers.split(",") if x.strip()]
+                     if args.layers else None)
+    conditions = build_conditions(rankings, stats, phases, layers=wanted_layers)
     if args.conditions:
         wanted = {c.strip() for c in args.conditions.split(",")}
         conditions = [c for c in conditions if c.condition_id in wanted]
