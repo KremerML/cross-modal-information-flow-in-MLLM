@@ -1,0 +1,165 @@
+% Related-work bibliography -- round 2, prepared 2026-09-21.
+% Rebuilt from scratch; supersedes the round-1 bib (see docs/related-work_deprecated.md).
+%
+% Every entry was verified by fetching the source recorded on its "% verified:" line on
+% 2026-09-21. No entry is written from recall: all 26xx arXiv identifiers postdate the
+% assistant's knowledge cutoff, and the round-1 failure mode was entries whose metadata was
+% never checked (nine of twenty-two SAE-side entries had no author field).
+%
+% Gate verdicts follow docs/literature-review-guidelines.md, with the round-2 amendment to
+% gate 2: text-only LLM work is in scope when its claim is about the intervention -- validity,
+% faithfulness, completeness, calibration -- rather than about a model's mechanism.
+%
+% Entries already in overleaf/refs.bib are not duplicated here.
+
+% ================================================================ intervention validity
+
+% verified: https://export.arxiv.org/api/query?id_list=2407.08734 (comment: "CoLM 2024
+%   Conference Paper"), 2026-09-21
+% gates: 1 peer-reviewed COLM 2024 / 2 in scope, claim is about the ablation not the model /
+%   3 current, no successor on ablation-axis sensitivity / 4 R's numerator is node-level and
+%   its denominator edge-level, an axis they show is not neutral
+@inproceedings{miller2024faithfulness,
+  title     = {Transformer Circuit Faithfulness Metrics are not Robust},
+  author    = {Miller, Joseph and Chughtai, Bilal and Saunders, William},
+  booktitle = {Conference on Language Modeling (COLM)},
+  year      = {2024},
+  eprint    = {2407.08734},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.LG}
+}
+
+% verified: https://proceedings.mlr.press/v267/wu25a.html ; arXiv abs 2501.17148, 2026-09-21
+% gates: 1 peer-reviewed ICML 2025, Stanford NLP / 2 in scope, claim is about method
+%   comparison / 3 current / 4 sets the field's control bar above random features
+@inproceedings{wu2025axbench,
+  title     = {{AxBench}: Steering {LLMs}? Even Simple Baselines Outperform Sparse Autoencoders},
+  author    = {Wu, Zhengxuan and Arora, Aryaman and Geiger, Atticus and Wang, Zheng and
+               Huang, Jing and Jurafsky, Dan and Manning, Christopher D. and Potts, Christopher},
+  booktitle = {International Conference on Machine Learning (ICML)},
+  series    = {PMLR},
+  volume    = {267},
+  year      = {2025},
+  eprint    = {2501.17148},
+  archivePrefix = {arXiv}
+}
+
+% verified: https://proceedings.mlr.press/v267/kantamneni25a.html (PMLR 267:29018--29049),
+%   2026-09-21
+% gates: 1 peer-reviewed ICML 2025, MIT and Google DeepMind / 2 in scope, claim is about
+%   whether the dictionary earns its place / 3 current / 4 second data point for the
+%   external-standard argument; cited inside the AxBench entry, not separately reported
+@inproceedings{kantamneni2025saeprobing,
+  title     = {Are Sparse Autoencoders Useful? A Case Study in Sparse Probing},
+  author    = {Kantamneni, Subhash and Engels, Joshua and Rajamanoharan, Senthooran and
+               Tegmark, Max and Nanda, Neel},
+  booktitle = {International Conference on Machine Learning (ICML)},
+  series    = {PMLR},
+  volume    = {267},
+  pages     = {29018--29049},
+  year      = {2025},
+  eprint    = {2502.16681},
+  archivePrefix = {arXiv}
+}
+
+% verified: https://export.arxiv.org/api/query?id_list=2503.09532 (comment: "Accepted to
+%   ICML 2025 main conference"), 2026-09-21
+% gates: 1 peer-reviewed ICML 2025 / 2 in scope, an evaluation suite / 3 current / 4 its
+%   eight metrics are the evidence that no model-centric causal ceiling exists in the field's
+%   own benchmark -- the novelty claim is argued against this list by name
+@inproceedings{karvonen2025saebench,
+  title     = {{SAEBench}: A Comprehensive Benchmark for Sparse Autoencoders in Language
+               Model Interpretability},
+  author    = {Karvonen, Adam and Rager, Can and Lin, Johnny and Tigges, Curt and
+               Bloom, Joseph and Chanin, David and Lau, Yeu-Tong and Farrell, Eoin and
+               McDougall, Callum and Ayonrinde, Kola and Till, Demian and Wearden, Matthew and
+               Conmy, Arthur and Marks, Samuel and Nanda, Neel},
+  booktitle = {International Conference on Machine Learning (ICML)},
+  year      = {2025},
+  eprint    = {2503.09532},
+  archivePrefix = {arXiv}
+}
+
+% ================================================================ what a selected feature set is
+
+% verified: https://export.arxiv.org/api/query?id_list=2502.04878 (comment: "Accepted to
+%   ICLR 2025"), 2026-09-21
+% gates: 1 peer-reviewed ICLR 2025 / 2 in scope, claim is about what a dictionary contains /
+%   3 current / 4 completeness is a property of width, so our fixed-width budget curve cannot
+%   test it
+@inproceedings{leask2025canonical,
+  title     = {Sparse Autoencoders Do Not Find Canonical Units of Analysis},
+  author    = {Leask, Patrick and Bussmann, Bart and Pearce, Michael and Bloom, Joseph and
+               Tigges, Curt and Al Moubayed, Noura and Sharkey, Lee and Nanda, Neel},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2025},
+  eprint    = {2502.04878},
+  archivePrefix = {arXiv}
+}
+
+% verified: https://export.arxiv.org/api/query?id_list=2606.12138 ; published 2026-06-10,
+%   2026-09-21
+% gates: 1 preprint, T-Tech research group (Balagansky and Gavrilov, authors of SAE Match
+%   2410.07656) -- identifiable affiliation and track record / 2 in scope, claim is about
+%   whether a selected feature set is reproducible / 3 current / 4 names a mechanism for our
+%   budget ceiling that matches our own rank-band result
+@article{gerasimov2026seeddependence,
+  title   = {Unstable Features, Reproducible Subspaces: Understanding Seed Dependence in
+             Sparse Autoencoders},
+  author  = {Gerasimov, Gleb and Rusalev, Timofei and Balagansky, Nikita and Laptev, Daniil and
+             Kurochkin, Vadim and Gavrilov, Daniil},
+  journal = {arXiv preprint arXiv:2606.12138},
+  year    = {2026},
+  eprint  = {2606.12138},
+  archivePrefix = {arXiv}
+}
+
+% verified: https://export.arxiv.org/api/query?id_list=2606.06267 ; v1 2026-06-04,
+%   v2 2026-08-26, 2026-09-21
+% gates: 1 preprint, UKP Lab TU Darmstadt and ATHENE (Gurevych) / 2 in scope, claim is about
+%   what circuit structure licenses / 3 current, v2 is three weeks old / 4 our distribution
+%   reading rests partly on a structural comparison they show is not sufficient
+@article{bayatmakou2026manycircuits,
+  title   = {Many Circuits, One Mechanism: Input Variation and Evaluation Granularity in
+             Circuit Discovery},
+  author  = {Bayat Makou, Alireza and Niu, Jingcheng and Dutta, Subhabrata and
+             Gurevych, Iryna},
+  journal = {arXiv preprint arXiv:2606.06267},
+  year    = {2026},
+  eprint  = {2606.06267},
+  archivePrefix = {arXiv}
+}
+
+% verified: https://export.arxiv.org/api/query?id_list=2607.24645 ; published 2026-07-27,
+%   2026-09-21
+% gates: 1 preprint, UKP Lab TU Darmstadt and IIT Delhi / 2 in scope, claim is about the
+%   geometry of intervention effects / 3 current / 4 a competing account of the ceiling:
+%   added features have diffuse, non-aligned effects that do not accumulate
+@article{hoang2026fega,
+  title   = {Sparse Autoencoders Encode Both Concepts and Functions: The Downstream Geometry
+             of Feature Effects},
+  author  = {Hoang, Phu Gia and Chatterjee, Anwoy and Chakraborty, Tanmoy and
+             Gurevych, Iryna and Dutta, Subhabrata},
+  journal = {arXiv preprint arXiv:2607.24645},
+  year    = {2026},
+  eprint  = {2607.24645},
+  archivePrefix = {arXiv}
+}
+
+% ================================================================ in-modality
+
+% verified: https://arxiv.org/abs/2607.03358 ; published 2026-07-03, 2026-09-21
+% gates: 1 preprint, University of Copenhagen and DTU (Elliott, Frank, Fierro) / 2 in scope,
+%   image-text VLMs, attention knockout and patching / 3 current / 4 pathway substitution is
+%   a live alternative to our distribution reading
+% Carried forward from round 1 -- the only round-1 entry to survive the gates.
+@article{salazar2026pathways,
+  title   = {Pathways of Visual Information Flow in Vision-Language Models},
+  author  = {Salazar, Israfel and Frank, Stella and Oneata, Dan and Elliott, Desmond and
+             Fierro, Constanza},
+  journal = {arXiv preprint arXiv:2607.03358},
+  year    = {2026},
+  eprint  = {2607.03358},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.CV}
+}

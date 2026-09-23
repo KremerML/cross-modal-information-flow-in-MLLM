@@ -4,7 +4,7 @@ from torch import nn
 from torch.utils.data import DataLoader, Dataset
 
 from sae_experiments.feature_analysis.feature_identifier import FeatureIdentifier
-from sae_experiments.models.sparse_autoencoder import SparseAutoencoder
+from sae_experiments.core.sparse_autoencoder import SparseAutoencoder
 
 
 class DummyDataset(Dataset):

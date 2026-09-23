@@ -12,19 +12,15 @@ except ImportError:
     IMAGE_TOKEN_INDEX = -200
 
 from sae_experiments.utils import token_utils
-from sae_experiments.utils.hook_utils import HookManager, get_target_module
-from sae_experiments.utils.knockout_utils import estimate_image_token_count, sequence_logprob
+from sae_experiments.hooks.hook_utils import HookManager, get_target_module
+from sae_experiments.hooks.knockout_utils import estimate_image_token_count, sequence_logprob
 
-try:
-    from methods import remove_wrapper_llava, set_block_attn_hooks_llava
-except Exception:  # pragma: no cover - fallback for lightweight test environments
-    def set_block_attn_hooks_llava(model, block_config):
-        raise RuntimeError(
-            "Attention blocking hooks are unavailable because methods.py dependencies failed to import."
-        )
+from sae_experiments.hooks.attention_hooks import remove_wrapper_llava, set_block_attn_hooks_llava
 
-    def remove_wrapper_llava(model, hooks):
-        return None
+
+# `None` is a legitimate resolved positions value meaning "every position", so a cache miss
+# needs a sentinel distinct from it.
+_POSITIONS_UNCACHED = object()
 
 
 class FeatureAblator:
@@ -46,18 +42,33 @@ class FeatureAblator:
         operation: str = "zero",
         operation_scale: float = 1.0,
         diagnostics_buffer: Optional[List[Dict[str, float]]] = None,
+        sae=None,
+        diagnostics_tag: Optional[int] = None,
+        encode_positions_only: bool = False,
     ):
+        # `sae` lets a multi-layer ablator drive one hook per layer with that layer's own
+        # dictionary; `diagnostics_tag` records which layer a diagnostics entry came from.
+        # Both default to the single-layer behaviour.
+        sae = self.sae if sae is None else sae
         feature_indices = torch.tensor(feature_indices, dtype=torch.long)
 
         def hook(module, inputs, output):
             acts = output[0] if isinstance(output, (tuple, list)) else output
-            sae_param = next(self.sae.parameters())
+            sae_param = next(sae.parameters())
             acts_dtype = acts.dtype
             acts_device = acts.device
             sae_device = sae_param.device
             sae_dtype = sae_param.dtype
-            acts_for_sae = acts.to(device=sae_device, dtype=sae_dtype)
-            feats_full = self.sae.encode(acts_for_sae)
+
+            # The encoder is row-wise, so encoding only the positions we will write back
+            # gives identical values there at a fraction of the memory and FLOPs. Both
+            # modes discard everything outside `positions` anyway. Off by default so the
+            # single-layer path stays exactly as it was.
+            slice_positions = bool(encode_positions_only and positions)
+            work = acts[:, positions, :] if slice_positions else acts
+
+            acts_for_sae = work.to(device=sae_device, dtype=sae_dtype)
+            feats_full = sae.encode(acts_for_sae)
             idx = feature_indices.to(feats_full.device)
             feats_mod = feats_full.clone()
             op = str(operation).lower()
@@ -69,34 +80,43 @@ class FeatureAblator:
                 feats_mod[:, idx] = 0.0
 
             if mode == "replace":
-                recon_mod = self.sae.decode(feats_mod, target_shape=acts.shape)
-                out = recon_mod.to(device=acts_device, dtype=acts_dtype)
-                out = self._apply_positions(acts, out, positions)
+                recon_mod = sae.decode(feats_mod, target_shape=work.shape)
+                recon_mod = recon_mod.to(device=acts_device, dtype=acts_dtype)
+                if slice_positions:
+                    out = acts.clone()
+                    out[:, positions, :] = recon_mod
+                else:
+                    out = self._apply_positions(acts, recon_mod, positions)
             else:
-                recon_full = self.sae.decode(feats_full, target_shape=acts.shape)
-                recon_mod = self.sae.decode(feats_mod, target_shape=acts.shape)
+                recon_full = sae.decode(feats_full, target_shape=work.shape)
+                recon_mod = sae.decode(feats_mod, target_shape=work.shape)
                 delta = (recon_mod - recon_full).to(device=acts_device, dtype=acts_dtype)
                 if delta_scale != 1.0:
                     delta = delta * delta_scale
-                if positions:
-                    mask = torch.zeros_like(acts, dtype=delta.dtype, device=acts_device)
-                    mask[:, positions, :] = 1.0
-                    delta = delta * mask
-                out = acts + delta
+                if slice_positions:
+                    out = acts.clone()
+                    out[:, positions, :] = out[:, positions, :] + delta
+                else:
+                    if positions:
+                        mask = torch.zeros_like(acts, dtype=delta.dtype, device=acts_device)
+                        mask[:, positions, :] = 1.0
+                        delta = delta * mask
+                    out = acts + delta
 
             if diagnostics_buffer is not None:
                 delta_tensor = (out - acts).detach().float()
                 acts_tensor = acts.detach().float()
                 delta_norm = torch.linalg.norm(delta_tensor, dim=-1).mean().item()
                 acts_norm = torch.linalg.norm(acts_tensor, dim=-1).mean().item()
-                diagnostics_buffer.append(
-                    {
-                        "delta_norm": float(delta_norm),
-                        "acts_norm": float(acts_norm),
-                        "relative_norm": float(delta_norm / (acts_norm + 1e-8)),
-                        "affected_tokens": float(len(positions) if positions else acts.shape[1]),
-                    }
-                )
+                entry = {
+                    "delta_norm": float(delta_norm),
+                    "acts_norm": float(acts_norm),
+                    "relative_norm": float(delta_norm / (acts_norm + 1e-8)),
+                    "affected_tokens": float(len(positions) if positions else acts.shape[1]),
+                }
+                if diagnostics_tag is not None:
+                    entry["layer"] = int(diagnostics_tag)
+                diagnostics_buffer.append(entry)
 
             if isinstance(output, tuple):
                 return (out,) + output[1:]
@@ -108,41 +128,55 @@ class FeatureAblator:
 
         return hook
 
-    def run_with_ablation(self, sample: Tuple, feature_indices: List[int], tokenizer) -> Tuple[str, float]:
-        input_ids, image_tensor, image_sizes, _, _ = sample
-        try:
-            device = next(self.model.parameters()).device
-        except StopIteration:
-            device = "cuda" if torch.cuda.is_available() else "cpu"
-        input_ids = input_ids.to(device=device)
-        image_tensor = [img.to(device=device) for img in image_tensor]
+    def _register_sae_hooks(
+        self,
+        feature_indices,
+        positions: Optional[List[int]],
+        mode: str,
+        delta_scale: float,
+        operation: str,
+        operation_scale: float,
+        diagnostics_buffer: List[Dict[str, float]],
+    ) -> List[Any]:
+        """Register the SAE ablation hooks and return their removable handles.
 
-        layer = get_target_module(self.model, self.layer_idx, self.activation_site)
-        hook = layer.register_forward_hook(self.create_ablation_hook(feature_indices))
+        Subclasses override this to hook several layers at once; the base class hooks the
+        single ``self.layer_idx``.
+        """
+        module = get_target_module(self.model, self.layer_idx, self.activation_site)
+        return [
+            module.register_forward_hook(
+                self.create_ablation_hook(
+                    feature_indices,
+                    positions=positions,
+                    mode=mode,
+                    delta_scale=delta_scale,
+                    operation=operation,
+                    operation_scale=operation_scale,
+                    diagnostics_buffer=diagnostics_buffer,
+                )
+            )
+        ]
 
-        inps = {
-            "inputs": input_ids,
-            "images": image_tensor,
-            "image_sizes": image_sizes,
-            "do_sample": False,
-            "num_beams": 1,
-            "max_new_tokens": 1,
-            "use_cache": True,
-            "return_dict_in_generate": True,
-            "output_scores": True,
-            "pad_token_id": tokenizer.eos_token_id,
+    def _summarize_diagnostics(
+        self, sample_diagnostics: List[Dict[str, float]]
+    ) -> Dict[str, Any]:
+        """Reduce the per-hook-call diagnostics of one sample to result-row fields.
+
+        Subclasses override this to add a per-layer breakdown; the base class emits the
+        four fields the single-layer result schema has always carried.
+        """
+        n = len(sample_diagnostics)
+
+        def mean(key):
+            return (sum(d[key] for d in sample_diagnostics) / n) if n else None
+
+        return {
+            "perturb_mean_delta_norm": mean("delta_norm"),
+            "perturb_mean_acts_norm": mean("acts_norm"),
+            "perturb_relative_norm": mean("relative_norm"),
+            "perturb_calls": n,
         }
-        try:
-            with torch.inference_mode():
-                output = self.model.generate(**inps)
-        finally:
-            hook.remove()
-
-        answer_token_id = output["sequences"][:, 0]
-        logits_first = output["scores"][0]
-        prob = torch.softmax(logits_first, dim=-1)[0][answer_token_id].item()
-        prediction = tokenizer.batch_decode(output["sequences"], skip_special_tokens=True)[0].strip().lower()
-        return prediction, prob
 
     def compute_baseline_cache(
         self,
@@ -202,8 +236,12 @@ class FeatureAblator:
         max_samples: Optional[int] = None,
         baseline_cache: Optional[Any] = None,
         score_options: bool = True,
+        strict_cache: bool = False,
+        positions_cache: Optional[Any] = None,
+        progress_desc: str = "Ablation",
     ) -> List[dict]:
         results = []
+        self._cache_misses = 0
         data_loader = dataset.create_dataloader()
         try:
             device = next(self.model.parameters()).device
@@ -215,7 +253,7 @@ class FeatureAblator:
             total = len(dataset.questions)
             if max_samples is not None:
                 total = min(total, max_samples)
-            iterator = tqdm(iterator, total=total, desc="Ablation")
+            iterator = tqdm(iterator, total=total, desc=progress_desc)
         for idx, (batch, line) in enumerate(iterator):
             if max_samples is not None and idx >= max_samples:
                 break
@@ -242,6 +280,16 @@ class FeatureAblator:
                 question_id=line.get("q_id"),
             )
             if baseline_record is None:
+                # A cache that was supplied but did not resolve means the cache and the
+                # dataloader disagree on sample order. Silently recomputing would make that
+                # look like a slowdown rather than a bug, so strict_cache surfaces it.
+                if baseline_cache is not None:
+                    self._cache_misses += 1
+                    if strict_cache:
+                        raise ValueError(
+                            f"baseline cache miss at sample {idx} "
+                            f"(q_id={line.get('q_id')!r}); cache and dataloader are out of sync"
+                        )
                 baseline_record = self._compute_baseline_record(
                     input_ids=input_ids,
                     image_tensor=image_tensor,
@@ -265,28 +313,39 @@ class FeatureAblator:
             true_option = dataset.dataset_dict[line["q_id"]].get("true option", "").strip()
             false_option = dataset.dataset_dict[line["q_id"]].get("false option", "").strip()
 
-            positions = self._resolve_positions(
-                position_type,
-                input_ids,
-                image_tensor,
-                image_sizes,
-                dataset,
-                line,
+            # Resolving positions runs prepare_inputs_labels_for_multimodal (a full vision-tower
+            # pass), and the answer only depends on the sample, not the condition — so a caller
+            # sweeping many conditions can resolve once and pass the result in.
+            positions = self._resolve_cached_positions(
+                positions_cache=positions_cache,
+                sample_idx=idx,
+                question_id=line.get("q_id"),
             )
-            layer = get_target_module(self.model, self.layer_idx, self.activation_site)
-            hook = None
+            if positions is _POSITIONS_UNCACHED:
+                if positions_cache is not None and strict_cache:
+                    raise ValueError(
+                        f"positions cache miss at sample {idx} "
+                        f"(q_id={line.get('q_id')!r}); cache and dataloader are out of sync"
+                    )
+                positions = self._resolve_positions(
+                    position_type,
+                    input_ids,
+                    image_tensor,
+                    image_sizes,
+                    dataset,
+                    line,
+                )
+            hooks: List[Any] = []
             sample_diagnostics: List[Dict[str, float]] = []
             if apply_sae:
-                hook = layer.register_forward_hook(
-                    self.create_ablation_hook(
-                        feature_indices,
-                        positions=positions,
-                        mode=mode,
-                        delta_scale=delta_scale,
-                        operation=operation,
-                        operation_scale=operation_scale,
-                        diagnostics_buffer=sample_diagnostics,
-                    )
+                hooks = self._register_sae_hooks(
+                    feature_indices,
+                    positions=positions,
+                    mode=mode,
+                    delta_scale=delta_scale,
+                    operation=operation,
+                    operation_scale=operation_scale,
+                    diagnostics_buffer=sample_diagnostics,
                 )
             attn_hooks = None
             resolved_block_config = attn_block_config
@@ -326,7 +385,7 @@ class FeatureAblator:
                         ablated_true_lp = None
                         ablated_false_lp = None
             finally:
-                if hook:
+                for hook in hooks:
                     hook.remove()
                 if attn_hooks:
                     remove_wrapper_llava(self.model, attn_hooks)
@@ -366,22 +425,7 @@ class FeatureAblator:
                     "ablated_true_logprob": ablated_true_lp,
                     "ablated_false_logprob": ablated_false_lp,
                     "ablated_margin": ablated_margin,
-                    "perturb_mean_delta_norm": (
-                        sum(d["delta_norm"] for d in sample_diagnostics) / len(sample_diagnostics)
-                        if sample_diagnostics
-                        else None
-                    ),
-                    "perturb_mean_acts_norm": (
-                        sum(d["acts_norm"] for d in sample_diagnostics) / len(sample_diagnostics)
-                        if sample_diagnostics
-                        else None
-                    ),
-                    "perturb_relative_norm": (
-                        sum(d["relative_norm"] for d in sample_diagnostics) / len(sample_diagnostics)
-                        if sample_diagnostics
-                        else None
-                    ),
-                    "perturb_calls": len(sample_diagnostics),
+                    **self._summarize_diagnostics(sample_diagnostics),
                     "perturb_mode": mode,
                     "perturb_operation": operation,
                     "perturb_position_count": len(positions) if positions else None,
@@ -469,6 +513,31 @@ class FeatureAblator:
             "baseline_false_logprob": baseline_false_lp,
             "baseline_margin": baseline_margin,
         }
+
+    @staticmethod
+    def _resolve_cached_positions(
+        positions_cache: Optional[Any],
+        sample_idx: int,
+        question_id: Any,
+    ) -> Any:
+        """Look up pre-resolved positions, returning ``_POSITIONS_UNCACHED`` on a miss.
+
+        Accepts either a ``{question_id: positions}`` mapping or a list indexed by sample,
+        mirroring ``_resolve_cached_baseline``.
+        """
+        if positions_cache is None:
+            return _POSITIONS_UNCACHED
+        if isinstance(positions_cache, dict):
+            if question_id in positions_cache:
+                return positions_cache[question_id]
+            if str(question_id) in positions_cache:
+                return positions_cache[str(question_id)]
+            return _POSITIONS_UNCACHED
+        if isinstance(positions_cache, list):
+            if sample_idx < 0 or sample_idx >= len(positions_cache):
+                return _POSITIONS_UNCACHED
+            return positions_cache[sample_idx]
+        return _POSITIONS_UNCACHED
 
     @staticmethod
     def _resolve_cached_baseline(

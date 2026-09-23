@@ -32,7 +32,7 @@ def setup_experiment(args, config):
     return experiment_dir, seed
 
 
-def load_llava_components(model_cfg):
+def load_llava_components(model_cfg, attn_implementation=None):
     """Load LLaVA model, tokenizer, image_processor. Return (tokenizer, model, image_processor)."""
     from llava.model.builder import load_pretrained_model
     from llava.mm_utils import get_model_name_from_path
@@ -44,7 +44,7 @@ def load_llava_components(model_cfg):
         model_cfg.get("model_base"),
         model_name,
         device_map="auto",
-        attn_implementation=None,
+        attn_implementation=attn_implementation,
     )
     model.eval()
     return tokenizer, model, image_processor
@@ -52,7 +52,7 @@ def load_llava_components(model_cfg):
 
 def load_sae(config, model, checkpoint_path):
     """Build SparseAutoencoder, load checkpoint, move to device/dtype. Return sae."""
-    from sae_experiments.models.sparse_autoencoder import SparseAutoencoder
+    from sae_experiments.core.sparse_autoencoder import SparseAutoencoder
 
     model_cfg = config.get("model", {})
     sae = SparseAutoencoder(

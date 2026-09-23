@@ -1,0 +1,31 @@
+{
+  "baseline": {
+    "baseline_accuracy": 0.848585690515807,
+    "mean_baseline_margin": 1.2581299293457768
+  },
+  "binding": {
+    "mean_margin_drop": -0.00012725954312322333,
+    "accuracy_drop": 0.0016638935108153063,
+    "baseline_accuracy": 0.848585690515807,
+    "patched_accuracy": 0.8469217970049917,
+    "t_stat": -0.639618837266967,
+    "p_value": 0.5226645673969819,
+    "cohens_d": -0.026112276106607806,
+    "n_samples": 601
+  },
+  "random": {},
+  "random_set_stats": [],
+  "significance": {},
+  "patching_settings": {
+    "knockout_layer": 0,
+    "collection_layer": 11,
+    "activation_site": "attn_out",
+    "n_features_patched": 200,
+    "n_samples": 601,
+    "features_path": "output/sae_experiments/sae_v2_layer11_attn_out_color/knockout_feature_catalog.json"
+  },
+  "meta": {
+    "seed": 42,
+    "logprob_normalize": true
+  }
+}

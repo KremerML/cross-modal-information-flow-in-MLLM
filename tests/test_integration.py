@@ -2,7 +2,7 @@ import os
 import tempfile
 import unittest
 
-from sae_experiments.config.sae_config import load_config
+from sae_experiments.core.config import load_config
 from sae_experiments.feature_analysis.feature_catalog import FeatureCatalog
 
 

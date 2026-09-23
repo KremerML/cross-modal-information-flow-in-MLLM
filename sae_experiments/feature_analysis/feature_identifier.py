@@ -1,13 +1,13 @@
 """Identify discriminative SAE features for attribute binding."""
 
 from typing import Dict, List, Optional, Tuple
-import math
 import json
 
 import numpy as np
 import torch
 
 from sae_experiments.data.activation_collector import ActivationCollector
+from sae_experiments.hooks.knockout_utils import sequence_logprob as _sequence_logprob
 
 
 class FeatureIdentifier:
@@ -53,45 +53,54 @@ class FeatureIdentifier:
         sae_param = next(self.sae.parameters())
         device = sae_param.device
         dtype = sae_param.dtype
-        activations = activations.to(device=device, dtype=dtype)
         if batch_size is None:
-            batch_size = activations.shape[0]
-        feats_list = []
-        starts = range(0, activations.shape[0], batch_size)
+            batch_size = 2048
+        n_features = self.sae.n_features
+        aggregation = str(aggregation).lower()
+
+        per_sample = []
+        per_sample_metadata: List[dict] = []
+
+        encode_batch_size = batch_size
+        total_rows = activations.shape[0]
         if show_progress:
             from tqdm import tqdm
 
-            total_batches = math.ceil(activations.shape[0] / batch_size)
-            starts = tqdm(starts, total=total_batches, desc="Encoding SAE")
-        with torch.no_grad():
-            for start in starts:
-                batch = activations[start : start + batch_size]
-                feats_list.append(self.sae.encode(batch).cpu())
-        feats = torch.cat(feats_list, dim=0).numpy()
+        sample_iter = iter(enumerate(metadata))
+        if show_progress:
+            sample_iter = tqdm(sample_iter, total=len(metadata), desc="Encoding SAE")
 
-        aggregation = str(aggregation).lower()
-        per_sample = []
-        per_sample_metadata = []
-        for meta in metadata:
-            start = meta["start_idx"]
+        for _si, meta in sample_iter:
             count = meta["count"]
             if count == 0:
                 continue
-            token_slice = feats[start : start + count]
+            start = meta["start_idx"]
+            sample_acts = activations[start : start + count]
+
+            feats_chunks = []
+            with torch.no_grad():
+                for s in range(0, count, encode_batch_size):
+                    chunk = sample_acts[s : s + encode_batch_size].to(
+                        device=device, dtype=dtype
+                    )
+                    feats_chunks.append(self.sae.encode(chunk).cpu().numpy())
+            token_feats = np.concatenate(feats_chunks, axis=0) if len(feats_chunks) > 1 else feats_chunks[0]
+
             if aggregation == "none":
-                for token_idx in range(token_slice.shape[0]):
-                    per_sample.append(token_slice[token_idx])
-                    token_meta = dict(meta)
-                    token_meta["token_position_index"] = token_idx
-                    per_sample_metadata.append(token_meta)
+                for ti in range(token_feats.shape[0]):
+                    per_sample.append(token_feats[ti])
+                    tm = dict(meta)
+                    tm["token_position_index"] = ti
+                    per_sample_metadata.append(tm)
             elif aggregation == "max":
-                per_sample.append(token_slice.max(axis=0))
+                per_sample.append(token_feats.max(axis=0))
                 per_sample_metadata.append(meta)
             else:
-                per_sample.append(token_slice.mean(axis=0))
+                per_sample.append(token_feats.mean(axis=0))
                 per_sample_metadata.append(meta)
+
         if not per_sample:
-            return np.empty((0, self.sae.n_features)), []
+            return np.empty((0, n_features)), []
         per_sample = np.stack(per_sample, axis=0)
         metadata = per_sample_metadata
 
@@ -186,32 +195,6 @@ class FeatureIdentifier:
                 "incorrect_mean": float(incorrect_mean[idx]),
                 "ratio": float(ratio_diag[idx]),
                 "diff": float(diff[idx]),
-            }
-        return features
-
-    def find_attribute_specific_features(self, attribute_type: str = "color") -> List[int]:
-        if self.feature_acts is None or self.metadata is None:
-            raise ValueError("Run compute_feature_activations first")
-
-        mask = []
-        for meta in self.metadata:
-            attr_types = {a["category"] for a in meta.get("attribute_tokens", [])}
-            mask.append(attribute_type in attr_types)
-        mask = np.array(mask, dtype=bool)
-
-        if mask.sum() == 0:
-            return []
-
-        attr_mean = self.feature_acts[mask].mean(axis=0)
-        other_mean = self.feature_acts[~mask].mean(axis=0)
-        ratio = (attr_mean + 1e-8) / (other_mean + 1e-8)
-
-        features = np.argsort(ratio)[::-1].tolist()
-        for idx in features[: min(200, len(features))]:
-            self.feature_stats[idx] = {
-                "attr_mean": float(attr_mean[idx]),
-                "other_mean": float(other_mean[idx]),
-                "ratio": float(ratio[idx]),
             }
         return features
 
@@ -372,14 +355,18 @@ class FeatureIdentifier:
             false_option = detail.get("false option", "").strip()
             if not true_option or not false_option:
                 continue
-            true_lp = self._sequence_logprob(
+            true_lp = _sequence_logprob(
+                self.model,
+                self.dataset.tokenizer,
                 input_ids,
                 image_tensor,
                 image_sizes,
                 true_option,
                 normalize=normalize,
             )
-            false_lp = self._sequence_logprob(
+            false_lp = _sequence_logprob(
+                self.model,
+                self.dataset.tokenizer,
                 input_ids,
                 image_tensor,
                 image_sizes,
@@ -395,61 +382,3 @@ class FeatureIdentifier:
                 "is_correct": true_lp > false_lp,
             }
         return results
-
-    def _sequence_logprob(
-        self,
-        input_ids,
-        image_tensor,
-        image_sizes,
-        answer_text: str,
-        normalize: bool = True,
-    ) -> Optional[float]:
-        if not answer_text:
-            return None
-        answer_ids = self.dataset.tokenizer.encode(
-            f" {answer_text.strip()}",
-            add_special_tokens=False,
-        )
-        if not answer_ids:
-            return None
-        device = input_ids.device
-        answer_tensor = torch.tensor([answer_ids], device=device, dtype=input_ids.dtype)
-        input_ids_full = torch.cat([input_ids, answer_tensor], dim=1)
-        with torch.inference_mode():
-            outputs = self.model(
-                input_ids=input_ids_full,
-                images=image_tensor,
-                image_sizes=image_sizes,
-                use_cache=False,
-            )
-        logits = outputs.logits
-        log_probs = torch.log_softmax(logits[0], dim=-1)
-        # Account for multimodal expansion (image tokens) when locating answer logits.
-        start = input_ids.shape[1]
-        if hasattr(self.model, "prepare_inputs_labels_for_multimodal"):
-            try:
-                _, _, _, _, inputs_embeds, _ = self.model.prepare_inputs_labels_for_multimodal(
-                    input_ids,
-                    None,
-                    None,
-                    None,
-                    None,
-                    image_tensor,
-                    ["image"],
-                    image_sizes=image_sizes,
-                )
-                image_dim = inputs_embeds.shape[1] - (input_ids.shape[-1] - 1)
-                start = input_ids.shape[1] + image_dim - 1
-            except Exception:
-                pass
-        token_logps = []
-        for i, tok_id in enumerate(answer_ids):
-            idx = start + i - 1
-            if idx < 0 or idx >= log_probs.shape[0]:
-                continue
-            token_logps.append(log_probs[idx, tok_id].item())
-        if not token_logps:
-            return None
-        if normalize:
-            return float(sum(token_logps) / len(token_logps))
-        return float(sum(token_logps))

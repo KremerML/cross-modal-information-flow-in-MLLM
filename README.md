@@ -1,3 +1,11 @@
+> [!IMPORTANT]
+> **ARCHIVED (frozen 2026-08-25).** Active development moved to
+> [`KremerML/vlm-flow-probe`](https://github.com/KremerML/vlm-flow-probe) — the model-agnostic,
+> adapter-based successor whose harness reproduces this repo's results (see
+> [`docs/HANDOFF.md`](docs/HANDOFF.md) for the equivalence-gate summary and the old→new module
+> map). This repo remains the authority for the published outputs (`output/`), the paper
+> (`overleaf/`), and the research log (`docs/`).
+
 # Cross-modal Information Flow in Multimodal Large Language Model
 This is the official repository for our CVPR paper: [Cross-modal Information Flow in Multimodal Large Language Models](https://arxiv.org/abs/2411.18620)
 
@@ -75,7 +83,7 @@ For the images, please download from [here](https://downloads.cs.stanford.edu/nl
 4. Run `sbatch scripts/last_position_answer_prob.sh`
 
 # SAE-based attribute binding experiments
-See `README_SAE_EXPERIMENT.md` for the SAE pipeline, configs, and scripts.
+See `CLAUDE.md` for the SAE pipeline, configs, and scripts, and `docs/CLAUDE.md` for the research log.
 
 # Visulization
 if you want to merge several lines into one figure, you can run `python vil/merge_lineplot.py`.

@@ -1,7 +1,7 @@
 import unittest
 import torch
 
-from sae_experiments.models.sparse_autoencoder import SparseAutoencoder
+from sae_experiments.core.sparse_autoencoder import SparseAutoencoder
 
 
 class TestSparseAutoencoder(unittest.TestCase):

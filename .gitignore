@@ -2,3 +2,35 @@ datasets/
 LLaVA-NeXT/
 **/sae_checkpoint.pt
 **/__pycache__/
+output/**/knockout_results.json
+output/**/checkpoint.jsonl
+**/_activation_cache/
+output/**/pipeline_log.txt
+output/**/pipeline_pid.txt
+# Multi-layer runner log. Mostly tqdm carriage-return redraws -- 1.2 MB of the 1.3 MB
+# is a progress bar rewriting itself. What it records that matters (per-condition
+# timings, control means, z) is in the condition summaries.
+output/**/run_log.txt
+.claude/scheduled_tasks.lock
+
+# Bulk result artifacts. These are distilled by tools/distill_results.py into
+# *.summary.json siblings, which ARE committed; the originals stay local.
+# See the "Artifacts not in git" section of CLAUDE.md.
+output/**/causal_feature_stats.json
+output/**/feature_stats.json
+output/**/ablation_results.json
+output/**/ablation_results_fixed.json
+output/**/ablation_v2_results.json
+# Multi-layer condition records: 16 MB of per-sample rows across a 47-condition matrix.
+# The sibling summary.json is committed and carries everything the analysis reads,
+# including the per-sample margin drops it pairs across conditions.
+output/**/conditions/*/results.json
+
+# Per-feature SAE visualizations (~1.1 MB each, 220 files). Generated art, not
+# analysis; the writeup figures live in output/sae_experiments/report_assets/.
+output/**/feature_[0-9]*.png
+
+# Orphaned MNIST download for notebooks/sae_toy_demo.ipynb, which fetches its
+# own copy to ./data with download=True. Never read from this path.
+archive/notebooks/MNIST/
+data/

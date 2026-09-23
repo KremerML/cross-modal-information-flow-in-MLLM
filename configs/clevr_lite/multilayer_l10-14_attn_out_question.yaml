@@ -1,0 +1,119 @@
+# Multi-layer SAE feature ablation across the mid-network cluster, CLEVR-Lite.
+#
+# Tests whether the 30-50% shortfall between single-layer ablation and the attention-knockout
+# ceiling is carried redundantly across layers 10-14 -- i.e. whether ablating one layer leaves
+# the model free to re-read the image downstream.
+#
+# Reuses the existing v2 causal catalogs unchanged; this varies the intervention, not the
+# feature selection. Do not label the runs "v3" -- in this repo v1/v2 denotes the
+# feature-identification generation.
+
+model:
+  name: "liuhaotian/llava-v1.5-7b"
+  d_model: 4096
+  conv_mode: "vicuna_v1"
+  model_base: null
+  activation_site: "attn_out"
+  # target_layer is meaningless here; multilayer.layers is what drives the run.
+  target_layer: 11
+
+sae:
+  n_features: 32768
+  l1_coeff: 0.0005
+
+reproducibility:
+  seed: 42
+  deterministic: true
+  benchmark: false
+
+experiment:
+  output_base: "output/sae_experiments"
+  output_dir: null
+  name: "multilayer_clevr_lite_l10-14_attn_out_question"
+  use_timestamp: false
+
+dataset:
+  format: "clevr_lite"
+  data_dir: "datasets/clevr_lite"
+  split: "val"
+  task_types: ["CLEVRLite"]
+  # Tri-state: null = both held-out and seen attribute combinations. The loader has always
+  # supported this and no pipeline script has ever passed it.
+  filter_held_out: null
+
+multilayer:
+  layers: [10, 11, 12, 13, 14]
+  excluded_layers: [0]        # dead_feature_fraction 0.742 -- the dictionary never trained
+  encode_mode: "live"
+  encode_positions_only: true
+  features_per_layer: 200
+  sae_dtype: "float32"
+
+  sae_paths:
+    10: "output/sae_experiments/sae_clevr_lite_layer10_attn_out_question/sae_checkpoint.pt"
+    11: "output/sae_experiments/sae_clevr_lite_layer11_attn_out_question/sae_checkpoint.pt"
+    12: "output/sae_experiments/sae_clevr_lite_layer12_attn_out_question/sae_checkpoint.pt"
+    13: "output/sae_experiments/sae_clevr_lite_layer13_attn_out_question/sae_checkpoint.pt"
+    14: "output/sae_experiments/sae_clevr_lite_layer14_attn_out_question/sae_checkpoint.pt"
+
+  # Layer 10 is nested one level deeper than every other layer. Deriving these paths from the
+  # experiment dir would silently yield zero features for it.
+  catalog_paths:
+    10: "output/sae_experiments/sae_clevr_lite_layer10_attn_out_question_causal/results/ablation_v2/causal_feature_catalog.json"
+    11: "output/sae_experiments/sae_clevr_lite_layer11_attn_out_question_causal/causal_feature_catalog.json"
+    12: "output/sae_experiments/sae_clevr_lite_layer12_attn_out_question_causal/causal_feature_catalog.json"
+    13: "output/sae_experiments/sae_clevr_lite_layer13_attn_out_question_causal/causal_feature_catalog.json"
+    14: "output/sae_experiments/sae_clevr_lite_layer14_attn_out_question_causal/causal_feature_catalog.json"
+
+  stats_paths:
+    10: "output/sae_experiments/sae_clevr_lite_layer10_attn_out_question_causal/results/ablation_v2/causal_feature_stats.json"
+    11: "output/sae_experiments/sae_clevr_lite_layer11_attn_out_question_causal/causal_feature_stats.json"
+    12: "output/sae_experiments/sae_clevr_lite_layer12_attn_out_question_causal/causal_feature_stats.json"
+    13: "output/sae_experiments/sae_clevr_lite_layer13_attn_out_question_causal/causal_feature_stats.json"
+    14: "output/sae_experiments/sae_clevr_lite_layer14_attn_out_question_causal/causal_feature_stats.json"
+
+conditions:
+  gate: true
+  primary: true
+  nested: [[14], [13, 14], [12, 13, 14], [11, 12, 13, 14], [10, 11, 12, 13, 14]]
+  non_nested: [[10, 12, 14], [10, 11, 12]]
+  leave_one_out: true
+  span_knockout: true
+  budget_matched:
+    spread_per_layer: 40
+    concentrated_layer: 11
+    concentrated_k: [40, 100, 200, 400, 800]
+  downstream_knockout:
+    anchor_layers: [11, 14]
+    downstream_to: 31
+  sensitivity_span: [10, 11, 12, 14]
+
+ablation:
+  n_random_features: 200
+  n_random_sets: 15
+  random_sampling: "matched"
+  position_type: "question"
+  mode: "replace"
+  delta_scale: 1.0
+  operation: "zero"
+  operation_scale: 1.0
+
+random_control:
+  n_random_sets: 15
+  sampling: "matched"
+  seed: 42
+  # NOT correct_mean. v2 stats carry only causal_score / activation_mean / gradient_mean,
+  # so matching on correct_mean silently degrades to uniform -- which is exactly what every
+  # published v2 run did, inflating its z-scores.
+  matched_metric: "activation_mean"
+  strict_matching: true
+
+knockout:
+  flows: ["Image->Question"]
+  filter_correct: false     # the ablation sample set is unfiltered; ceilings must match it
+  normalize_logprob: true
+
+evaluation:
+  significance_level: 0.05
+  primary_metric: "forced_choice_margin"
+  logprob_normalize: true
